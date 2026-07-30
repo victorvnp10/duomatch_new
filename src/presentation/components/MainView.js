@@ -242,85 +242,47 @@ export default function MainView(props) {
     const activitiesRule = activeRound.rules.minActivities;
     const challengesRule = activeRound.rules.minChallenges;
 
-    console.log("=== DEBUG CONTABILIZAÇÃO ===");
-    console.log("Rodada ativa:", activeRound.name);
-    console.log("Período da rodada:", activeRound.startDate, "até", activeRound.endDate);
-    console.log("Total de atividades:", allActivities.length);
+    const getCreationDate = (act) =>
+      act.createdAt?.toDate
+        ? act.createdAt.toDate().toISOString().slice(0, 10)
+        : act.createdAt?.slice(0, 10) || todayStr;
+
+    const wasCreatedInCurrentRound = (creationDate) =>
+      creationDate > activeRound.startDate ||
+      (creationDate === activeRound.startDate && creationDate === todayStr);
 
     if (activitiesRule) {
-      // Conta APENAS atividades que foram CRIADAS na rodada atual (hoje ou depois do início da rodada)
-      const myActivities = allActivities.filter((act) => {
-        // Ignora desafios
-        if (act.type?.startsWith("desafio")) return false;
-        
-        // Verifica se a atividade foi criada na rodada atual (não em rodadas anteriores)
-        const creationDate = act.createdAt?.toDate ? 
-          act.createdAt.toDate().toISOString().slice(0, 10) : 
-          act.createdAt?.slice(0, 10) || todayStr;
-        
-        // Só conta se foi criada HOJE ou em dias posteriores ao início da rodada
-        const wasCreatedInCurrentRound = creationDate > activeRound.startDate || 
-          (creationDate === activeRound.startDate && creationDate === todayStr);
-        
-        if (!wasCreatedInCurrentRound) {
-          console.log("Atividade ignorada (criada antes da rodada atual):", act.name, "criada em:", creationDate);
-          return false;
-        }
-        
-        // Verifica se foi confirmada por mim
-        const mySelection = act.selections?.[user.uid];
-        if (mySelection?.status !== "confirmed") return false;
+      // Conta atividades CRIADAS na rodada atual e CONFIRMADAS por cada
+      // pessoa dentro do período da rodada.
+      const countConfirmedActivities = (uid) =>
+        allActivities.filter((act) => {
+          if (act.type?.startsWith("desafio")) return false;
+          if (!wasCreatedInCurrentRound(getCreationDate(act))) return false;
 
-        // A confirmação deve ter acontecido durante a rodada
-        const confirmationDate = mySelection.date;
-        const wasConfirmedInRound = confirmationDate >= activeRound.startDate && confirmationDate <= activeRound.endDate;
-        
-        if (wasConfirmedInRound) {
-          console.log("Minha atividade contada:", act.name, "criada em:", creationDate, "confirmada em:", confirmationDate);
-        }
-        
-        return wasConfirmedInRound;
-      });
+          const selection = act.selections?.[uid];
+          if (selection?.status !== "confirmed") return false;
 
-      const partnerActivities = allActivities.filter((act) => {
-        // Ignora desafios
-        if (act.type?.startsWith("desafio")) return false;
-        
-        // Verifica se a atividade foi criada na rodada atual (não em rodadas anteriores)
-        const creationDate = act.createdAt?.toDate ? 
-          act.createdAt.toDate().toISOString().slice(0, 10) : 
-          act.createdAt?.slice(0, 10) || todayStr;
-        
-        // Só conta se foi criada HOJE ou em dias posteriores ao início da rodada
-        const wasCreatedInCurrentRound = creationDate > activeRound.startDate || 
-          (creationDate === activeRound.startDate && creationDate === todayStr);
-        
-        if (!wasCreatedInCurrentRound) {
-          return false;
-        }
-        
-        // Verifica se foi confirmada pelo parceiro
-        const partnerSelection = act.selections?.[userData.partnerId];
-        if (partnerSelection?.status !== "confirmed") return false;
+          return (
+            selection.date >= activeRound.startDate &&
+            selection.date <= activeRound.endDate
+          );
+        }).length;
 
-        // A confirmação deve ter acontecido durante a rodada
-        const confirmationDate = partnerSelection.date;
-        const wasConfirmedInRound = confirmationDate >= activeRound.startDate && confirmationDate <= activeRound.endDate;
-        
-        if (wasConfirmedInRound) {
-          console.log("Atividade do parceiro contada:", act.name, "criada em:", creationDate, "confirmada em:", confirmationDate);
-        }
-        
-        return wasConfirmedInRound;
-      });
+      // Sugestões especiais (diárias e da Hot Zone) marcadas por cada
+      // pessoa HOJE, mas que ainda não viraram um match — sem isso, uma
+      // sugestão que só uma das pessoas já marcou nunca aparecia neste
+      // painel, mesmo sendo um sinal real de engajamento. Uma vez que
+      // vira match, ela some daqui e passa a contar como atividade
+      // confirmada (o Firestore limpa as seleções da sugestão no match).
+      const countMarkedSuggestions = (uid) =>
+        [...Object.values(dailySuggestions || {}), ...Object.values(hotSuggestions || {})]
+          .filter((suggestion) => !suggestion.matched && suggestion.selections?.[uid] === "selected")
+          .length;
 
-      const myCount = myActivities.length;
-      const partnerCount = partnerActivities.length;
+      const myCount = countConfirmedActivities(user.uid) + countMarkedSuggestions(user.uid);
+      const partnerCount =
+        countConfirmedActivities(userData.partnerId) + countMarkedSuggestions(userData.partnerId);
 
-      console.log("ATIVIDADES - Eu:", myCount, "/ Meta:", activitiesRule.quantity);
-      console.log("ATIVIDADES - Parceiro:", partnerCount, "/ Meta:", activitiesRule.quantity);
-
-      // Calcula dias restantes para o ciclo
       const today = new Date(todayStr);
       const startDate = new Date(activeRound.startDate);
       const daysSinceStart = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
@@ -335,48 +297,19 @@ export default function MainView(props) {
     }
 
     if (challengesRule) {
-      // Conta desafios CRIADOS durante a rodada ativa
-      const myChallenges = allActivities.filter((act) => {
-        if (!act.type?.startsWith("desafio")) return false;
-        if (act.createdBy !== user.uid) return false;
-        
-        const activityDate = act.createdAt?.toDate ? 
-          act.createdAt.toDate().toISOString().slice(0, 10) : 
-          act.createdAt?.slice(0, 10) || todayStr;
-        
-        const isInRange = activityDate >= activeRound.startDate && activityDate <= activeRound.endDate;
-        
-        if (isInRange) {
-          console.log("Meu desafio contado:", act.name, "criado em:", activityDate);
-        }
-        
-        return isInRange;
-      });
+      // Conta desafios CRIADOS por cada pessoa durante a rodada ativa.
+      const countCreatedChallenges = (uid) =>
+        allActivities.filter((act) => {
+          if (!act.type?.startsWith("desafio")) return false;
+          if (act.createdBy !== uid) return false;
 
-      const partnerChallenges = allActivities.filter((act) => {
-        if (!act.type?.startsWith("desafio")) return false;
-        if (act.createdBy !== userData.partnerId) return false;
-        
-        const activityDate = act.createdAt?.toDate ? 
-          act.createdAt.toDate().toISOString().slice(0, 10) : 
-          act.createdAt?.slice(0, 10) || todayStr;
-        
-        const isInRange = activityDate >= activeRound.startDate && activityDate <= activeRound.endDate;
-        
-        if (isInRange) {
-          console.log("Desafio do parceiro contado:", act.name, "criado em:", activityDate);
-        }
-        
-        return isInRange;
-      });
+          const activityDate = getCreationDate(act);
+          return activityDate >= activeRound.startDate && activityDate <= activeRound.endDate;
+        }).length;
 
-      const myChallengesCount = myChallenges.length;
-      const partnerChallengesCount = partnerChallenges.length;
+      const myChallengesCount = countCreatedChallenges(user.uid);
+      const partnerChallengesCount = countCreatedChallenges(userData.partnerId);
 
-      console.log("DESAFIOS - Eu:", myChallengesCount, "/ Meta:", challengesRule.quantity);
-      console.log("DESAFIOS - Parceiro:", partnerChallengesCount, "/ Meta:", challengesRule.quantity);
-
-      // Calcula dias restantes para o ciclo
       const today = new Date(todayStr);
       const startDate = new Date(activeRound.startDate);
       const daysSinceStart = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
@@ -390,10 +323,16 @@ export default function MainView(props) {
       };
     }
 
-    console.log("=== FIM DEBUG ===");
     return result;
-  }, [activeRound, allActivities, user.uid, userData.partnerId, todayStr]);
-
+  }, [
+    activeRound,
+    allActivities,
+    dailySuggestions,
+    hotSuggestions,
+    user.uid,
+    userData.partnerId,
+    todayStr,
+  ]);
   // Separar matches de hoje dos da jornada do casal
   const todayMatches = useMemo(() => {
     const today = getTodayDateString();
@@ -758,6 +697,14 @@ export default function MainView(props) {
         {/* STREAK TRACKER */}
         <StreakTracker userData={userData} coupleData={coupleData} />
 
+        {/* DICA DO DIA (ciclo) */}
+        {!isCycleOwner && isCycleConfigured && (
+          <DailyTipCard
+            dailyInsight={dailyInsight}
+            onOpenCycleView={() => setView("cycle")}
+          />
+        )}
+
         {/* DESAFIO DIÁRIO */}
         <DailyChallenge 
           userData={userData} 
@@ -1020,14 +967,6 @@ export default function MainView(props) {
               💡 Recordações dos momentos especiais que viveram juntos!
             </div>
           </div>
-        )}
-
-        {/* DICA DO DIA (ciclo) */}
-        {!isCycleOwner && isCycleConfigured && (
-          <DailyTipCard
-            dailyInsight={dailyInsight}
-            onOpenCycleView={() => setView("cycle")}
-          />
         )}
 
         {/* SISTEMA DE CONQUISTAS */}

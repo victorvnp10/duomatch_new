@@ -75,6 +75,7 @@ export const useAuth = () => {
           const initialData = {
             uid: currentUser.uid,
             nickname: newUserData.nickname,
+            gender: newUserData.gender || "masculino",
             email: newUserData.email,
             partnerId: null,
             coupleId: null,

@@ -12,6 +12,7 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [nickname, setNickname] = useState("");
+  const [gender, setGender] = useState("masculino");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [confirmEmail, setConfirmEmail] = useState("");
@@ -57,6 +58,7 @@ function AuthPage() {
         const initialUserData = {
           uid: user.uid,
           nickname,
+          gender,
           email,
           createdAt: serverTimestamp(),
           partnerId: null,
@@ -64,7 +66,7 @@ function AuthPage() {
         };
 
         await setDoc(doc(db, "users", user.uid), initialUserData);
-        setNewUserData({ nickname, email });
+        setNewUserData({ nickname, gender, email });
       }
     } catch (err) {
       if (err.code === "auth/email-already-in-use") {
@@ -135,6 +137,35 @@ function AuthPage() {
               className={inputBaseClasses}
               required
             />
+          )}
+          {!isLogin && (
+            <div>
+              <p className="text-sm text-gray-400 mb-1">Gênero</p>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setGender("masculino")}
+                  className={`py-2 rounded-lg border transition-colors ${
+                    gender === "masculino"
+                      ? "border-yellow-400 bg-yellow-400/10 text-yellow-300"
+                      : "border-gray-600 text-gray-400 hover:border-gray-500"
+                  }`}
+                >
+                  Masculino
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setGender("feminino")}
+                  className={`py-2 rounded-lg border transition-colors ${
+                    gender === "feminino"
+                      ? "border-yellow-400 bg-yellow-400/10 text-yellow-300"
+                      : "border-gray-600 text-gray-400 hover:border-gray-500"
+                  }`}
+                >
+                  Feminino
+                </button>
+              </div>
+            </div>
           )}
           <input
             type="email"
