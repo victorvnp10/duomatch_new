@@ -117,6 +117,10 @@ export default function OnboardingView({ onFinish, setView }) {
   useLayoutEffect(() => {
     if (!currentStep.selector) {
       setHighlightProps(null);
+      // Sempre volta ao topo nos passos sem alvo (boas-vindas, telas de
+      // transição) para não herdar a posição de rolagem de um passo
+      // anterior.
+      window.scrollTo({ top: 0, behavior: "auto" });
       return;
     }
 
@@ -131,7 +135,21 @@ export default function OnboardingView({ onFinish, setView }) {
         }
       }
 
-      if (visibleElement) {
+      if (!visibleElement) {
+        setHighlightProps(null);
+        return;
+      }
+
+      // Rola o elemento para o centro da tela ANTES de medir a posição.
+      // Sem isso, um elemento mais abaixo na página (ex.: o card de
+      // Conquistas) deixava o diálogo do tour posicionado fora da área
+      // visível, enquanto o fundo escuro continuava cobrindo a tela
+      // inteira — parecia "travado", mas só precisava rolar a página.
+      visibleElement.scrollIntoView({ behavior: "auto", block: "center" });
+
+      // Mede a posição só depois da rolagem terminar (instantânea, mas
+      // ainda assim precisa de um frame para o layout se ajustar).
+      requestAnimationFrame(() => {
         const rect = visibleElement.getBoundingClientRect();
         setHighlightProps({
           top: rect.top,
@@ -139,9 +157,7 @@ export default function OnboardingView({ onFinish, setView }) {
           width: rect.width,
           height: rect.height,
         });
-      } else {
-        setHighlightProps(null);
-      }
+      });
       // Espera um pouco mais que o padrão: alguns passos trocam de tela
       // (setView acima), e o novo conteúdo precisa terminar de montar.
     }, 250);
@@ -188,6 +204,14 @@ export default function OnboardingView({ onFinish, setView }) {
         highlightProps.top + highlightProps.height + DIALOG_MARGIN
       }px`;
     }
+
+    // Trava de segurança: nunca deixa o diálogo nascer fora da área
+    // visível (ex.: telas pequenas, elemento perto da borda) — sem
+    // isso, o fundo escurecido cobre tudo mas o diálogo com os botões
+    // "Próximo"/"Pular" fica inacessível.
+    const parsedTop = parseFloat(style.top);
+    const maxTop = window.innerHeight - dialogHeight - DIALOG_MARGIN;
+    style.top = `${Math.min(Math.max(parsedTop, DIALOG_MARGIN), Math.max(maxTop, DIALOG_MARGIN))}px`;
 
     let idealLeft =
       highlightProps.left + highlightProps.width / 2 - dialogWidth / 2;
@@ -263,6 +287,14 @@ export default function OnboardingView({ onFinish, setView }) {
   return (
     <div className="fixed inset-0 z-[9980] animate-fade-in font-sans">
       {renderOverlay()}
+      <button
+        onClick={handleSkip}
+        className="fixed top-4 right-4 z-[10000] bg-gray-900/80 border border-gray-700 text-gray-300 hover:text-white rounded-full w-9 h-9 flex items-center justify-center text-lg"
+        aria-label="Fechar tutorial"
+        title="Fechar tutorial"
+      >
+        &times;
+      </button>
       <div
         ref={dialogRef}
         className="absolute max-w-sm p-5 bg-gray-900 border border-gray-700 rounded-lg shadow-2xl m-4 transition-all duration-300 z-[9999]"
