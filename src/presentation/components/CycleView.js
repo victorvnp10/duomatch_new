@@ -20,6 +20,12 @@ function DisclaimerNote() {
   );
 }
 
+/** Formata "YYYY-MM-DD" como "DD/MM". */
+function formatDayMonth(dateStr) {
+  const [, month, day] = dateStr.split("-");
+  return `${day}/${month}`;
+}
+
 /** Formulário de registro — usado por quem acompanha o próprio ciclo. */
 function CycleOwnerPanel({ cycleTracking, cycleSummary, onSave }) {
   const [lastPeriodStart, setLastPeriodStart] = useState(
@@ -63,8 +69,8 @@ function CycleOwnerPanel({ cycleTracking, cycleSummary, onSave }) {
             </span>
           </p>
           <p className="text-sm text-gray-400">
-            Janela fértil estimada: dias {cycleSummary.fertileWindow.start} a{" "}
-            {cycleSummary.fertileWindow.end} do ciclo
+            Janela fértil estimada: dias {formatDayMonth(cycleSummary.fertileWindowDates.start)}{" "}
+            a {formatDayMonth(cycleSummary.fertileWindowDates.end)}
           </p>
         </div>
       )}

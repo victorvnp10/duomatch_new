@@ -34,13 +34,30 @@ export const PHASES = {
 
 const parseDate = (dateStr) => new Date(`${dateStr}T00:00:00`);
 
+const addDays = (dateStr, days) => {
+  const date = parseDate(dateStr);
+  date.setDate(date.getDate() + days);
+  return date.toISOString().slice(0, 10);
+};
+
 const daysBetween = (laterDateStr, earlierDateStr) =>
   Math.floor((parseDate(laterDateStr) - parseDate(earlierDateStr)) / MS_PER_DAY);
 
 /**
- * Retorna o dia atual dentro do ciclo (1-indexado), considerando ciclos
- * completos já decorridos desde o último registro.
+ * Data de início do ciclo em curso — avança `lastPeriodStart` em ciclos
+ * completos até chegar ao ciclo que contém `todayStr`. Sem isso, se a
+ * pessoa não atualiza o registro a cada mês, a previsão de próxima
+ * menstruação e a janela fértil ficariam presas ao primeiro ciclo
+ * registrado.
  */
+export const getCurrentCycleStartDate = (lastPeriodStart, cycleLength, todayStr) => {
+  const daysSinceStart = daysBetween(todayStr, lastPeriodStart);
+  if (daysSinceStart < 0) return lastPeriodStart;
+  const completedCycles = Math.floor(daysSinceStart / cycleLength);
+  return addDays(lastPeriodStart, completedCycles * cycleLength);
+};
+
+/** Retorna o dia atual dentro do ciclo (1-indexado). */
 export const getCurrentCycleDay = (lastPeriodStart, cycleLength, todayStr) => {
   const daysSinceStart = daysBetween(todayStr, lastPeriodStart);
   if (daysSinceStart < 0) return 1;
@@ -68,13 +85,6 @@ export const getPhaseForDay = (cycleDay, cycleLength, periodLength) => {
   return PHASES.LUTEAL;
 };
 
-/** Data estimada do início da próxima menstruação (string YYYY-MM-DD). */
-export const getNextPeriodDate = (lastPeriodStart, cycleLength) => {
-  const next = parseDate(lastPeriodStart);
-  next.setDate(next.getDate() + cycleLength);
-  return next.toISOString().slice(0, 10);
-};
-
 /**
  * Resumo completo do ciclo para uma data de referência — usado tanto
  * pela tela de quem registra quanto pelo serviço de insights do parceiro.
@@ -85,10 +95,11 @@ export const summarizeCycle = ({
   periodLength = 5,
   todayStr,
 }) => {
+  const cycleStartDate = getCurrentCycleStartDate(lastPeriodStart, cycleLength, todayStr);
   const cycleDay = getCurrentCycleDay(lastPeriodStart, cycleLength, todayStr);
   const phase = getPhaseForDay(cycleDay, cycleLength, periodLength);
   const fertileWindow = getFertileWindow(cycleLength);
-  const nextPeriodDate = getNextPeriodDate(lastPeriodStart, cycleLength);
+  const nextPeriodDate = addDays(cycleStartDate, cycleLength);
 
   return {
     cycleDay,
@@ -96,6 +107,10 @@ export const summarizeCycle = ({
     periodLength,
     phase,
     fertileWindow,
+    fertileWindowDates: {
+      start: addDays(cycleStartDate, fertileWindow.start - 1),
+      end: addDays(cycleStartDate, fertileWindow.end - 1),
+    },
     nextPeriodDate,
     daysUntilFertileWindow: Math.max(0, fertileWindow.start - cycleDay),
     daysUntilNextPeriod: daysBetween(nextPeriodDate, todayStr),
