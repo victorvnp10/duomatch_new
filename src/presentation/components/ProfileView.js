@@ -156,6 +156,7 @@ export default function ProfileView(props) {
 
         {/* CARD DE ACESSO AO CICLO */}
         <button
+          data-tour-id="cycle-card"
           onClick={() => setView("cycle")}
           className="w-full bg-gray-800/50 border border-gray-700/50 rounded-2xl shadow-lg p-6 backdrop-blur-sm text-left hover:border-pink-500/50 transition-colors flex items-center justify-between"
         >

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { db, doc } from "../../infrastructure/firebase";
 import {
   getAuth,
@@ -54,6 +54,25 @@ export default function DuoMatchApp({ user, userData }) {
   const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false);
   const [isAddRoundModalOpen, setIsAddRoundModalOpen] = useState(false);
   const [isTourOpen, setIsTourOpen] = useState(false);
+
+  // Abre o tour automaticamente na primeira vez que este usuário acessa
+  // o app com o casal já vinculado. `onboardingCompletedBy` já existia
+  // no Firestore (gravado por handleCompleteOnboarding), mas nada lia
+  // esse campo para decidir quando abrir o tour sozinho — só abria pelo
+  // botão de Ajuda.
+  const hasAutoOpenedTour = useRef(false);
+  useEffect(() => {
+    if (hasAutoOpenedTour.current) return;
+    if (!coupleData || !user?.uid) return;
+
+    const alreadyCompleted = (coupleData.onboardingCompletedBy || []).includes(
+      user.uid
+    );
+    if (!alreadyCompleted) {
+      hasAutoOpenedTour.current = true;
+      setIsTourOpen(true);
+    }
+  }, [coupleData, user?.uid]);
   const [showHotMatchNotification, setShowHotMatchNotification] = useState(false);
   const [hotMatchedActivityName, setHotMatchedActivityName] = useState("");
   const [achievementToShow, setAchievementToShow] = useState(null);
@@ -258,7 +277,7 @@ export default function DuoMatchApp({ user, userData }) {
 
   return (
     <div className="relative min-h-screen bg-gray-900">
-      {isTourOpen && <OnboardingView onFinish={handleFinishOnboarding} />}
+      {isTourOpen && <OnboardingView onFinish={handleFinishOnboarding} setView={setView} />}
       <div className="pb-24 md:pb-0">{renderCurrentView()}
         {showHotMatchNotification && (
           <MatchNotification

@@ -1,57 +1,92 @@
 import React, { useState, useLayoutEffect, useRef } from "react";
 
-// Os seletores foram atualizados e o passo da Carteira foi adicionado.
+/**
+ * Cada passo pode declarar `view` (a tela que o app deve mostrar
+ * enquanto esse passo estiver ativo) — o tour navega de verdade pelo
+ * aplicativo, em vez de só descrever elementos que não estão na tela.
+ * Quando omitido, assume-se a última view usada.
+ */
 const tutorialSteps = [
   {
     title: "Bem-vindos à sua nova aventura! 🎉",
-    text: "O DuoMatch é o playground de vocês. Um espaço para se conectar, provocar, e transformar cada dia em uma memória inesquecível. Vamos começar?",
+    text: "O DuoMatch é o playground de vocês. Um espaço para se conectar, provocar, e transformar cada dia em uma memória inesquecível. Vamos conhecer o app juntos?",
+    view: "main",
     selector: null,
   },
   {
     title: "Tudo Começa na Rodada 🏆",
-    text: "Pensem na Rodada como uma temporada do jogo de vocês. Aqui vocês definem a duração e as regras. Todos os pontos são ganhos e usados dentro da rodada ativa!",
+    text: "O jogo só funciona de verdade com uma Rodada ativa: é ela que define a duração e as regras da disputa. Todos os pontos são ganhos e usados dentro da rodada — sem uma rodada ativa, não há placar.",
+    view: "main",
     selector: '[data-tour-id="rounds-card"]',
+    position: "bottom",
+  },
+  {
+    title: "Central de Notificações 🔔",
+    text: "Aqui aparece tudo que precisa da sua atenção: quando seu par marca uma atividade ou lança um desafio, lembretes de marcar algo no dia, e recompensas para aprovar.",
+    view: "main",
+    selector: '[data-tour-id="notification-bell"]',
     position: "bottom",
   },
   {
     title: "Atividades e Desafios",
     text: "Atividades são missões para fazer JUNTOS, onde ambos ganham pontos! Desafios são provocações: um propõe e o outro tenta cumprir para ganhar os pontos sozinho.",
+    view: "main",
     selector: '[data-tour-id="sugestoes-dia"]',
     position: "bottom",
   },
   {
     title: "Crie Seus Próprios Momentos 💡",
     text: "Use este botão para adicionar as suas próprias atividades e desafios. Surpreenda o seu par com ideias únicas!",
+    view: "main",
     selector: 'button[aria-label="Adicionar Novo Item"]',
+    position: "top",
+  },
+  {
+    title: "Conquistas 🏅",
+    text: "Cada marco do casal — primeira atividade, sequência de dias, desafios completados — vira uma conquista permanente aqui.",
+    view: "main",
+    selector: '[data-tour-id="achievements-card"]',
     position: "top",
   },
   {
     title: "A Hot Zone 🔥",
     text: "Este é o cantinho reservado de vocês. As atividades e desafios aqui são... mais íntimos. O que acontece na Hot Zone, fica na Hot Zone.",
-    selector: 'button[aria-label="Hot"]',
-    position: "top",
+    view: "main",
+    selector: '[data-tour-id="nav-hot"]',
+    position: "bottom",
   },
   {
     title: "Lista de Desejos ❤️",
     text: "Adicione presentes que você gostaria de ganhar. Seu par pode te surpreender e ainda ganhar os pontos indicados por você!",
-    selector: 'button[aria-label="Desejos"]',
-    position: "top",
+    view: "main",
+    selector: '[data-tour-id="nav-wishlist"]',
+    position: "bottom",
   },
   {
     title: "A Loja dos Sonhos 🎁",
     text: "Aqui vocês criam 'vales' e recompensas personalizadas. Usem os pontos que ganharam nas atividades para 'comprar' esses prêmios um do outro.",
-    selector: 'button[aria-label="Loja"]',
-    position: "top",
+    view: "main",
+    selector: '[data-tour-id="nav-shop"]',
+    position: "bottom",
   },
   {
     title: "Sua Carteira de Recompensas 💰",
     text: "Todas as recompensas que você compra ou vende ficam aqui. Gerencie o que você tem a receber e o que precisa 'pagar' para seu par.",
-    selector: 'button[aria-label="Carteira"]',
-    position: "top",
+    view: "main",
+    selector: '[data-tour-id="nav-wallet"]',
+    position: "bottom",
+  },
+  {
+    title: "Ciclo 🩷",
+    text: "Se uma pessoa do casal registrar o ciclo aqui, o outro recebe uma dica do dia — um insight leve sobre os melhores momentos, sem nunca ver as datas exatas.",
+    view: "profile",
+    selector: '[data-tour-id="cycle-card"]',
+    position: "bottom",
   },
   {
     title: "Tudo Pronto Para Começar!",
     text: "Agora vocês têm as chaves do reino. O último passo é criar a sua primeira Rodada para definir as regras e dar início ao jogo. Vamos lá!",
+    view: "rounds",
     selector: null,
   },
 ];
@@ -64,11 +99,20 @@ const OverlayPart = ({ style }) => (
   />
 );
 
-export default function OnboardingView({ onFinish }) {
+export default function OnboardingView({ onFinish, setView }) {
   const [stepIndex, setStepIndex] = useState(0);
   const [highlightProps, setHighlightProps] = useState(null);
   const currentStep = tutorialSteps[stepIndex];
   const dialogRef = useRef(null);
+
+  // Navega para a tela certa antes de procurar o elemento a destacar —
+  // é isso que torna o tour "dinâmico": ele mostra o app de verdade, não
+  // só textos soltos sobre elementos que podem nem estar na tela atual.
+  useLayoutEffect(() => {
+    if (currentStep.view && setView) {
+      setView(currentStep.view);
+    }
+  }, [stepIndex]);
 
   useLayoutEffect(() => {
     if (!currentStep.selector) {
@@ -98,7 +142,9 @@ export default function OnboardingView({ onFinish }) {
       } else {
         setHighlightProps(null);
       }
-    }, 150);
+      // Espera um pouco mais que o padrão: alguns passos trocam de tela
+      // (setView acima), e o novo conteúdo precisa terminar de montar.
+    }, 250);
 
     return () => clearTimeout(timer);
   }, [stepIndex, currentStep.selector]);

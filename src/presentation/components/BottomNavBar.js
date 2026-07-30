@@ -4,11 +4,11 @@ import { HeartIcon, FireIcon, GiftIcon, TagIcon, WalletIcon } from "./Icons";
 function BottomNavBar({ view, setView }) {
   // Array de itens de navegação com os 5 ícones definidos
   const navItems = [
-    { name: "Início", view: "main", icon: <HeartIcon /> },
-    { name: "Hot", view: "hot", icon: <FireIcon /> },
-    { name: "Desejos", view: "wishlist", icon: <GiftIcon /> },
-    { name: "Loja", view: "shop", icon: <TagIcon /> },
-    { name: "Carteira", view: "wallet", icon: <WalletIcon /> },
+    { name: "Início", view: "main", icon: <HeartIcon />, tourId: "nav-home" },
+    { name: "Hot", view: "hot", icon: <FireIcon />, tourId: "nav-hot" },
+    { name: "Desejos", view: "wishlist", icon: <GiftIcon />, tourId: "nav-wishlist" },
+    { name: "Loja", view: "shop", icon: <TagIcon />, tourId: "nav-shop" },
+    { name: "Carteira", view: "wallet", icon: <WalletIcon />, tourId: "nav-wallet" },
   ];
 
   return (
@@ -20,6 +20,7 @@ function BottomNavBar({ view, setView }) {
           return (
             <button
               key={item.name}
+              data-tour-id={item.tourId}
               onClick={() => setView(item.view)}
               // O aria-label é importante para acessibilidade e para o tutorial
               aria-label={item.name}

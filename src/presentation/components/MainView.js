@@ -13,6 +13,7 @@ import {
   CheckCircleIcon,
   ChallengeIcon,
   UserCircleIcon,
+  WalletIcon,
 } from "./Icons";
 import MatchItem from "./MatchItem";
 import StreakTracker from "./StreakTracker";
@@ -25,6 +26,8 @@ import CountdownTimer from "./CountdownTimer";
 import { useAchievements } from "../../application/hooks/useAchievements";
 import { useMenstrualCycle } from "../../application/hooks/useMenstrualCycle";
 import DailyTipCard from "./DailyTipCard";
+import { useNotificationCenter } from "../../application/hooks/useNotificationCenter";
+import NotificationCenter from "./NotificationCenter";
 
 const RuleProgressDisplay = ({ title, icon, ruleData, nicknames }) => {
   if (!ruleData) return null;
@@ -92,6 +95,7 @@ export default function MainView(props) {
     matches,
     allActivities,
     mySelections,
+    partnerSelections,
     rewards,
     wishlistItems,
     setView,
@@ -424,6 +428,17 @@ export default function MainView(props) {
   const { isOwner: isCycleOwner, isConfigured: isCycleConfigured, dailyInsight } =
     useMenstrualCycle({ user, userData, coupleData });
 
+  const { notifications, count: notificationCount } = useNotificationCenter({
+    user,
+    userData,
+    allActivities,
+    mySelections,
+    partnerSelections,
+    matches,
+    rewards,
+    dailyActivities,
+  });
+
   // Sistema de eventos para notificações de match
   useEffect(() => {
     const handleMatchEvent = (event) => {
@@ -530,7 +545,13 @@ export default function MainView(props) {
             >
               <UserCircleIcon className="h-6 w-6" />
             </button>
+            <NotificationCenter
+              notifications={notifications}
+              count={notificationCount}
+              setView={setView}
+            />
             <button
+              data-tour-id="nav-shop"
               onClick={() => setView("shop")}
               className="p-2 text-gray-300 hover:text-white"
               aria-label="Shop"
@@ -538,6 +559,15 @@ export default function MainView(props) {
               <TagIcon />
             </button>
             <button
+              data-tour-id="nav-wallet"
+              onClick={() => setView("wallet")}
+              className="p-2 text-gray-300 hover:text-white"
+              aria-label="Wallet"
+            >
+              <WalletIcon />
+            </button>
+            <button
+              data-tour-id="nav-rounds"
               onClick={() => setView("rounds")}
               className="p-2 text-gray-300 hover:text-white"
               aria-label="Rounds"
@@ -552,6 +582,7 @@ export default function MainView(props) {
               <CalendarIcon />
             </button>
             <button
+              data-tour-id="nav-wishlist"
               onClick={() => setView("wishlist")}
               className="p-2 text-gray-300 hover:text-white"
               aria-label="Wishlist"
@@ -559,6 +590,7 @@ export default function MainView(props) {
               <GiftIcon />
             </button>
             <button
+              data-tour-id="nav-hot"
               onClick={() => setView("hot")}
               className="p-2 text-gray-300 hover:text-red-400"
               aria-label="Hot Zone"
@@ -566,6 +598,7 @@ export default function MainView(props) {
               <FireIcon isPulsing={true} />
             </button>
             <button
+              data-tour-id="nav-help"
               onClick={handleOpenTour}
               className="p-2 text-gray-300 hover:text-white"
               aria-label="Ajuda"
@@ -587,7 +620,13 @@ export default function MainView(props) {
             >
               <UserCircleIcon className="h-6 w-6" />
             </button>
+            <NotificationCenter
+              notifications={notifications}
+              count={notificationCount}
+              setView={setView}
+            />
             <button
+              data-tour-id="nav-help"
               onClick={handleOpenTour}
               className="p-2 text-gray-300 hover:text-white"
               aria-label="Ajuda"
@@ -611,7 +650,10 @@ export default function MainView(props) {
       </header>
 
       <main className="max-w-4xl mx-auto p-4 md:p-6 space-y-8 pb-24">
-        <div className="bg-gray-800/50 border border-gray-700/50 rounded-2xl shadow-lg p-6 backdrop-blur-sm">
+        <div
+          data-tour-id="rounds-card"
+          className="bg-gray-800/50 border border-gray-700/50 rounded-2xl shadow-lg p-6 backdrop-blur-sm"
+        >
           {!activeRound ? (
             <div className="text-center">
               <h3 className="text-lg font-bold text-gray-300 mb-2">
@@ -865,7 +907,10 @@ export default function MainView(props) {
         )}
 
         {sortedSpecialSuggestions.length > 0 && (
-          <div className="bg-gray-800/50 border border-gray-700/50 rounded-2xl shadow-lg p-6 backdrop-blur-sm">
+          <div
+            data-tour-id="sugestoes-dia"
+            className="bg-gray-800/50 border border-gray-700/50 rounded-2xl shadow-lg p-6 backdrop-blur-sm"
+          >
             <h2 className="text-xl font-semibold mb-2 text-gray-200">
               Sugestões Especiais ✨
             </h2>
@@ -970,7 +1015,9 @@ export default function MainView(props) {
         )}
 
         {/* SISTEMA DE CONQUISTAS */}
-        <AchievementSystem achievements={coupleData?.achievements || []} />
+        <div data-tour-id="achievements-card">
+          <AchievementSystem achievements={coupleData?.achievements || []} />
+        </div>
       </main>
 
       {/* Notificação de Match */}

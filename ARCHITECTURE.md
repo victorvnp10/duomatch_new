@@ -198,3 +198,50 @@ próximo passo natural, seguindo o mesmo padrão usado em
 por agregado (`ActivityRepository`, `WishlistRepository`,
 `RewardRepository`) sempre que uma dessas áreas precisar de mudança —
 sem necessidade de reescrever tudo de uma vez.
+
+## Tour interativo e Central de Notificações
+
+### Tour (onboarding)
+
+O sistema de tour por spotlight já existia (`OnboardingView.js`), mas
+tinha três lacunas reais:
+
+- Os seletores `data-tour-id="rounds-card"` e
+  `data-tour-id="sugestoes-dia"` eram referenciados desde sempre, mas
+  **nunca existiam no DOM** — essas etapas nunca destacavam nada de
+  verdade, só mostravam um modal centralizado. Agora os elementos reais
+  em `MainView.js` têm esses atributos.
+- O campo `onboardingCompletedBy` já era gravado no Firestore
+  (`handleCompleteOnboarding` em `useCouple.js`), mas **nada lia esse
+  campo** — o tour só abria pelo botão de Ajuda, nunca sozinho na
+  primeira vez que alguém usava o app. `DuoMatchApp.js` agora verifica
+  isso e abre o tour automaticamente quando o usuário atual ainda não
+  está nesse array.
+- Os seletores de navegação (Hot Zone, Desejos, Loja) dependiam do
+  `aria-label`, que era **diferente entre desktop e mobile** (ex.: "Hot
+  Zone" vs "Hot") — funcionava só num dos dois. Agora usam
+  `data-tour-id` consistente nos dois layouts (`MainView.js` e
+  `BottomNavBar.js`).
+
+O tour agora também **navega de verdade entre as telas** a cada passo
+(`OnboardingView` recebe `setView` e cada passo declara sua `view`) —
+por isso consegue incluir Conquistas, Ciclo (na tela de Perfil) e a
+Central de Notificações no roteiro, e termina literalmente na tela de
+Rodadas, pronta para criar a primeira rodada.
+
+Descoberta lateral: o botão da Carteira **nunca existia na navegação
+desktop**, só no menu mobile — corrigido junto.
+
+### Central de Notificações
+
+Diferente dos toasts efêmeros que já existiam (`NotificationManager.js`
+— aparecem e somem sozinhos), a nova central (`NotificationCenter.js` +
+`application/hooks/useNotificationCenter.js`) mostra o estado ATUAL de
+pendências, calculado ao vivo a partir do que já está carregado — sem
+nenhum campo novo no Firestore e sem necessidade de "marcar como lido":
+um item some sozinho da lista assim que deixa de ser verdade.
+
+Itens cobertos: atividade que o parceiro já confirmou e você ainda não
+(exclui as que já viraram match), desafio lançado pelo parceiro ainda
+sem resposta, lembrete de marcar algo no dia (se nenhuma das sugestões
+do dia foi confirmada ainda), e recompensas aguardando sua aprovação.
