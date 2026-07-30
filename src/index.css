@@ -13,6 +13,25 @@ body {
   background-color: #1A1420;
 }
 
+/*
+ * No iPhone (com apple-mobile-web-app-status-bar-style: black-translucent
+ * no index.html), o conteúdo da página se estende por baixo do relógio/
+ * notch em vez de começar depois dele — sem isso, o cabeçalho de toda
+ * tela (todas usam a mesma tag <header>, então uma regra resolve o app
+ * inteiro) ficava coberto pela barra de status. `env(safe-area-inset-*)`
+ * só tem efeito com `viewport-fit=cover` no viewport (já configurado em
+ * public/index.html).
+ */
+header {
+  padding-top: max(1rem, env(safe-area-inset-top));
+}
+
+/* A barra de navegação inferior fixa também precisa do respiro de baixo,
+   por causa da faixa de gestos/home indicator do iPhone. */
+.fixed.bottom-0 {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
 h1, h2, h3 {
   font-family: 'Fraunces', serif;
 }
