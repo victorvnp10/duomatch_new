@@ -1,11 +1,12 @@
 import React from "react";
 
 /**
- * Sistema de avatares — silhuetas geométricas com rosto expressivo em vez de
- * emojis. Cada avatar é definido por uma configuração pequena (tom de pele,
- * estilo de cabelo, cor de cabelo, tipo de barba/bigode) renderizada por um
- * único componente paramétrico — mais fácil de manter e mais coerente
- * visualmente do que dezenas de ilustrações desenhadas à mão.
+ * Sistema de avatares — cabeça estilo emoji (sem busto/ombros), com rosto
+ * expressivo, recortada bem próxima como nos emojis de referência do
+ * usuário. Cada avatar é definido por uma configuração pequena (tom de
+ * pele, estilo de cabelo, cor de cabelo, tipo de barba/bigode) renderizada
+ * por um único componente paramétrico — mais fácil de manter e mais
+ * coerente visualmente do que dezenas de ilustrações desenhadas à mão.
  *
  * Compatibilidade: contas criadas antes desta atualização guardam o
  * avatar como um emoji cru em `photoURL`. O componente `Avatar` abaixo
@@ -22,7 +23,7 @@ const SKIN_TONES = {
 };
 
 /** Olhos, sobrancelhas e boca — compartilhados por todos os avatares, dão
- * a expressão amigável vista na referência (em vez da silhueta lisa). */
+ * a expressão amigável vista na referência. */
 function FaceFeatures() {
   return (
     <>
@@ -55,17 +56,16 @@ function FaceFeatures() {
   );
 }
 
-/** Silhueta base: cabeça + ombros + rosto, compartilhada por todos os avatares. */
-function BustBase({ skin, children }) {
+/** Cabeça: orelhas + rosto — sem ombros/busto, para o recorte "só a cabeça"
+ * igual ao emoji de referência. */
+function HeadBase({ skin, children }) {
   return (
     <>
-      <path
-        d="M20 92c2-16 16-26 40-26s38 10 40 26v8H20v-8z"
-        fill={skin}
-      />
+      <ellipse cx="35" cy="48" rx="5" ry="7" fill={skin} />
+      <ellipse cx="85" cy="48" rx="5" ry="7" fill={skin} />
       <circle cx="60" cy="46" r="26" fill={skin} />
-      <FaceFeatures />
       {children}
+      <FaceFeatures />
     </>
   );
 }
@@ -80,6 +80,13 @@ const HAIR_SHAPES = {
   long: (color) => (
     <path
       d="M32 40c-2-17 11-30 28-30s30 13 28 30c1 10 2 30-4 42-2-14-4-24-4-30 2-6 0-13-4-17-3 7-9 11-20 11s-17-4-20-11c-4 4-6 11-4 17 0 6-2 16-4 30-6-12-5-32-4-42z"
+      fill={color}
+    />
+  ),
+  /** Bob repartido no meio, como o corte da referência feminina. */
+  bob: (color) => (
+    <path
+      d="M33 42c-2-17 11-29 27-29s29 12 27 29c1 8 0 20-3 27-2-4-3-9-3-13 1-5-1-11-4-15-3 6-8 10-17 10s-14-4-17-10c-3 4-5 10-4 15 0 4-1 9-3 13-3-7-4-19-3-27z"
       fill={color}
     />
   ),
@@ -152,13 +159,17 @@ const BEARD_SHAPES = {
   ),
 };
 
+/** Recorte "só a cabeça": em vez de desenhar o rosto inteiro no viewBox
+ * 0-120/0-100 (pensado originalmente para caber cabeça+ombros), a viewBox
+ * aqui já entra dando zoom só na região da cabeça — é só isso que muda
+ * para transformar o busto antigo num close de rosto estilo emoji. */
 function AvatarGlyph({ skin, hair, hairColor, beard = "none", beardColor }) {
   const hairShape = HAIR_SHAPES[hair]?.(hairColor, skin);
   const beardShape = BEARD_SHAPES[beard]?.(beardColor || hairColor);
 
   return (
-    <svg viewBox="0 0 120 100" className="w-full h-full">
-      <BustBase skin={skin}>{beardShape}</BustBase>
+    <svg viewBox="26 8 68 82" className="w-full h-full">
+      <HeadBase skin={skin}>{beardShape}</HeadBase>
       {hairShape}
     </svg>
   );
@@ -175,20 +186,20 @@ export const FEMALE_AVATARS = [
     props: { skin: SKIN_TONES.light, hair: "pixie", hairColor: "#8A5A2E" } },
   { id: "fem-5", name: "Hijab", gradient: "from-plum-light to-accent-dark",
     props: { skin: SKIN_TONES.tan, hair: "headscarf", hairColor: "#5C3A52" } },
-  { id: "fem-6", name: "Cabelo longo ruivo", gradient: "from-gold-light to-accent",
+  { id: "fem-6", name: "Longo ruivo", gradient: "from-gold-light to-accent",
     props: { skin: SKIN_TONES.porcelain, hair: "long", hairColor: "#A6491F" } },
   { id: "fem-7", name: "Cacheada clara", gradient: "from-accent-light to-sage",
     props: { skin: SKIN_TONES.light, hair: "curly", hairColor: "#6B3F1D" } },
   { id: "fem-8", name: "Coque grisalho", gradient: "from-gray-400 to-gray-600",
     props: { skin: SKIN_TONES.deep, hair: "bun", hairColor: "#B0AFAF" } },
-  { id: "fem-9", name: "Pixie loira", gradient: "from-gold-light to-gold",
-    props: { skin: SKIN_TONES.tan, hair: "pixie", hairColor: "#D9B65C" } },
-  { id: "fem-10", name: "Cabelo longo preto", gradient: "from-plum to-ink-lighter",
+  { id: "fem-9", name: "Loira bob", gradient: "from-gold-light to-gold",
+    props: { skin: SKIN_TONES.porcelain, hair: "bob", hairColor: "#D9B65C" } },
+  { id: "fem-10", name: "Longo preto", gradient: "from-plum to-ink-lighter",
     props: { skin: SKIN_TONES.medium, hair: "long", hairColor: "#120D0A" } },
   { id: "fem-11", name: "Hijab claro", gradient: "from-sage-light to-accent-dark",
     props: { skin: SKIN_TONES.porcelain, hair: "headscarf", hairColor: "#2E5C4A" } },
-  { id: "fem-12", name: "Coque ruivo", gradient: "from-accent to-gold-dark",
-    props: { skin: SKIN_TONES.light, hair: "bun", hairColor: "#A6491F" } },
+  { id: "fem-12", name: "Bob ruivo", gradient: "from-accent to-gold-dark",
+    props: { skin: SKIN_TONES.light, hair: "bob", hairColor: "#A6491F" } },
 ];
 
 export const MALE_AVATARS = [
@@ -228,7 +239,7 @@ export const getAvatarOptionsForGender = (gender) =>
 
 /**
  * Renderiza o avatar do usuário a partir de `photoURL`, que pode ser:
- *  - um novo id do catálogo (ex. "fem-3") → silhueta SVG;
+ *  - um novo id do catálogo (ex. "fem-3") → cabeça SVG estilo emoji;
  *  - um emoji cru salvo antes desta atualização → mantém compatibilidade;
  *  - uma URL http (sistema ainda mais antigo) → `<img>`;
  *  - vazio → iniciais/ícone genérico.
