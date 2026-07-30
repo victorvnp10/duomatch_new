@@ -23,6 +23,8 @@ import { isActivityForToday, getTodayDateString } from "../../shared/utils";
 import { updateStreak } from "../../shared/utils/streakUtils";
 import CountdownTimer from "./CountdownTimer";
 import { useAchievements } from "../../application/hooks/useAchievements";
+import { useMenstrualCycle } from "../../application/hooks/useMenstrualCycle";
+import DailyTipCard from "./DailyTipCard";
 
 const RuleProgressDisplay = ({ title, icon, ruleData, nicknames }) => {
   if (!ruleData) return null;
@@ -479,6 +481,9 @@ export default function MainView(props) {
     rewards: memoizedRewards,
     wishlistItems: memoizedWishlistItems,
   });
+
+  const { isOwner: isCycleOwner, isConfigured: isCycleConfigured, dailyInsight } =
+    useMenstrualCycle({ user, userData, coupleData });
 
   // Sistema de eventos para notificações de match
   useEffect(() => {
@@ -1015,6 +1020,14 @@ export default function MainView(props) {
               💡 Recordações dos momentos especiais que viveram juntos!
             </div>
           </div>
+        )}
+
+        {/* DICA DO DIA (ciclo) */}
+        {!isCycleOwner && isCycleConfigured && (
+          <DailyTipCard
+            dailyInsight={dailyInsight}
+            onOpenCycleView={() => setView("cycle")}
+          />
         )}
 
         {/* SISTEMA DE CONQUISTAS */}

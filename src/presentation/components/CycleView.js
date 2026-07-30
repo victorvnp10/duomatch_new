@@ -1,14 +1,10 @@
-import React, { useState, useEffect } from "react";
-import { ArrowLeftIcon, DropletIcon } from "./Icons";
+import React, { useState } from "react";
+import { ArrowLeftIcon, DropletIcon, TrashIcon } from "./Icons";
 import { useMenstrualCycle } from "../../application/hooks/useMenstrualCycle";
 import { getPhaseLabel } from "../../domain/services/CycleInsightService";
-
-const TONE_STYLES = {
-  great: "bg-pink-900/30 border-pink-500/50 text-pink-100",
-  good: "bg-emerald-900/30 border-emerald-500/50 text-emerald-100",
-  neutral: "bg-gray-700/30 border-gray-600/40 text-gray-200",
-  caution: "bg-yellow-900/30 border-yellow-600/50 text-yellow-100",
-};
+import { getTodayDateString } from "../../shared/utils";
+import DailyTipCard from "./DailyTipCard";
+import CycleHealthInfo from "./CycleHealthInfo";
 
 function DisclaimerNote() {
   return (
@@ -26,36 +22,106 @@ function formatDayMonth(dateStr) {
   return `${day}/${month}`;
 }
 
-/** Formulário de registro — usado por quem acompanha o próprio ciclo. */
-function CycleOwnerPanel({ cycleTracking, cycleSummary, onSave }) {
-  const [lastPeriodStart, setLastPeriodStart] = useState(
-    cycleTracking?.lastPeriodStart || ""
-  );
-  const [cycleLength, setCycleLength] = useState(cycleTracking?.cycleLength || 28);
-  const [periodLength, setPeriodLength] = useState(cycleTracking?.periodLength || 5);
-  const [isSaving, setIsSaving] = useState(false);
+/** Card com as estatísticas de regularidade do ciclo. */
+function RegularityCard({ cycleStats }) {
+  if (!cycleStats.hasEnoughData) {
+    return (
+      <div className="bg-gray-800/50 border border-gray-700/50 rounded-2xl p-4">
+        <h3 className="font-bold text-white mb-1">Regularidade do ciclo</h3>
+        <p className="text-sm text-gray-400">
+          Registre mais um ciclo para começar a ver estatísticas de regularidade.
+        </p>
+      </div>
+    );
+  }
 
-  useEffect(() => {
-    if (cycleTracking) {
-      setLastPeriodStart(cycleTracking.lastPeriodStart || "");
-      setCycleLength(cycleTracking.cycleLength || 28);
-      setPeriodLength(cycleTracking.periodLength || 5);
-    }
-  }, [cycleTracking]);
+  return (
+    <div className="bg-gray-800/50 border border-gray-700/50 rounded-2xl p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="font-bold text-white">Regularidade do ciclo</h3>
+        <span
+          className={`text-xs font-semibold px-2 py-1 rounded-full ${
+            cycleStats.isRegular
+              ? "bg-emerald-900/40 text-emerald-300"
+              : "bg-yellow-900/40 text-yellow-300"
+          }`}
+        >
+          {cycleStats.isRegular ? "Regular" : "Variável"}
+        </span>
+      </div>
+      <div className="grid grid-cols-3 gap-3 text-center">
+        <div>
+          <p className="text-xl font-bold text-white">{cycleStats.averageLength}</p>
+          <p className="text-xs text-gray-400">média (dias)</p>
+        </div>
+        <div>
+          <p className="text-xl font-bold text-white">{cycleStats.shortest}</p>
+          <p className="text-xs text-gray-400">mais curto</p>
+        </div>
+        <div>
+          <p className="text-xl font-bold text-white">{cycleStats.longest}</p>
+          <p className="text-xs text-gray-400">mais longo</p>
+        </div>
+      </div>
+      <p className="text-xs text-gray-500 mt-3">
+        Baseado nos últimos {cycleStats.cycleCount} ciclos registrados. Variação de{" "}
+        {cycleStats.variation} {cycleStats.variation === 1 ? "dia" : "dias"} entre o mais
+        curto e o mais longo.
+      </p>
+    </div>
+  );
+}
+
+/** Lista dos períodos já registrados, com opção de remover um lançamento errado. */
+function PeriodHistory({ periods, onDelete }) {
+  if (periods.length === 0) return null;
+  const sorted = [...periods].sort((a, b) => (a.startDate < b.startDate ? 1 : -1));
+
+  return (
+    <div className="bg-gray-800/50 border border-gray-700/50 rounded-2xl p-4">
+      <h3 className="font-bold text-white mb-3">Histórico</h3>
+      <ul className="space-y-2">
+        {sorted.map((period) => (
+          <li
+            key={period.startDate}
+            className="flex items-center justify-between text-sm bg-gray-900/50 rounded-lg px-3 py-2"
+          >
+            <span className="text-gray-300">
+              {new Date(`${period.startDate}T00:00:00`).toLocaleDateString("pt-BR")}
+            </span>
+            <button
+              onClick={() => onDelete(period.startDate)}
+              className="text-gray-500 hover:text-red-400"
+              aria-label="Remover registro"
+            >
+              <TrashIcon className="h-4 w-4" />
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/** Painel de quem registra o ciclo. */
+function CycleOwnerPanel({ periods, cycleStats, cycleSummary, onLogPeriodStart, onDeletePeriod }) {
+  const [newStartDate, setNewStartDate] = useState(getTodayDateString());
+  const [periodLength, setPeriodLength] = useState(5);
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!lastPeriodStart) return;
+    if (!newStartDate) return;
     setIsSaving(true);
     try {
-      await onSave({ lastPeriodStart, cycleLength, periodLength });
+      await onLogPeriodStart({ startDate: newStartDate, periodLength });
     } finally {
       setIsSaving(false);
     }
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {cycleSummary && (
         <div className="bg-gray-800/50 border border-gray-700/50 rounded-2xl p-4">
           <p className="text-sm text-gray-400">Hoje</p>
@@ -75,54 +141,37 @@ function CycleOwnerPanel({ cycleTracking, cycleSummary, onSave }) {
         </div>
       )}
 
+      <RegularityCard cycleStats={cycleStats} />
+
       <form
         onSubmit={handleSubmit}
         className="bg-gray-800/50 border border-gray-700/50 rounded-2xl p-4 space-y-4"
       >
-        <h3 className="font-bold text-white">
-          {cycleTracking ? "Atualizar registro" : "Registrar meu ciclo"}
-        </h3>
+        <h3 className="font-bold text-white">Registrar início do período</h3>
 
         <div>
-          <label className="block text-sm text-gray-400 mb-1">
-            Data de início da última menstruação
-          </label>
+          <label className="block text-sm text-gray-400 mb-1">Data de início</label>
           <input
             type="date"
-            value={lastPeriodStart}
-            onChange={(e) => setLastPeriodStart(e.target.value)}
+            value={newStartDate}
+            onChange={(e) => setNewStartDate(e.target.value)}
             required
             className="w-full bg-gray-900 border border-gray-600 rounded-lg p-2 text-white"
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-sm text-gray-400 mb-1">
-              Duração do ciclo (dias)
-            </label>
-            <input
-              type="number"
-              min={20}
-              max={45}
-              value={cycleLength}
-              onChange={(e) => setCycleLength(e.target.value)}
-              className="w-full bg-gray-900 border border-gray-600 rounded-lg p-2 text-white"
-            />
-          </div>
-          <div>
-            <label className="block text-sm text-gray-400 mb-1">
-              Duração da menstruação (dias)
-            </label>
-            <input
-              type="number"
-              min={1}
-              max={10}
-              value={periodLength}
-              onChange={(e) => setPeriodLength(e.target.value)}
-              className="w-full bg-gray-900 border border-gray-600 rounded-lg p-2 text-white"
-            />
-          </div>
+        <div>
+          <label className="block text-sm text-gray-400 mb-1">
+            Duração da menstruação (dias)
+          </label>
+          <input
+            type="number"
+            min={1}
+            max={10}
+            value={periodLength}
+            onChange={(e) => setPeriodLength(e.target.value)}
+            className="w-full bg-gray-900 border border-gray-600 rounded-lg p-2 text-white"
+          />
         </div>
 
         <button
@@ -134,25 +183,26 @@ function CycleOwnerPanel({ cycleTracking, cycleSummary, onSave }) {
         </button>
 
         <p className="text-xs text-gray-500">
-          Apenas você vê essas datas. Seu parceiro(a) recebe só um insight
-          diário — nunca as datas exatas.
+          Apenas você vê essas datas e o histórico. Seu parceiro(a) recebe só a
+          dica do dia — nunca as datas exatas.
         </p>
       </form>
 
+      <PeriodHistory periods={periods} onDelete={onDeletePeriod} />
+      <CycleHealthInfo />
       <DisclaimerNote />
     </div>
   );
 }
 
-/** Card exibido para quem NÃO registra o ciclo — só vê o insight do dia. */
-function PartnerInsightCard({ dailyInsight, isConfigured, onClaimOwnership }) {
+/** Tela exibida para quem NÃO registra o ciclo — só vê o insight do dia. */
+function PartnerInsightPanel({ dailyInsight, isConfigured, onClaimOwnership }) {
   if (!isConfigured) {
     return (
       <div className="bg-gray-800/50 border border-gray-700/50 rounded-2xl p-6 text-center space-y-3">
         <DropletIcon className="h-10 w-10 text-pink-400 mx-auto" />
         <p className="text-gray-300">
-          Assim que seu par registrar o ciclo, você vai ver por aqui um
-          insight diário.
+          Assim que seu par registrar o ciclo, você vai ver por aqui a dica do dia.
         </p>
         <button
           onClick={onClaimOwnership}
@@ -164,14 +214,9 @@ function PartnerInsightCard({ dailyInsight, isConfigured, onClaimOwnership }) {
     );
   }
 
-  const style = TONE_STYLES[dailyInsight.tone] || TONE_STYLES.neutral;
-
   return (
     <div className="space-y-4">
-      <div className={`border rounded-2xl p-6 text-center ${style}`}>
-        <div className="text-5xl mb-3">{dailyInsight.icon}</div>
-        <p className="text-xl font-bold">{dailyInsight.title}</p>
-      </div>
+      <DailyTipCard dailyInsight={dailyInsight} />
       <DisclaimerNote />
       <button
         onClick={onClaimOwnership}
@@ -188,10 +233,12 @@ export default function CycleView(props) {
   const {
     isOwner,
     isConfigured,
-    cycleTracking,
+    periods,
+    cycleStats,
     cycleSummary,
     dailyInsight,
-    handleSaveCycleData,
+    handleLogPeriodStart,
+    handleDeletePeriodEntry,
     handleClaimOwnership,
   } = useMenstrualCycle({ user, userData, coupleData });
 
@@ -208,9 +255,7 @@ export default function CycleView(props) {
           </button>
           <div className="flex items-center text-pink-400">
             <DropletIcon />
-            <h1 className="ml-2 text-xl font-bold tracking-wider text-white">
-              Ciclo
-            </h1>
+            <h1 className="ml-2 text-xl font-bold tracking-wider text-white">Ciclo</h1>
           </div>
         </div>
       </header>
@@ -218,12 +263,14 @@ export default function CycleView(props) {
       <main className="max-w-md mx-auto p-4">
         {isOwner ? (
           <CycleOwnerPanel
-            cycleTracking={cycleTracking}
+            periods={periods}
+            cycleStats={cycleStats}
             cycleSummary={cycleSummary}
-            onSave={handleSaveCycleData}
+            onLogPeriodStart={handleLogPeriodStart}
+            onDeletePeriod={handleDeletePeriodEntry}
           />
         ) : (
-          <PartnerInsightCard
+          <PartnerInsightPanel
             dailyInsight={dailyInsight}
             isConfigured={isConfigured}
             onClaimOwnership={handleClaimOwnership}

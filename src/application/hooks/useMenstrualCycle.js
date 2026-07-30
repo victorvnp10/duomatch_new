@@ -1,8 +1,49 @@
 import { useMemo, useCallback } from "react";
 import { doc, updateDoc, db } from "../../infrastructure/firebase";
 import { getTodayDateString } from "../../shared/utils";
-import { summarizeCycle } from "../../domain/valueObjects/MenstrualCycle";
+import {
+  summarizeCycle,
+  computeCycleStatistics,
+  computeAveragePeriodLength,
+  getLastPeriodStart,
+} from "../../domain/valueObjects/MenstrualCycle";
 import { getDailyInsight } from "../../domain/services/CycleInsightService";
+
+const MAX_HISTORY_ENTRIES = 12;
+
+/**
+ * Normaliza o formato salvo no Firestore para a lista de períodos
+ * (`periods: [{ startDate, periodLength }]`), migrando automaticamente
+ * o formato antigo (`lastPeriodStart` + `cycleLength` + `periodLength`
+ * únicos, sem histórico) usado antes desta atualização.
+ */
+const normalizeCycleTracking = (cycleTracking) => {
+  if (!cycleTracking) return { ownerId: null, periods: [], cycleLengthOverride: null };
+
+  if (Array.isArray(cycleTracking.periods)) {
+    return {
+      ownerId: cycleTracking.ownerId,
+      periods: cycleTracking.periods,
+      cycleLengthOverride: cycleTracking.cycleLengthOverride || null,
+    };
+  }
+
+  // Formato antigo: um único registro, sem histórico.
+  if (cycleTracking.lastPeriodStart) {
+    return {
+      ownerId: cycleTracking.ownerId,
+      periods: [
+        {
+          startDate: cycleTracking.lastPeriodStart,
+          periodLength: cycleTracking.periodLength || 5,
+        },
+      ],
+      cycleLengthOverride: cycleTracking.cycleLength || null,
+    };
+  }
+
+  return { ownerId: cycleTracking.ownerId, periods: [], cycleLengthOverride: null };
+};
 
 /**
  * Hook de aplicação: acompanhamento de ciclo menstrual do casal.
@@ -12,18 +53,22 @@ import { getDailyInsight } from "../../domain/services/CycleInsightService";
  *      (permite corrigir manualmente, veja `handleClaimOwnership`).
  *   2. Caso contrário, o padrão sugerido é o perfil com `gender ===
  *      "feminino"` — mas nada é gravado até a pessoa efetivamente
- *      preencher o formulário pela primeira vez.
+ *      registrar o primeiro período.
  *
- * Dados brutos (data da última menstruação, duração do ciclo) só ficam
- * visíveis para quem é o owner. O parceiro recebe apenas o insight do
- * dia (ícone + frase), nunca as datas.
+ * Dados brutos (histórico de datas) só ficam visíveis para quem é o
+ * owner. O parceiro recebe apenas o insight do dia (ícone + frase),
+ * nunca as datas.
  */
 export function useMenstrualCycle({ user, userData, coupleData }) {
-  const cycleTracking = coupleData?.cycleTracking || null;
+  const normalized = useMemo(
+    () => normalizeCycleTracking(coupleData?.cycleTracking),
+    [coupleData?.cycleTracking]
+  );
+  const { periods, cycleLengthOverride } = normalized;
   const partnerData = userData?.partnerData;
 
   const ownerId =
-    cycleTracking?.ownerId ||
+    normalized.ownerId ||
     (userData?.gender === "feminino"
       ? user?.uid
       : partnerData?.gender === "feminino"
@@ -31,42 +76,65 @@ export function useMenstrualCycle({ user, userData, coupleData }) {
       : null);
 
   const isOwner = Boolean(ownerId && ownerId === user?.uid);
-  const isConfigured = Boolean(cycleTracking?.lastPeriodStart);
+  const isConfigured = periods.length > 0;
+
+  const cycleStats = useMemo(() => computeCycleStatistics(periods), [periods]);
 
   const cycleSummary = useMemo(() => {
     if (!isConfigured) return null;
     return summarizeCycle({
-      lastPeriodStart: cycleTracking.lastPeriodStart,
-      cycleLength: cycleTracking.cycleLength || 28,
-      periodLength: cycleTracking.periodLength || 5,
+      lastPeriodStart: getLastPeriodStart(periods),
+      cycleLength: cycleLengthOverride || cycleStats.averageLength || 28,
+      periodLength: computeAveragePeriodLength(periods),
       todayStr: getTodayDateString(),
     });
-  }, [
-    isConfigured,
-    cycleTracking?.lastPeriodStart,
-    cycleTracking?.cycleLength,
-    cycleTracking?.periodLength,
-  ]);
+  }, [isConfigured, periods, cycleLengthOverride, cycleStats.averageLength]);
 
   const dailyInsight = useMemo(() => {
     if (!cycleSummary) return null;
     return getDailyInsight(cycleSummary);
   }, [cycleSummary]);
 
-  const handleSaveCycleData = useCallback(
-    async ({ lastPeriodStart, cycleLength, periodLength }) => {
-      if (!userData?.coupleId || !user?.uid) return;
+  /** Registra o início de um novo período (menstruação) no histórico. */
+  const handleLogPeriodStart = useCallback(
+    async ({ startDate, periodLength }) => {
+      if (!userData?.coupleId || !user?.uid || !startDate) return;
+
+      const withoutDuplicate = periods.filter((p) => p.startDate !== startDate);
+      const updatedPeriods = [
+        ...withoutDuplicate,
+        { startDate, periodLength: Number(periodLength) || 5 },
+      ]
+        .sort((a, b) => (a.startDate < b.startDate ? -1 : 1))
+        .slice(-MAX_HISTORY_ENTRIES);
+
       const coupleRef = doc(db, "duomatches", userData.coupleId);
       await updateDoc(coupleRef, {
         cycleTracking: {
           ownerId: user.uid,
-          lastPeriodStart,
-          cycleLength: Number(cycleLength) || 28,
-          periodLength: Number(periodLength) || 5,
+          periods: updatedPeriods,
+          cycleLengthOverride: cycleLengthOverride || null,
         },
       });
     },
-    [userData?.coupleId, user?.uid]
+    [userData?.coupleId, user?.uid, periods, cycleLengthOverride]
+  );
+
+  /** Remove um registro do histórico (correção de um lançamento errado). */
+  const handleDeletePeriodEntry = useCallback(
+    async (startDate) => {
+      if (!userData?.coupleId || !user?.uid) return;
+      const updatedPeriods = periods.filter((p) => p.startDate !== startDate);
+      const coupleRef = doc(db, "duomatches", userData.coupleId);
+      await updateDoc(coupleRef, {
+        cycleTracking: {
+          ownerId: user.uid,
+          periods: updatedPeriods,
+          cycleLengthOverride: cycleLengthOverride || null,
+        },
+      });
+    },
+    [userData?.coupleId, user?.uid, periods, cycleLengthOverride]
   );
 
   /** Permite corrigir manualmente quem é a pessoa que registra o ciclo. */
@@ -82,10 +150,12 @@ export function useMenstrualCycle({ user, userData, coupleData }) {
     isOwner,
     isConfigured,
     ownerId,
-    cycleTracking,
+    periods,
+    cycleStats,
     cycleSummary,
     dailyInsight,
-    handleSaveCycleData,
+    handleLogPeriodStart,
+    handleDeletePeriodEntry,
     handleClaimOwnership,
   };
 }
