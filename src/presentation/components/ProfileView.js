@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { ArrowLeftIcon, UserCircleIcon } from "./Icons"; // Ícones para o cabeçalho
+import { Avatar, getAvatarOptionsForGender } from "./avatars/AvatarCatalog";
 
 // Componente da tela de Perfil/Configurações
 export default function ProfileView(props) {
@@ -29,7 +30,7 @@ export default function ProfileView(props) {
       // Se não há avatar ou é uma URL antiga, definir um avatar padrão baseado no gênero
       const currentAvatar = userData.photoURL;
       if (!currentAvatar || currentAvatar.startsWith('http')) {
-        const defaultAvatar = userData.gender === "feminino" ? "👩" : "👨";
+        const defaultAvatar = userData.gender === "feminino" ? "fem-1" : "masc-1";
         setSelectedAvatar(defaultAvatar);
       } else {
         setSelectedAvatar(currentAvatar);
@@ -37,31 +38,9 @@ export default function ProfileView(props) {
     }
   }, [userData]);
 
-  const maleAvatars = [
-    { emoji: "🧔", gradient: "from-blue-500 to-blue-700", name: "Barbudo" },
-    { emoji: "👨", gradient: "from-green-500 to-green-700", name: "Clássico" },
-    { emoji: "👨🏻", gradient: "from-purple-500 to-purple-700", name: "Claro" },
-    { emoji: "👨🏽", gradient: "from-indigo-500 to-indigo-700", name: "Moreno" },
-    { emoji: "👨🏾", gradient: "from-pink-500 to-pink-700", name: "Negro" },
-    { emoji: "👨🏿", gradient: "from-cyan-500 to-cyan-700", name: "Escuro" },
-    { emoji: "🧔🏻", gradient: "from-orange-500 to-orange-700", name: "Barbudo Claro" },
-    { emoji: "🧔🏽", gradient: "from-red-500 to-red-700", name: "Barbudo Moreno" },
-    { emoji: "🧔🏿", gradient: "from-teal-500 to-teal-700", name: "Barbudo Escuro" },
-  ];
-  const femaleAvatars = [
-    { emoji: "👩", gradient: "from-pink-500 to-pink-700", name: "Clássica" },
-    { emoji: "👩🏻", gradient: "from-purple-500 to-purple-700", name: "Clara" },
-    { emoji: "👩🏼", gradient: "from-indigo-500 to-indigo-700", name: "Pálida" },
-    { emoji: "👩🏽", gradient: "from-rose-500 to-rose-700", name: "Morena" },
-    { emoji: "👩🏾", gradient: "from-cyan-500 to-cyan-700", name: "Negra" },
-    { emoji: "👩🏿", gradient: "from-orange-500 to-orange-700", name: "Escura" },
-    { emoji: "👱🏻‍♀️", gradient: "from-red-500 to-red-700", name: "Loira Clara" },
-    { emoji: "👱🏽‍♀️", gradient: "from-teal-500 to-teal-700", name: "Loira Morena" },
-    { emoji: "🧕🏽", gradient: "from-green-500 to-green-700", name: "Hijab" },
-  ];
   // Garante que o avatar salvo do usuário sempre apareça como uma opção.
   const avatarOptions = useMemo(() => {
-    const baseOptions = gender === "masculino" ? maleAvatars : femaleAvatars;
+    const baseOptions = getAvatarOptionsForGender(gender);
     const currentSavedAvatar = userData?.photoURL;
 
     // Se o avatar atual é uma URL (sistema antigo), não incluir nas opções
@@ -69,9 +48,13 @@ export default function ProfileView(props) {
       return baseOptions;
     }
 
-    // Se o avatar atual é um emoji, verificar se já existe nas opções
-    if (currentSavedAvatar && !baseOptions.find(avatar => avatar.emoji === currentSavedAvatar)) {
-      return [{ emoji: currentSavedAvatar, gradient: "from-gray-500 to-gray-700", name: "Atual" }, ...baseOptions];
+    // Se o avatar atual é um emoji salvo antes desta atualização (não é
+    // um id do catálogo novo), mantém como primeira opção selecionável.
+    if (currentSavedAvatar && !baseOptions.find((avatar) => avatar.id === currentSavedAvatar)) {
+      return [
+        { id: currentSavedAvatar, name: "Atual", legacyEmoji: currentSavedAvatar },
+        ...baseOptions,
+      ];
     }
 
     return baseOptions;
@@ -135,20 +118,24 @@ export default function ProfileView(props) {
             Seu Avatar
           </h2>
           <div className="grid grid-cols-3 gap-4 max-w-lg mx-auto">
-            {avatarOptions.map((avatar, index) => (
+            {avatarOptions.map((avatar) => (
               <button
-                key={`${avatar.emoji}-${index}`}
-                onClick={() => setSelectedAvatar(avatar.emoji)}
+                key={avatar.id}
+                onClick={() => setSelectedAvatar(avatar.id)}
                 className={`w-24 h-24 p-1 rounded-2xl border-3 transition-all duration-300 hover:scale-105 ${
-                  selectedAvatar === avatar.emoji
+                  selectedAvatar === avatar.id
                     ? "border-yellow-400 scale-110 shadow-lg shadow-yellow-400/20"
                     : "border-transparent hover:border-gray-500/50"
                 }`}
                 title={avatar.name}
               >
-                <div className={`w-full h-full rounded-xl bg-gradient-to-br ${avatar.gradient} flex items-center justify-center text-4xl shadow-inner`}>
-                  {avatar.emoji}
-                </div>
+                {avatar.legacyEmoji ? (
+                  <div className="w-full h-full rounded-xl bg-gradient-to-br from-plum-light to-ink-lighter flex items-center justify-center text-4xl shadow-inner">
+                    {avatar.legacyEmoji}
+                  </div>
+                ) : (
+                  <Avatar photoURL={avatar.id} size="w-full h-full" className="shadow-inner" />
+                )}
               </button>
             ))}
           </div>
@@ -158,7 +145,7 @@ export default function ProfileView(props) {
         <button
           data-tour-id="cycle-card"
           onClick={() => setView("cycle")}
-          className="w-full bg-gray-800/50 border border-gray-700/50 rounded-2xl shadow-lg p-6 backdrop-blur-sm text-left hover:border-pink-500/50 transition-colors flex items-center justify-between"
+          className="w-full bg-gray-800/50 border border-gray-700/50 rounded-3xl shadow-lg p-6 backdrop-blur-sm text-left hover:border-accent/50 transition-colors flex items-center justify-between"
         >
           <div>
             <h2 className="text-lg font-semibold text-gray-200 tracking-wide">

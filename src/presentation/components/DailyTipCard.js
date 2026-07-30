@@ -2,7 +2,7 @@ import React from "react";
 import { DropletIcon } from "./Icons";
 
 const TONE_STYLES = {
-  great: "bg-pink-900/30 border-pink-500/50",
+  great: "bg-accent/15 border-accent/40",
   good: "bg-emerald-900/30 border-emerald-500/50",
   neutral: "bg-gray-700/30 border-gray-600/40",
   caution: "bg-yellow-900/30 border-yellow-600/50",

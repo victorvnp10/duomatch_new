@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { Avatar } from "./avatars/AvatarCatalog";
 
 function ChatModal({
   activity,
@@ -70,14 +71,11 @@ function ChatModal({
                 }`}
               >
                 {!isMyComment && (
-                  <img
-                    // --- CORREÇÃO APLICADA AQUI ---
-                    src={
-                      userData?.partnerData?.photoURL ||
-                      `https://api.dicebear.com/7.x/pixel-art/svg?seed=${comment.authorId}`
-                    }
-                    alt="Avatar"
-                    className="w-8 h-8 rounded-full border-2 border-pink-500"
+                  <Avatar
+                    photoURL={userData?.partnerData?.photoURL}
+                    nickname={comment.authorNickname}
+                    size="w-8 h-8"
+                    className="border-2 border-accent"
                   />
                 )}
                 <div
@@ -97,14 +95,11 @@ function ChatModal({
                   </p>
                 </div>
                 {isMyComment && (
-                  <img
-                    // --- CORREÇÃO APLICADA AQUI ---
-                    src={
-                      userData?.photoURL ||
-                      `https://api.dicebear.com/7.x/pixel-art/svg?seed=${user.uid}`
-                    }
-                    alt="Seu avatar"
-                    className="w-8 h-8 rounded-full border-2 border-yellow-400"
+                  <Avatar
+                    photoURL={userData?.photoURL}
+                    nickname={userData?.nickname}
+                    size="w-8 h-8"
+                    className="border-2 border-gold"
                   />
                 )}
               </div>

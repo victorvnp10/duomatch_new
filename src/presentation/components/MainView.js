@@ -28,6 +28,7 @@ import { useMenstrualCycle } from "../../application/hooks/useMenstrualCycle";
 import DailyTipCard from "./DailyTipCard";
 import { useNotificationCenter } from "../../application/hooks/useNotificationCenter";
 import NotificationCenter from "./NotificationCenter";
+import { Avatar } from "./avatars/AvatarCatalog";
 
 const RuleProgressDisplay = ({ title, icon, ruleData, nicknames }) => {
   if (!ruleData) return null;
@@ -672,38 +673,32 @@ export default function MainView(props) {
             </div>
           ) : (
             <>
-              <h3 className="text-xl font-bold mb-4 text-center text-yellow-400">
+              <h3 className="text-xl font-display font-semibold mb-4 text-center text-gold">
                 Placar da Rodada "{activeRound.name}"
               </h3>
               <div className="flex justify-around items-start text-center">
                 <div className="flex flex-col items-center w-2/5">
-                  {userData.photoURL && !userData.photoURL.startsWith('http') ? (
-                    <div className="w-20 h-20 rounded-full border-2 border-gray-500 bg-gradient-to-br from-yellow-400 to-yellow-600 mb-2 flex items-center justify-center text-3xl shadow-lg">
-                      {userData.photoURL}
-                    </div>
-                  ) : (
-                    <div className="w-20 h-20 rounded-full border-2 border-gray-600 bg-gray-700 mb-2 flex items-center justify-center">
-                      <UserCircleIcon className="w-12 h-12 text-gray-500" />
-                    </div>
-                  )}
+                  <Avatar
+                    photoURL={userData.photoURL}
+                    nickname={userData.nickname}
+                    size="w-20 h-20"
+                    className="border-2 border-accent/40 mb-2 shadow-glow-accent"
+                  />
                   <p className="font-bold text-3xl text-white">{myScore}</p>
                   <p className="text-sm font-semibold text-gray-300 truncate">
                     {userData.nickname}
                   </p>
                 </div>
 
-                <div className="font-bold text-2xl text-gray-500 pt-8">VS</div>
+                <div className="font-display font-bold text-2xl text-gray-500 pt-8">VS</div>
 
                 <div className="flex flex-col items-center w-2/5">
-                  {userData.partnerData?.photoURL && !userData.partnerData.photoURL.startsWith('http') ? (
-                    <div className="w-20 h-20 rounded-full border-2 border-gray-500 bg-gradient-to-br from-blue-400 to-blue-600 mb-2 flex items-center justify-center text-3xl shadow-lg">
-                      {userData.partnerData.photoURL}
-                    </div>
-                  ) : (
-                    <div className="w-20 h-20 rounded-full border-2 border-gray-600 bg-gray-700 mb-2 flex items-center justify-center">
-                      <UserCircleIcon className="w-12 h-12 text-gray-500" />
-                    </div>
-                  )}
+                  <Avatar
+                    photoURL={userData.partnerData?.photoURL}
+                    nickname={partnerNickname}
+                    size="w-20 h-20"
+                    className="border-2 border-gold/40 mb-2 shadow-glow-gold"
+                  />
                   <p className="font-bold text-3xl text-white">
                     {partnerScore}
                   </p>

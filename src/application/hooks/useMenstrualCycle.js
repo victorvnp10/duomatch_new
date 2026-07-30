@@ -48,12 +48,11 @@ const normalizeCycleTracking = (cycleTracking) => {
 /**
  * Hook de aplicação: acompanhamento de ciclo menstrual do casal.
  *
- * Quem é "quem registra" (owner) é decidido assim, nesta ordem:
- *   1. `coupleData.cycleTracking.ownerId`, se já definido explicitamente
- *      (permite corrigir manualmente, veja `handleClaimOwnership`).
- *   2. Caso contrário, o padrão sugerido é o perfil com `gender ===
- *      "feminino"` — mas nada é gravado até a pessoa efetivamente
- *      registrar o primeiro período.
+ * Por decisão de produto, só a pessoa com `gender === "feminino"` no
+ * casal pode registrar o ciclo — não existe troca manual de
+ * responsável. Se `cycleTracking.ownerId` já estiver gravado (definido
+ * automaticamente no primeiro registro), ele é respeitado; caso
+ * contrário, o dono é inferido pelo gênero de cada perfil.
  *
  * Dados brutos (histórico de datas) só ficam visíveis para quem é o
  * owner. O parceiro recebe apenas o insight do dia (ícone + frase),
@@ -137,15 +136,6 @@ export function useMenstrualCycle({ user, userData, coupleData }) {
     [userData?.coupleId, user?.uid, periods, cycleLengthOverride]
   );
 
-  /** Permite corrigir manualmente quem é a pessoa que registra o ciclo. */
-  const handleClaimOwnership = useCallback(async () => {
-    if (!userData?.coupleId || !user?.uid) return;
-    const coupleRef = doc(db, "duomatches", userData.coupleId);
-    await updateDoc(coupleRef, {
-      "cycleTracking.ownerId": user.uid,
-    });
-  }, [userData?.coupleId, user?.uid]);
-
   return {
     isOwner,
     isConfigured,
@@ -156,6 +146,5 @@ export function useMenstrualCycle({ user, userData, coupleData }) {
     dailyInsight,
     handleLogPeriodStart,
     handleDeletePeriodEntry,
-    handleClaimOwnership,
   };
 }

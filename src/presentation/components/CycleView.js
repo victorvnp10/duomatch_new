@@ -8,7 +8,7 @@ import CycleHealthInfo from "./CycleHealthInfo";
 
 function DisclaimerNote() {
   return (
-    <p className="text-xs text-gray-500 mt-4 leading-relaxed">
+    <p className="text-xs text-gray-400 mt-4 leading-relaxed">
       Estimativa por calendário — não é um diagnóstico médico nem um método
       contraceptivo, e ciclos reais variam. O mais importante continua sendo
       conversar e respeitar como cada um está se sentindo naquele dia.
@@ -22,12 +22,44 @@ function formatDayMonth(dateStr) {
   return `${day}/${month}`;
 }
 
+/** Cabeçalho com o resumo do dia — a primeira coisa que ela vê ao entrar. */
+function TodayHero({ cycleSummary }) {
+  if (!cycleSummary) return null;
+
+  return (
+    <div className="relative overflow-hidden bg-gradient-to-br from-accent/20 via-plum to-plum rounded-3xl p-6 shadow-glow-accent border border-accent/20">
+      <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-accent/10 blur-2xl" />
+      <p className="text-xs uppercase tracking-widest text-accent-light font-semibold mb-1">
+        Hoje
+      </p>
+      <h2 className="text-2xl font-display font-semibold text-white mb-3">
+        Dia {cycleSummary.cycleDay} · {getPhaseLabel(cycleSummary.phase)}
+      </h2>
+      <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+        <div>
+          <p className="text-gray-400">Próxima menstruação</p>
+          <p className="text-white font-medium">
+            {new Date(`${cycleSummary.nextPeriodDate}T00:00:00`).toLocaleDateString("pt-BR")}
+          </p>
+        </div>
+        <div>
+          <p className="text-gray-400">Janela fértil</p>
+          <p className="text-white font-medium">
+            {formatDayMonth(cycleSummary.fertileWindowDates.start)} a{" "}
+            {formatDayMonth(cycleSummary.fertileWindowDates.end)}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /** Card com as estatísticas de regularidade do ciclo. */
 function RegularityCard({ cycleStats }) {
   if (!cycleStats.hasEnoughData) {
     return (
-      <div className="bg-gray-800/50 border border-gray-700/50 rounded-2xl p-4">
-        <h3 className="font-bold text-white mb-1">Regularidade do ciclo</h3>
+      <div className="bg-gray-800/50 border border-gray-700/50 rounded-3xl p-5">
+        <h3 className="font-display font-semibold text-white mb-1">Regularidade</h3>
         <p className="text-sm text-gray-400">
           Registre mais um ciclo para começar a ver estatísticas de regularidade.
         </p>
@@ -36,14 +68,14 @@ function RegularityCard({ cycleStats }) {
   }
 
   return (
-    <div className="bg-gray-800/50 border border-gray-700/50 rounded-2xl p-4">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="font-bold text-white">Regularidade do ciclo</h3>
+    <div className="bg-gray-800/50 border border-gray-700/50 rounded-3xl p-5">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-display font-semibold text-white">Regularidade</h3>
         <span
-          className={`text-xs font-semibold px-2 py-1 rounded-full ${
+          className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
             cycleStats.isRegular
-              ? "bg-emerald-900/40 text-emerald-300"
-              : "bg-yellow-900/40 text-yellow-300"
+              ? "bg-sage/20 text-sage-light"
+              : "bg-gold/20 text-gold-light"
           }`}
         >
           {cycleStats.isRegular ? "Regular" : "Variável"}
@@ -51,20 +83,20 @@ function RegularityCard({ cycleStats }) {
       </div>
       <div className="grid grid-cols-3 gap-3 text-center">
         <div>
-          <p className="text-xl font-bold text-white">{cycleStats.averageLength}</p>
+          <p className="text-2xl font-display font-semibold text-white">{cycleStats.averageLength}</p>
           <p className="text-xs text-gray-400">média (dias)</p>
         </div>
         <div>
-          <p className="text-xl font-bold text-white">{cycleStats.shortest}</p>
+          <p className="text-2xl font-display font-semibold text-white">{cycleStats.shortest}</p>
           <p className="text-xs text-gray-400">mais curto</p>
         </div>
         <div>
-          <p className="text-xl font-bold text-white">{cycleStats.longest}</p>
+          <p className="text-2xl font-display font-semibold text-white">{cycleStats.longest}</p>
           <p className="text-xs text-gray-400">mais longo</p>
         </div>
       </div>
-      <p className="text-xs text-gray-500 mt-3">
-        Baseado nos últimos {cycleStats.cycleCount} ciclos registrados. Variação de{" "}
+      <p className="text-xs text-gray-500 mt-4">
+        Baseado nos últimos {cycleStats.cycleCount} ciclos registrados — variação de{" "}
         {cycleStats.variation} {cycleStats.variation === 1 ? "dia" : "dias"} entre o mais
         curto e o mais longo.
       </p>
@@ -78,20 +110,20 @@ function PeriodHistory({ periods, onDelete }) {
   const sorted = [...periods].sort((a, b) => (a.startDate < b.startDate ? 1 : -1));
 
   return (
-    <div className="bg-gray-800/50 border border-gray-700/50 rounded-2xl p-4">
-      <h3 className="font-bold text-white mb-3">Histórico</h3>
+    <div className="bg-gray-800/50 border border-gray-700/50 rounded-3xl p-5">
+      <h3 className="font-display font-semibold text-white mb-3">Histórico</h3>
       <ul className="space-y-2">
         {sorted.map((period) => (
           <li
             key={period.startDate}
-            className="flex items-center justify-between text-sm bg-gray-900/50 rounded-lg px-3 py-2"
+            className="flex items-center justify-between text-sm bg-ink/60 rounded-xl px-3 py-2.5"
           >
             <span className="text-gray-300">
               {new Date(`${period.startDate}T00:00:00`).toLocaleDateString("pt-BR")}
             </span>
             <button
               onClick={() => onDelete(period.startDate)}
-              className="text-gray-500 hover:text-red-400"
+              className="text-gray-500 hover:text-accent transition-colors"
               aria-label="Remover registro"
             >
               <TrashIcon className="h-4 w-4" />
@@ -122,32 +154,15 @@ function CycleOwnerPanel({ periods, cycleStats, cycleSummary, onLogPeriodStart, 
 
   return (
     <div className="space-y-4">
-      {cycleSummary && (
-        <div className="bg-gray-800/50 border border-gray-700/50 rounded-2xl p-4">
-          <p className="text-sm text-gray-400">Hoje</p>
-          <p className="text-lg font-bold text-white">
-            Dia {cycleSummary.cycleDay} do ciclo — {getPhaseLabel(cycleSummary.phase)}
-          </p>
-          <p className="text-sm text-gray-400 mt-2">
-            Próxima menstruação estimada:{" "}
-            <span className="text-white font-medium">
-              {new Date(`${cycleSummary.nextPeriodDate}T00:00:00`).toLocaleDateString("pt-BR")}
-            </span>
-          </p>
-          <p className="text-sm text-gray-400">
-            Janela fértil estimada: dias {formatDayMonth(cycleSummary.fertileWindowDates.start)}{" "}
-            a {formatDayMonth(cycleSummary.fertileWindowDates.end)}
-          </p>
-        </div>
-      )}
+      <TodayHero cycleSummary={cycleSummary} />
 
       <RegularityCard cycleStats={cycleStats} />
 
       <form
         onSubmit={handleSubmit}
-        className="bg-gray-800/50 border border-gray-700/50 rounded-2xl p-4 space-y-4"
+        className="bg-gray-800/50 border border-gray-700/50 rounded-3xl p-5 space-y-4"
       >
-        <h3 className="font-bold text-white">Registrar início do período</h3>
+        <h3 className="font-display font-semibold text-white">Registrar início do período</h3>
 
         <div>
           <label className="block text-sm text-gray-400 mb-1">Data de início</label>
@@ -156,7 +171,7 @@ function CycleOwnerPanel({ periods, cycleStats, cycleSummary, onLogPeriodStart, 
             value={newStartDate}
             onChange={(e) => setNewStartDate(e.target.value)}
             required
-            className="w-full bg-gray-900 border border-gray-600 rounded-lg p-2 text-white"
+            className="w-full bg-ink border border-gray-700 rounded-xl p-2.5 text-white focus:border-accent focus:ring-accent"
           />
         </div>
 
@@ -170,20 +185,20 @@ function CycleOwnerPanel({ periods, cycleStats, cycleSummary, onLogPeriodStart, 
             max={10}
             value={periodLength}
             onChange={(e) => setPeriodLength(e.target.value)}
-            className="w-full bg-gray-900 border border-gray-600 rounded-lg p-2 text-white"
+            className="w-full bg-ink border border-gray-700 rounded-xl p-2.5 text-white focus:border-accent focus:ring-accent"
           />
         </div>
 
         <button
           type="submit"
           disabled={isSaving}
-          className="w-full bg-pink-500 hover:bg-pink-600 disabled:opacity-50 text-white font-bold py-2 rounded-lg transition-colors"
+          className="w-full bg-gradient-to-r from-accent to-accent-dark hover:brightness-110 disabled:opacity-50 text-white font-semibold py-2.5 rounded-xl transition-all shadow-glow-accent"
         >
           {isSaving ? "Salvando..." : "Salvar"}
         </button>
 
         <p className="text-xs text-gray-500">
-          Apenas você vê essas datas e o histórico. Seu parceiro(a) recebe só a
+          Só você vê essas datas e o histórico. Seu par recebe apenas a
           dica do dia — nunca as datas exatas.
         </p>
       </form>
@@ -196,20 +211,14 @@ function CycleOwnerPanel({ periods, cycleStats, cycleSummary, onLogPeriodStart, 
 }
 
 /** Tela exibida para quem NÃO registra o ciclo — só vê o insight do dia. */
-function PartnerInsightPanel({ dailyInsight, isConfigured, onClaimOwnership }) {
+function PartnerInsightPanel({ dailyInsight, isConfigured }) {
   if (!isConfigured) {
     return (
-      <div className="bg-gray-800/50 border border-gray-700/50 rounded-2xl p-6 text-center space-y-3">
-        <DropletIcon className="h-10 w-10 text-pink-400 mx-auto" />
+      <div className="bg-gray-800/50 border border-gray-700/50 rounded-3xl p-8 text-center space-y-3">
+        <DropletIcon className="h-10 w-10 text-accent mx-auto" />
         <p className="text-gray-300">
           Assim que seu par registrar o ciclo, você vai ver por aqui a dica do dia.
         </p>
-        <button
-          onClick={onClaimOwnership}
-          className="text-sm text-gray-400 hover:text-white underline"
-        >
-          Sou eu quem registra o ciclo — trocar
-        </button>
       </div>
     );
   }
@@ -218,12 +227,6 @@ function PartnerInsightPanel({ dailyInsight, isConfigured, onClaimOwnership }) {
     <div className="space-y-4">
       <DailyTipCard dailyInsight={dailyInsight} />
       <DisclaimerNote />
-      <button
-        onClick={onClaimOwnership}
-        className="text-xs text-gray-500 hover:text-gray-300 underline block mx-auto"
-      >
-        Sou eu quem registra o ciclo — trocar
-      </button>
     </div>
   );
 }
@@ -239,7 +242,6 @@ export default function CycleView(props) {
     dailyInsight,
     handleLogPeriodStart,
     handleDeletePeriodEntry,
-    handleClaimOwnership,
   } = useMenstrualCycle({ user, userData, coupleData });
 
   return (
@@ -253,9 +255,11 @@ export default function CycleView(props) {
           >
             <ArrowLeftIcon className="h-6 w-6" />
           </button>
-          <div className="flex items-center text-pink-400">
+          <div className="flex items-center text-accent">
             <DropletIcon />
-            <h1 className="ml-2 text-xl font-bold tracking-wider text-white">Ciclo</h1>
+            <h1 className="ml-2 text-xl font-display font-semibold tracking-wide text-white">
+              Ciclo
+            </h1>
           </div>
         </div>
       </header>
@@ -270,11 +274,7 @@ export default function CycleView(props) {
             onDeletePeriod={handleDeletePeriodEntry}
           />
         ) : (
-          <PartnerInsightPanel
-            dailyInsight={dailyInsight}
-            isConfigured={isConfigured}
-            onClaimOwnership={handleClaimOwnership}
-          />
+          <PartnerInsightPanel dailyInsight={dailyInsight} isConfigured={isConfigured} />
         )}
       </main>
     </div>

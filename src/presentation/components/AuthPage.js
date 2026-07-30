@@ -88,8 +88,9 @@ function AuthPage() {
     "w-full block px-4 py-2 border border-gray-600 rounded-lg shadow-sm bg-gray-800 text-white focus:ring-yellow-500 focus:border-yellow-500";
 
   return (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4 font-sans">
-      <div className="w-full max-w-md bg-gray-800/50 border border-gray-700/50 rounded-2xl shadow-lg p-8 space-y-6 backdrop-blur-sm">
+    <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4 font-sans relative overflow-hidden">
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-72 h-72 rounded-full bg-accent/10 blur-3xl pointer-events-none" />
+      <div className="w-full max-w-md bg-gray-800/50 border border-gray-700/50 rounded-3xl shadow-glow-accent p-8 space-y-6 backdrop-blur-sm relative">
         <div className="text-center">
           <div className="flex justify-center items-center mb-4 text-yellow-400">
             <HeartIcon />
