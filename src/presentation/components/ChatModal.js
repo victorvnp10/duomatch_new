@@ -1,0 +1,148 @@
+import React, { useState, useEffect, useRef } from "react";
+
+function ChatModal({
+  activity,
+  user,
+  userData,
+  comments,
+  onClose,
+  handlePostComment,
+}) {
+  const [newComment, setNewComment] = useState("");
+  const messagesEndRef = useRef(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [comments]);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!newComment.trim()) return;
+    handlePostComment(activity.id, newComment);
+    setNewComment("");
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4 font-sans">
+      <div
+        className="bg-gray-900 border border-gray-700 w-full max-w-lg rounded-2xl shadow-lg flex flex-col backdrop-blur-sm"
+        style={{ height: "80vh" }}
+      >
+        {/* Cabeçalho do Modal */}
+        <header className="p-4 border-b border-gray-700/50 flex justify-between items-center flex-shrink-0">
+          <div>
+            <h2 className="text-xl font-bold text-white tracking-wide">
+              Chat da Atividade
+            </h2>
+            <p className="text-sm text-yellow-400">{activity.name}</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-full text-gray-400 hover:bg-gray-700 hover:text-white transition-colors"
+            aria-label="Fechar"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-6 w-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        </header>
+
+        {/* Corpo do Chat (mensagens) */}
+        <div className="flex-grow p-4 overflow-y-auto space-y-4">
+          {comments.map((comment) => {
+            const isMyComment = comment.authorId === user.uid;
+            return (
+              <div
+                key={comment.id}
+                className={`flex items-end gap-2 ${
+                  isMyComment ? "justify-end" : "justify-start"
+                }`}
+              >
+                {!isMyComment && (
+                  <img
+                    // --- CORREÇÃO APLICADA AQUI ---
+                    src={
+                      userData?.partnerData?.photoURL ||
+                      `https://api.dicebear.com/7.x/pixel-art/svg?seed=${comment.authorId}`
+                    }
+                    alt="Avatar"
+                    className="w-8 h-8 rounded-full border-2 border-pink-500"
+                  />
+                )}
+                <div
+                  className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ${
+                    isMyComment
+                      ? "bg-yellow-400 text-gray-900 rounded-br-none"
+                      : "bg-gray-700 text-white rounded-bl-none"
+                  }`}
+                >
+                  {!isMyComment && (
+                    <p className="text-xs font-bold text-pink-400 mb-1">
+                      {comment.authorNickname}
+                    </p>
+                  )}
+                  <p className="whitespace-pre-wrap break-words">
+                    {comment.text}
+                  </p>
+                </div>
+                {isMyComment && (
+                  <img
+                    // --- CORREÇÃO APLICADA AQUI ---
+                    src={
+                      userData?.photoURL ||
+                      `https://api.dicebear.com/7.x/pixel-art/svg?seed=${user.uid}`
+                    }
+                    alt="Seu avatar"
+                    className="w-8 h-8 rounded-full border-2 border-yellow-400"
+                  />
+                )}
+              </div>
+            );
+          })}
+          <div ref={messagesEndRef} />
+        </div>
+
+        {/* Rodapé do Modal (formulário de envio) */}
+        <footer className="p-4 border-t border-gray-700/50 flex-shrink-0">
+          <form onSubmit={handleSubmit} className="flex items-center gap-2">
+            <input
+              type="text"
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              placeholder="Digite sua mensagem..."
+              className="flex-grow px-4 py-2 border border-gray-600 rounded-full bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+              autoFocus
+            />
+            <button
+              type="submit"
+              className="bg-yellow-400 hover:bg-yellow-300 text-gray-900 p-3 rounded-full flex-shrink-0 transition-colors"
+              aria-label="Enviar"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.428A1 1 0 009.894 15V4a1 1 0 00-1.447-.894l-5 1.428a1 1 0 00-.894 1.447l7 14a1 1 0 001.788 0l7-14a1 1 0 00-1.169-1.409l-5 1.428A1 1 0 0010.106 5V16a1 1 0 001.447.894l5-1.428a1 1 0 00.894-1.447l-7-14z" />
+              </svg>
+            </button>
+          </form>
+        </footer>
+      </div>
+    </div>
+  );
+}
+
+export default ChatModal;
