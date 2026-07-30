@@ -1,11 +1,11 @@
 import React from "react";
 
 /**
- * Sistema de avatares — silhuetas geométricas minimalistas em vez de
- * emojis. Cada avatar é definido por uma configuração pequena (tom de
- * pele, estilo de cabelo, cor de cabelo, acessório) renderizada por um
+ * Sistema de avatares — silhuetas geométricas com rosto expressivo em vez de
+ * emojis. Cada avatar é definido por uma configuração pequena (tom de pele,
+ * estilo de cabelo, cor de cabelo, tipo de barba/bigode) renderizada por um
  * único componente paramétrico — mais fácil de manter e mais coerente
- * visualmente do que 18 ilustrações desenhadas à mão.
+ * visualmente do que dezenas de ilustrações desenhadas à mão.
  *
  * Compatibilidade: contas criadas antes desta atualização guardam o
  * avatar como um emoji cru em `photoURL`. O componente `Avatar` abaixo
@@ -21,7 +21,41 @@ const SKIN_TONES = {
   deep: "#6B4226",
 };
 
-/** Silhueta base: cabeça + ombros, compartilhada por todos os avatares. */
+/** Olhos, sobrancelhas e boca — compartilhados por todos os avatares, dão
+ * a expressão amigável vista na referência (em vez da silhueta lisa). */
+function FaceFeatures() {
+  return (
+    <>
+      <path
+        d="M46 38c2-2 6-3 9-2"
+        stroke="#2A1E16"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        fill="none"
+      />
+      <path
+        d="M65 36c3-1 7 0 9 2"
+        stroke="#2A1E16"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        fill="none"
+      />
+      <ellipse cx="50" cy="45" rx="3.2" ry="4" fill="#2A1E16" />
+      <ellipse cx="70" cy="45" rx="3.2" ry="4" fill="#2A1E16" />
+      <circle cx="51.2" cy="43.2" r="1" fill="#fff" opacity="0.85" />
+      <circle cx="71.2" cy="43.2" r="1" fill="#fff" opacity="0.85" />
+      <path
+        d="M50 58q10 7 20 0"
+        stroke="#7A3B2E"
+        strokeWidth="2.6"
+        strokeLinecap="round"
+        fill="none"
+      />
+    </>
+  );
+}
+
+/** Silhueta base: cabeça + ombros + rosto, compartilhada por todos os avatares. */
 function BustBase({ skin, children }) {
   return (
     <>
@@ -30,6 +64,7 @@ function BustBase({ skin, children }) {
         fill={skin}
       />
       <circle cx="60" cy="46" r="26" fill={skin} />
+      <FaceFeatures />
       {children}
     </>
   );
@@ -107,6 +142,14 @@ const BEARD_SHAPES = {
       opacity="0.55"
     />
   ),
+  /** Bigode "handlebar" — duas elipses inclinadas se encontrando no centro,
+   * como no rosto de referência do usuário. */
+  mustache: (color) => (
+    <g fill={color}>
+      <ellipse cx="47" cy="55" rx="9" ry="4" transform="rotate(-15 47 55)" />
+      <ellipse cx="73" cy="55" rx="9" ry="4" transform="rotate(15 73 55)" />
+    </g>
+  ),
 };
 
 function AvatarGlyph({ skin, hair, hairColor, beard = "none", beardColor }) {
@@ -134,6 +177,18 @@ export const FEMALE_AVATARS = [
     props: { skin: SKIN_TONES.tan, hair: "headscarf", hairColor: "#5C3A52" } },
   { id: "fem-6", name: "Cabelo longo ruivo", gradient: "from-gold-light to-accent",
     props: { skin: SKIN_TONES.porcelain, hair: "long", hairColor: "#A6491F" } },
+  { id: "fem-7", name: "Cacheada clara", gradient: "from-accent-light to-sage",
+    props: { skin: SKIN_TONES.light, hair: "curly", hairColor: "#6B3F1D" } },
+  { id: "fem-8", name: "Coque grisalho", gradient: "from-gray-400 to-gray-600",
+    props: { skin: SKIN_TONES.deep, hair: "bun", hairColor: "#B0AFAF" } },
+  { id: "fem-9", name: "Pixie loira", gradient: "from-gold-light to-gold",
+    props: { skin: SKIN_TONES.tan, hair: "pixie", hairColor: "#D9B65C" } },
+  { id: "fem-10", name: "Cabelo longo preto", gradient: "from-plum to-ink-lighter",
+    props: { skin: SKIN_TONES.medium, hair: "long", hairColor: "#120D0A" } },
+  { id: "fem-11", name: "Hijab claro", gradient: "from-sage-light to-accent-dark",
+    props: { skin: SKIN_TONES.porcelain, hair: "headscarf", hairColor: "#2E5C4A" } },
+  { id: "fem-12", name: "Coque ruivo", gradient: "from-accent to-gold-dark",
+    props: { skin: SKIN_TONES.light, hair: "bun", hairColor: "#A6491F" } },
 ];
 
 export const MALE_AVATARS = [
@@ -149,6 +204,18 @@ export const MALE_AVATARS = [
     props: { skin: SKIN_TONES.porcelain, hair: "cap", hairColor: "#3D2F43", beard: "none" } },
   { id: "masc-6", name: "Pixie curto", gradient: "from-gold-light to-accent-light",
     props: { skin: SKIN_TONES.light, hair: "pixie", hairColor: "#5C4620", beard: "stubble" } },
+  { id: "masc-7", name: "Bigode clássico", gradient: "from-gold to-accent-dark",
+    props: { skin: SKIN_TONES.porcelain, hair: "short", hairColor: "#4A3324", beard: "mustache" } },
+  { id: "masc-8", name: "Bigode grisalho", gradient: "from-gray-400 to-gray-600",
+    props: { skin: SKIN_TONES.tan, hair: "short", hairColor: "#B7B4AF", beard: "mustache" } },
+  { id: "masc-9", name: "Cacheado ruivo", gradient: "from-accent-light to-gold-light",
+    props: { skin: SKIN_TONES.light, hair: "curly", hairColor: "#A6491F", beard: "stubble" } },
+  { id: "masc-10", name: "Careca com bigode", gradient: "from-ink to-plum",
+    props: { skin: SKIN_TONES.deep, hair: "bald", beard: "mustache", beardColor: "#1A1210" } },
+  { id: "masc-11", name: "Boné escuro", gradient: "from-plum to-gray-800",
+    props: { skin: SKIN_TONES.medium, hair: "cap", hairColor: "#14100D", beard: "stubble" } },
+  { id: "masc-12", name: "Cabelo longo e barba", gradient: "from-gold-dark to-plum",
+    props: { skin: SKIN_TONES.tan, hair: "long", hairColor: "#1F1512", beard: "full" } },
 ];
 
 const CATALOG_BY_ID = [...FEMALE_AVATARS, ...MALE_AVATARS].reduce((acc, a) => {
