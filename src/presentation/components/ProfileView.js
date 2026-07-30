@@ -154,6 +154,22 @@ export default function ProfileView(props) {
           </div>
         </div>
 
+        {/* CARD DE ACESSO AO CICLO */}
+        <button
+          onClick={() => setView("cycle")}
+          className="w-full bg-gray-800/50 border border-gray-700/50 rounded-2xl shadow-lg p-6 backdrop-blur-sm text-left hover:border-pink-500/50 transition-colors flex items-center justify-between"
+        >
+          <div>
+            <h2 className="text-lg font-semibold text-gray-200 tracking-wide">
+              Ciclo
+            </h2>
+            <p className="text-sm text-gray-400 mt-1">
+              Acompanhe o ciclo ou veja o insight diário do casal
+            </p>
+          </div>
+          <span className="text-2xl">🩷</span>
+        </button>
+
         {/* CARD DE DADOS PESSOAIS */}
         <div className="bg-gray-800/50 border border-gray-700/50 rounded-2xl shadow-lg p-6 backdrop-blur-sm">
           <h2 className="text-lg font-semibold text-gray-200 tracking-wide mb-4">

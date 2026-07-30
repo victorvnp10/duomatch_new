@@ -160,6 +160,30 @@ Removidos de `useAchievements.js` e `shared/utils/streakUtils.js`.
   próprio mecanismo de offline (IndexedDB) e interceptá-las por engano
   poderia corromper o streaming em tempo real.
 
+## Nova funcionalidade: Ciclo (insights de casal)
+
+Adicionado um acompanhamento de ciclo menstrual, com uma tela dedicada
+(`presentation/components/CycleView.js`, acessível pelo card "Ciclo" na
+tela de Perfil):
+
+- **Quem registra** (por padrão, o perfil com `gender === "feminino"`;
+  pode ser trocado manualmente com o botão "Sou eu quem registra") vê um
+  painel completo: data da última menstruação, duração do ciclo/
+  menstruação, dia atual, fase e previsão da próxima menstruação.
+- **O parceiro** vê apenas um card com o insight do dia (ícone + frase
+  curta, ex.: "Hoje começa o seu período de sorte!", "Cuidado, hoje não
+  é um bom dia") — nunca as datas brutas.
+- Toda a decisão de fase/mensagem é domínio puro e testável, sem
+  Firestore: `domain/valueObjects/MenstrualCycle.js` (cálculo de dia do
+  ciclo, fase, janela fértil por método calendário) e
+  `domain/services/CycleInsightService.js` (mapeia fase → mensagem). A
+  orquestração (ler/gravar no Firestore) fica em
+  `application/hooks/useMenstrualCycle.js`.
+- **Limites explícitos**: é uma estimativa por calendário — não é
+  diagnóstico médico nem método contraceptivo, e isso aparece por
+  escrito na própria tela (`DisclaimerNote`), tanto para quem registra
+  quanto para quem recebe o insight.
+
 ## O que fica como próximo passo
 
 Esta refatoração priorizou o maior risco/valor: os bugs de conquistas e

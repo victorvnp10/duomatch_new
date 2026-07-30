@@ -42,10 +42,11 @@ import AchievementAnimation from "./AchievementAnimation";
 import DeleteConfirmationModal from "./DeleteConfirmationModal";
 import OnboardingView from "./OnboardingView";
 import LoadingScreen from "./LoadingScreen";
+import CycleView from "./CycleView";
 import { PlusIcon } from "./Icons";
 
 export default function DuoMatchApp({ user, userData }) {
-  const validViews = ["main", "wishlist", "wallet", "shop", "hot", "all", "rounds", "profile"];
+  const validViews = ["main", "wishlist", "wallet", "shop", "hot", "all", "rounds", "profile", "cycle"];
   const initialView = new URLSearchParams(window.location.search).get("view");
   const [view, setView] = useState(
     validViews.includes(initialView) ? initialView : "main"
@@ -206,6 +207,8 @@ export default function DuoMatchApp({ user, userData }) {
             partnerData={userData.partnerData}
           />
         );
+      case "cycle":
+        return <CycleView {...propsForChildren} />;
       default:
         return <MainView {...propsForChildren} />;
     }
