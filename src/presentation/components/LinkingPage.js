@@ -15,12 +15,13 @@ import {
   writeBatch,
 } from "../../infrastructure/firebase";
 
-function LinkingPage({ user, userData }) {
+function LinkingPage({ user, userData, onSkip, onBack }) {
   const [inviteCode, setInviteCode] = useState("");
   const [generatedCode, setGeneratedCode] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [linkingSuccess, setLinkingSuccess] = useState(false);
+  const [skipping, setSkipping] = useState(false);
 
   // 2. Adicione este useEffect para lidar com o redirecionamento
   useEffect(() => {
@@ -232,6 +233,29 @@ function LinkingPage({ user, userData }) {
     }
   };
 
+  /**
+   * "Vincular depois": deixa a pessoa prosseguir e conhecer o app mesmo
+   * sem parceiro ainda. Só grava uma flag no próprio usuário — nada de
+   * coupleId/rodada é criado aqui, então recursos que dependem de casal
+   * (rodadas, desafios, etc.) continuam bloqueados até a vinculação real
+   * acontecer, por construção.
+   */
+  const handleSkipLinking = async () => {
+    setSkipping(true);
+    setError("");
+    try {
+      await updateDoc(doc(db, usersPath, user.uid), {
+        onboardingSkipped: true,
+      });
+      if (onSkip) onSkip();
+    } catch (err) {
+      setError("Não foi possível continuar agora. Tente novamente.");
+      console.error("Erro ao pular vinculação:", err);
+    } finally {
+      setSkipping(false);
+    }
+  };
+
   if (linkingSuccess) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
@@ -312,14 +336,36 @@ function LinkingPage({ user, userData }) {
 
         {error && <p className="text-red-500 text-sm">{error}</p>}
 
+        {/* --- OPÇÃO DE CONTINUAR SEM VINCULAR AGORA --- */}
+        {!onBack && (
+          <div className="pt-4">
+            <button
+              onClick={handleSkipLinking}
+              disabled={skipping}
+              className="w-full text-sm font-semibold text-gray-500 hover:text-pink-600 transition-colors underline disabled:opacity-50"
+            >
+              {skipping ? "Só um instante..." : "Vincular depois — quero só conhecer o app"}
+            </button>
+          </div>
+        )}
+
         {/* --- BOTÃO DE VOLTAR ADICIONADO AQUI --- */}
         <div className="pt-6 border-t border-gray-200 mt-6">
-          <button
-            onClick={() => signOut(auth)} // Ação de deslogar
-            className="w-full text-sm text-center text-gray-500 hover:text-pink-600 transition-colors"
-          >
-            Voltar e Sair
-          </button>
+          {onBack ? (
+            <button
+              onClick={onBack}
+              className="w-full text-sm text-center text-gray-500 hover:text-pink-600 transition-colors"
+            >
+              ← Voltar
+            </button>
+          ) : (
+            <button
+              onClick={() => signOut(auth)} // Ação de deslogar
+              className="w-full text-sm text-center text-gray-500 hover:text-pink-600 transition-colors"
+            >
+              Voltar e Sair
+            </button>
+          )}
         </div>
       </div>
     </div>
