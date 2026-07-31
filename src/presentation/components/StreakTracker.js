@@ -15,10 +15,10 @@ export default function StreakTracker({ userData, coupleData }) {
   };
 
   const getStreakColor = () => {
-    if (currentStreak < 3) return "text-yellow-400";
-    if (currentStreak < 7) return "text-orange-400";
-    if (currentStreak < 14) return "text-red-400";
-    return "text-purple-400";
+    if (currentStreak < 3) return "text-gold-light";
+    if (currentStreak < 7) return "text-gold";
+    if (currentStreak < 14) return "text-accent-light";
+    return "text-accent";
   };
 
   return (
@@ -51,7 +51,7 @@ export default function StreakTracker({ userData, coupleData }) {
         </div>
         <div className="w-full bg-gray-700 rounded-full h-2">
           <div 
-            className={`h-2 rounded-full bg-gradient-to-r from-yellow-400 to-orange-400`}
+            className={`h-2 rounded-full bg-gradient-to-r from-gold to-accent`}
             style={{ width: `${(currentStreak % 7) * 14.28}%` }}
           />
         </div>

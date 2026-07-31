@@ -517,7 +517,7 @@ export default function MainView(props) {
   };
 
   return (
-    <div className="bg-gray-900 text-white min-h-screen">
+    <div className="app-bg-glow text-white min-h-screen">
       <header className="bg-gray-900/70 backdrop-blur-md p-4 sticky top-0 z-20 border-b border-gray-700/50">
         <div className="max-w-4xl mx-auto flex justify-between items-center">
           <div

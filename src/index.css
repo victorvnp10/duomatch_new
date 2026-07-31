@@ -36,6 +36,19 @@ h1, h2, h3 {
   font-family: 'Fraunces', serif;
 }
 
+/* Fundo com profundidade — substitui o bg-gray-900 chapado da tela
+   principal por um gradiente radial sutil usando as próprias cores da
+   marca (accent/gold/sage), mantendo o clima íntimo/noturno já escolhido
+   para o app, só que com mais profundidade que uma cor lisa. */
+.app-bg-glow {
+  background:
+    radial-gradient(ellipse 60% 40% at 15% 0%, rgba(224, 87, 125, 0.22), transparent 60%),
+    radial-gradient(ellipse 55% 35% at 100% 25%, rgba(201, 162, 75, 0.16), transparent 60%),
+    radial-gradient(ellipse 50% 40% at 50% 100%, rgba(124, 152, 133, 0.10), transparent 60%),
+    linear-gradient(180deg, #1A1420 0%, #241A2C 55%, #2A1F2E 100%);
+  background-attachment: fixed;
+}
+
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;

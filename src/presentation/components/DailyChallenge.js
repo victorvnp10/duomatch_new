@@ -5,6 +5,26 @@ import { ChallengeIcon, TrophyIcon } from './Icons';
 
 const db = getFirestore();
 
+/**
+ * Cada desafio semanal já vem com um `type` (romance, connection,
+ * appreciation...). Antes disso, o card inteiro era pintado com
+ * purple/pink fixos, sem relação com a paleta de marca (accent/gold/sage)
+ * usada no resto do app. Agora a cor do card reflete a categoria real do
+ * desafio, usando só cores que já existem na paleta.
+ */
+const CATEGORY_STYLES = {
+  romance: { label: "Romance", card: "from-accent/20 to-accent-dark/20 border-accent/40", text: "text-accent-light", track: "bg-accent-dark/40", bar: "from-accent to-accent-dark" },
+  surprise: { label: "Surpresa", card: "from-accent/20 to-accent-dark/20 border-accent/40", text: "text-accent-light", track: "bg-accent-dark/40", bar: "from-accent to-accent-dark" },
+  together: { label: "Juntos", card: "from-accent/20 to-accent-dark/20 border-accent/40", text: "text-accent-light", track: "bg-accent-dark/40", bar: "from-accent to-accent-dark" },
+  touch: { label: "Carinho", card: "from-accent/20 to-accent-dark/20 border-accent/40", text: "text-accent-light", track: "bg-accent-dark/40", bar: "from-accent to-accent-dark" },
+  connection: { label: "Conexão", card: "from-sage/20 to-sage-light/10 border-sage/40", text: "text-sage-light", track: "bg-sage/40", bar: "from-sage to-sage-light" },
+  communication: { label: "Comunicação", card: "from-sage/20 to-sage-light/10 border-sage/40", text: "text-sage-light", track: "bg-sage/40", bar: "from-sage to-sage-light" },
+  planning: { label: "Planejamento", card: "from-sage/20 to-sage-light/10 border-sage/40", text: "text-sage-light", track: "bg-sage/40", bar: "from-sage to-sage-light" },
+  appreciation: { label: "Gratidão", card: "from-gold/20 to-gold-dark/10 border-gold/40", text: "text-gold-light", track: "bg-gold-dark/40", bar: "from-gold to-gold-dark" },
+  memory: { label: "Memórias", card: "from-gold/20 to-gold-dark/10 border-gold/40", text: "text-gold-light", track: "bg-gold-dark/40", bar: "from-gold to-gold-dark" },
+};
+const DEFAULT_CATEGORY_STYLE = { label: "Desafio", card: "from-gold/20 to-gold-dark/10 border-gold/40", text: "text-gold-light", track: "bg-gold-dark/40", bar: "from-gold to-gold-dark" };
+
 export const DailyChallenge = ({ userData, coupleData, rounds, onAcceptChallenge }) => {
   const [currentChallenge, setCurrentChallenge] = useState(null);
   const [weeklyProgress, setWeeklyProgress] = useState(null);
@@ -672,26 +692,27 @@ export const DailyChallenge = ({ userData, coupleData, rounds, onAcceptChallenge
   }
 
   const challengeState = getChallengeState;
+  const categoryStyle = CATEGORY_STYLES[getWeeklyChallenge.type] || DEFAULT_CATEGORY_STYLE;
 
   return (
-    <div className="bg-gradient-to-r from-purple-900/50 to-pink-900/50 border border-purple-500/50 rounded-2xl shadow-lg p-6 backdrop-blur-sm">
+    <div className={`bg-gradient-to-r ${categoryStyle.card} border rounded-2xl shadow-lg p-6 backdrop-blur-sm`}>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center">
-          <ChallengeIcon className="h-6 w-6 text-purple-400 mr-2" />
-          <h3 className="text-xl font-bold text-purple-200">
+          <ChallengeIcon className={`h-6 w-6 ${categoryStyle.text} mr-2`} />
+          <h3 className="text-xl font-bold text-white">
             Desafio Semanal
           </h3>
         </div>
         <div className="text-right">
-          <div className="text-xs text-purple-300">
+          <div className={`text-xs ${categoryStyle.text}`}>
             {calculateWeeklyProgress.daysRemaining > 0 
               ? `${calculateWeeklyProgress.daysRemaining} dias restantes`
               : 'Último dia!'
             }
           </div>
-          <div className="w-20 bg-purple-800/50 rounded-full h-2 mt-1">
+          <div className={`w-20 ${categoryStyle.track} rounded-full h-2 mt-1`}>
             <div 
-              className="bg-gradient-to-r from-purple-400 to-pink-400 h-2 rounded-full transition-all duration-500"
+              className={`bg-gradient-to-r ${categoryStyle.bar} h-2 rounded-full transition-all duration-500`}
               style={{ width: `${calculateWeeklyProgress.percentage}%` }}
             />
           </div>
@@ -699,10 +720,13 @@ export const DailyChallenge = ({ userData, coupleData, rounds, onAcceptChallenge
       </div>
 
       <div className="bg-black/20 rounded-lg p-4 mb-4">
-        <h4 className="font-semibold text-purple-200 text-lg mb-2">
+        <p className={`text-xs uppercase tracking-wide font-bold ${categoryStyle.text} mb-1`}>
+          {categoryStyle.label}
+        </p>
+        <h4 className="font-semibold text-white text-lg mb-2">
           🎯 {getWeeklyChallenge.title}
         </h4>
-        <p className="text-purple-300 text-sm mb-3 leading-relaxed">
+        <p className="text-gray-300 text-sm mb-3 leading-relaxed">
           {getWeeklyChallenge.description}
         </p>
 
@@ -713,7 +737,7 @@ export const DailyChallenge = ({ userData, coupleData, rounds, onAcceptChallenge
           </div>
 
           {/* Status de aceitação independente */}
-          <div className="text-xs text-purple-300 text-right">
+          <div className="text-xs text-gray-300 text-right">
             <div className="mb-1">
               {challengeState?.myAccepted ? (
                 <span className="text-green-400">✅ Você: Aceito</span>
@@ -738,7 +762,7 @@ export const DailyChallenge = ({ userData, coupleData, rounds, onAcceptChallenge
             <button
               onClick={handleAcceptWeeklyChallenge}
               disabled={isLoading}
-              className="w-full px-4 py-2 rounded-lg font-semibold text-sm transition-all transform hover:scale-105 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white disabled:opacity-50"
+              className="w-full px-4 py-2 rounded-lg font-semibold text-sm transition-all transform hover:scale-105 bg-gradient-to-r from-accent to-accent-dark hover:from-accent-light hover:to-accent text-white disabled:opacity-50"
             >
               {isLoading ? 'Aceitando...' : 'Aceitar Desafio'}
             </button>
@@ -818,7 +842,7 @@ export const DailyChallenge = ({ userData, coupleData, rounds, onAcceptChallenge
         </div>
       )}
 
-      <div className="text-center text-xs text-purple-400 mt-3">
+      <div className="text-center text-xs text-gray-400 mt-3">
         💡 Novos desafios toda segunda-feira!
       </div>
     </div>
