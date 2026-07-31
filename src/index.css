@@ -22,8 +22,18 @@ body {
  * só tem efeito com `viewport-fit=cover` no viewport (já configurado em
  * public/index.html).
  */
+/*
+ * !important é necessário aqui: o Tailwind aplica padding via a classe
+ * `.p-4` (usada em todo `<header>` do app), e uma classe sempre vence um
+ * seletor de elemento simples como `header` em especificidade CSS,
+ * independente da ordem no arquivo. Sem o !important, essa regra nunca
+ * era aplicada de fato — por isso funcionava bem no Safari (que reserva
+ * seu próprio espaço no topo) mas ficava coberta pela status bar/notch
+ * no app instalado na tela de início (modo standalone), onde é o
+ * próprio app quem precisa reservar esse espaço.
+ */
 header {
-  padding-top: max(1rem, env(safe-area-inset-top));
+  padding-top: max(1rem, env(safe-area-inset-top)) !important;
 }
 
 /* A barra de navegação inferior fixa também precisa do respiro de baixo,
