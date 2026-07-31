@@ -475,8 +475,9 @@ export const DailyChallenge = ({ userData, coupleData, rounds, onAcceptChallenge
   }, [coupleData, userData, calculateWeeklyProgress.startOfWeek, localChallengeData]);
 
   const handleAcceptWeeklyChallenge = async () => {
-    if (!userData?.coupleId || !userData?.uid || isLoading) {
-      alert('Erro: Dados do usuário incompletos. Faça logout e login novamente.');
+    if (!userData?.uid || isLoading) return;
+    if (!userData?.coupleId) {
+      alert('Vincule seu parceiro(a) para aceitar desafios de verdade — no modo de demonstração isso é só ilustrativo. 💕');
       return;
     }
 
