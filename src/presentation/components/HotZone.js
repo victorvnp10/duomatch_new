@@ -3,6 +3,8 @@ import { FireIcon, ArrowLeftIcon, ChatBubbleIcon, ChallengeIcon } from "./Icons"
 import CountdownTimer from "./CountdownTimer";
 import LevelUpAnimation from "./LevelUpAnimation";
 import MatchNotification from "./MatchNotification";
+import DailyTipCard from "./DailyTipCard";
+import { useMenstrualCycle } from "../../application/hooks/useMenstrualCycle";
 import { isActivityForToday, getTodayDateString } from "../../shared/utils";
 
 // --- COMPONENTE DE NÍVEL DE INTIMIDADE ---
@@ -53,7 +55,7 @@ const IntimacyMeter = ({ user, userData, coupleData }) => {
 };
 
 // --- COMPONENTE DE SINAIS APRIMORADO ---
-const SignalGame = ({ user, userData, coupleData, handleSetDailySignal }) => {
+const SignalGame = ({ user, userData, coupleData, handleSetDailySignal, setView }) => {
   const todayStr = getTodayDateString();
   const partnerNickname = userData.partnerData?.nickname || "Seu amor";
   const dailySignalsData =
@@ -63,54 +65,34 @@ const SignalGame = ({ user, userData, coupleData, handleSetDailySignal }) => {
   const mySignal = dailySignalsData?.[user.uid];
   const partnerSignal = dailySignalsData?.[userData.partnerId];
 
+  // Dica do dia do ciclo — exibida acima das opções para ajudar na
+  // decisão de qual sinal enviar hoje.
+  const { dailyInsight } = useMenstrualCycle({ user, userData, coupleData });
+
   const signals = [
     {
-      id: "romantic",
-      icon: "🌹",
-      name: "Romântico",
-      text: "Desejando carinho, beijos suaves e momentos de ternura",
-      color: "from-pink-600 to-red-600",
-      glow: "shadow-[0_0_20px_rgba(236,72,153,0.6)]"
+      id: "willing",
+      icon: "😏",
+      name: "Topo",
+      text: "Pronto(a) pra esquentar o clima",
+      color: "from-accent to-accent-dark",
+      glow: "shadow-[0_0_20px_rgba(224,87,125,0.6)]"
     },
     {
-      id: "passionate",
-      icon: "🔥",
-      name: "Ardente",
-      text: "Querendo intensidade, paixão e muito calor entre vocês",
-      color: "from-red-600 to-orange-600",
-      glow: "shadow-[0_0_20px_rgba(239,68,68,0.6)]"
+      id: "unsure",
+      icon: "🤔",
+      name: "Sem certeza",
+      text: "Ainda não sei como vou estar",
+      color: "from-gold to-gold-dark",
+      glow: "shadow-[0_0_20px_rgba(201,162,75,0.6)]"
     },
     {
-      id: "playful",
-      icon: "😈",
-      name: "Travesso(a)",
-      text: "Pronto(a) para brincadeiras, provocações e diversão íntima",
-      color: "from-purple-600 to-pink-600",
-      glow: "shadow-[0_0_20px_rgba(147,51,234,0.6)]"
-    },
-    {
-      id: "cuddly",
-      icon: "🤗",
-      name: "Carinhoso(a)",
-      text: "Precisando de abraços, carinhos e conexão emocional",
-      color: "from-blue-600 to-purple-600",
-      glow: "shadow-[0_0_20px_rgba(59,130,246,0.6)]"
-    },
-    {
-      id: "mysterious",
-      icon: "🎭",
-      name: "Misterioso(a)",
-      text: "Com vontade de criar suspense e despertar curiosidade",
-      color: "from-indigo-600 to-purple-600",
-      glow: "shadow-[0_0_20px_rgba(99,102,241,0.6)]"
-    },
-    {
-      id: "recharging",
-      icon: "🌙",
-      name: "Descansando",
-      text: "Preferindo relaxar hoje, mas aberto(a) a carinhos suaves",
-      color: "from-gray-600 to-blue-600",
-      glow: "shadow-[0_0_20px_rgba(75,85,99,0.6)]"
+      id: "resting",
+      icon: "😴",
+      name: "Não hoje",
+      text: "Hoje é dia de descanso",
+      color: "from-sage to-sage-light",
+      glow: "shadow-[0_0_20px_rgba(124,152,133,0.6)]"
     },
   ];
 
@@ -193,6 +175,15 @@ const SignalGame = ({ user, userData, coupleData, handleSetDailySignal }) => {
   // Estado 1: Escolhendo o sinal
   return (
     <div className="bg-gradient-to-br from-black/60 to-pink-900/40 p-6 rounded-2xl border border-pink-500/40 backdrop-blur-md">
+      {dailyInsight && (
+        <div className="mb-5">
+          <DailyTipCard
+            dailyInsight={dailyInsight}
+            onOpenCycleView={setView ? () => setView("cycle") : undefined}
+          />
+        </div>
+      )}
+
       <h2 className="text-xl font-bold mb-2 text-center text-pink-300 tracking-wider">
         🌟 Qual é o seu Estado de Espírito?
       </h2>
@@ -200,7 +191,7 @@ const SignalGame = ({ user, userData, coupleData, handleSetDailySignal }) => {
         Compartilhe como você está se sentindo hoje. Só será revelado quando seu amor também escolher.
       </p>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-3">
         {signals.map((signal) => (
           <button
             key={signal.id}
@@ -680,6 +671,7 @@ export default function HotZone(props) {
           userData={userData}
           coupleData={coupleData}
           handleSetDailySignal={handleSetDailySignal}
+          setView={setView}
         />
 
         {/* Sugestões Picantes */}
