@@ -13,8 +13,11 @@ function BottomNavBar({ view, setView }) {
 
   return (
     // --- LAYOUT CORRIGIDO PARA 5 ITENS ---
-    <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-gray-900/80 backdrop-blur-md border-t border-gray-700/50 z-20">
-      <nav className="flex justify-around items-center h-full">
+    // h-16 fica no <nav>, não no container: assim o padding-bottom da área
+    // seguro (aplicado no container via a regra .fixed.bottom-0 do index.css)
+    // soma altura ABAIXO dos ícones, em vez de espremer o espaço deles.
+    <div className="md:hidden fixed bottom-0 left-0 right-0 bg-gray-900/80 backdrop-blur-md border-t border-gray-700/50 z-20">
+      <nav className="flex justify-around items-center h-16">
         {navItems.map((item) => {
           const isActive = view === item.view;
           return (
