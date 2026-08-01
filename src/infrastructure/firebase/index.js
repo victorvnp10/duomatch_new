@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, signOut } from "firebase/auth";
+import { getAuth, signOut, GoogleAuthProvider } from "firebase/auth";
 import {
   initializeFirestore,
   persistentLocalCache,
@@ -29,6 +29,15 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
 /**
+ * Provider do Google para "Continuar com o Google" no cadastro/login.
+ * A conta precisa estar habilitada em Firebase Console > Authentication >
+ * Sign-in method > Google, e o domínio de produção (www.duomatch.com.br)
+ * precisa estar na lista de "Authorized domains" da mesma tela — sem
+ * isso o popup do Google recusa ou não retorna corretamente para o site.
+ */
+const googleProvider = new GoogleAuthProvider();
+
+/**
  * Cache local persistente do Firestore (IndexedDB).
  *
  * Isto é o que torna o app utilizável como PWA offline: leituras já
@@ -52,6 +61,7 @@ export const setNewUserData = (data) => {
 
 export {
   auth,
+  googleProvider,
   db,
   signOut,
   Timestamp,
