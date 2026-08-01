@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { onAuthStateChanged, signOut } from "firebase/auth";
+import { onAuthStateChanged } from "firebase/auth";
 import { auth, db, doc, getDoc, setDoc, onSnapshot, newUserData } from "../../infrastructure/firebase";
 
 /**
@@ -69,26 +69,38 @@ export const useAuth = () => {
             setUserData(currentData);
             setLoading(false);
           }
-        } else if (newUserData) {
-          // Contingência: o documento ainda não existe (corrida rara com o
-          // setDoc feito em AuthPage.js durante o cadastro).
+        } else {
+          // Documento ainda não existe. Isso pode acontecer por mais de um
+          // motivo: a corrida original que este código já tratava (setDoc
+          // do cadastro por e-mail ainda não confirmado no primeiro
+          // snapshot), mas também um caso mais sério visto com o login do
+          // Google — em contas novas, o Google mostra uma tela de consentimento
+          // extra (goo.gl/.../oauth) que deixa o popup mais lento; em vários
+          // navegadores/hosts isso dispara falsamente um evento de "popup
+          // fechado pelo usuário" no SDK do Firebase por causa da política
+          // de COOP (Cross-Origin-Opener-Policy), mesmo com o login já
+          // concluído de verdade. Nesse caso, a função em `AuthPage.js`
+          // nunca chega a criar o documento, e o código antigo aqui
+          // deslogava a pessoa — ela via a tela carregar e voltar pro
+          // login, exatamente o bug relatado.
+          //
+          // A correção: criar um documento mínimo aqui sempre que faltar,
+          // usando `newUserData` se disponível (mais completo) ou os
+          // dados básicos do próprio `currentUser` como último recurso.
+          // O pior cenário passa a ser cair no `CompleteProfileView` para
+          // confirmar apelido/gênero/data de nascimento — que já é
+          // obrigatório de qualquer forma — em vez de deslogar a pessoa.
           const initialData = {
             uid: currentUser.uid,
-            nickname: newUserData.nickname,
-            gender: newUserData.gender ?? null,
-            email: newUserData.email,
+            nickname: newUserData?.nickname || currentUser.displayName || "",
+            gender: newUserData?.gender ?? null,
+            email: newUserData?.email || currentUser.email,
             partnerId: null,
             coupleId: null,
             score: 0,
           };
           await setDoc(userDocRef, initialData);
           setUserData(initialData);
-          setLoading(false);
-        } else {
-          console.error(
-            `Estado inconsistente para o usuário ${currentUser.uid}: autenticado mas sem dados de perfil. Efetuando logout.`
-          );
-          await signOut(auth);
           setLoading(false);
         }
       });
