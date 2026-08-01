@@ -348,9 +348,12 @@ export default function DuoMatchApp({ user, userData }) {
         <ChatModal
           activity={chatActivity}
           user={user}
+          userData={userData}
           comments={chatHandlers.activeChatComments}
           onClose={() => setChatActivity(null)}
           handlePostComment={chatHandlers.handlePostComment}
+          handleEditComment={chatHandlers.handleEditComment}
+          handleDeleteComment={chatHandlers.handleDeleteComment}
         />
       )}
       <DeleteConfirmationModal

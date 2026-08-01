@@ -9,6 +9,8 @@ import {
   doc,
   serverTimestamp,
   increment,
+  updateDoc,
+  deleteDoc,
 } from "../../infrastructure/firebase";
 
 /**
@@ -42,9 +44,25 @@ export const useChat = (user, userData, allActivities) => {
         ...doc.data(),
       }));
       setActiveChatComments(commentsData);
+
+      // Marca como lidas as mensagens do parceiro que ainda não tinham
+      // sido vistas — é o que informa ao autor que a mensagem já foi
+      // visualizada (uma das duas condições que travam edição/exclusão).
+      const unreadFromPartner = commentsData.filter(
+        (c) => c.authorId !== user.uid && !c.readAt
+      );
+      if (unreadFromPartner.length > 0) {
+        const batch = writeBatch(db);
+        unreadFromPartner.forEach((c) => {
+          batch.update(doc(db, commentsPath, c.id), { readAt: serverTimestamp() });
+        });
+        batch
+          .commit()
+          .catch((err) => console.error("Erro ao marcar mensagens como lidas:", err));
+      }
     });
     return () => unsubscribe();
-  }, [activeChatActivity, userData.coupleId]);
+  }, [activeChatActivity, userData.coupleId, user.uid]);
 
   // Efeito para verificar novas mensagens e disparar a notificação.
   useEffect(() => {
@@ -120,6 +138,68 @@ export const useChat = (user, userData, allActivities) => {
     }
   };
 
+  /**
+   * Edita uma mensagem já enviada. Quem chama (ChatModal) já verifica se
+   * a edição é permitida (mensagem própria, ainda não vista E/OU ainda
+   * não respondida) — aqui é só a escrita em si.
+   */
+  const handleEditComment = async (activityId, commentId, newText) => {
+    if (!newText.trim()) return;
+    const commentsPath = `duomatches/${userData.coupleId}/activities/${activityId}/comments`;
+    try {
+      await updateDoc(doc(db, commentsPath, commentId), {
+        text: newText.trim(),
+        editedAt: serverTimestamp(),
+      });
+      // Se essa era a última mensagem, atualiza também o preview salvo
+      // na atividade (usado nas notificações e nas listas de atividade).
+      const latest = activeChatComments[activeChatComments.length - 1];
+      if (latest?.id === commentId) {
+        const activityRef = doc(
+          db,
+          `duomatches/${userData.coupleId}/activities`,
+          activityId
+        );
+        await updateDoc(activityRef, { "lastMessage.text": newText.trim() });
+      }
+    } catch (error) {
+      console.error("Erro ao editar mensagem:", error);
+      alert("Não foi possível editar a mensagem.");
+    }
+  };
+
+  /** Apaga uma mensagem já enviada, recalculando o preview da atividade. */
+  const handleDeleteComment = async (activityId, commentId) => {
+    const commentsPath = `duomatches/${userData.coupleId}/activities/${activityId}/comments`;
+    try {
+      await deleteDoc(doc(db, commentsPath, commentId));
+
+      const wasLatest =
+        activeChatComments[activeChatComments.length - 1]?.id === commentId;
+      if (wasLatest) {
+        const remaining = activeChatComments.filter((c) => c.id !== commentId);
+        const newLast = remaining[remaining.length - 1];
+        const activityRef = doc(
+          db,
+          `duomatches/${userData.coupleId}/activities`,
+          activityId
+        );
+        await updateDoc(activityRef, {
+          lastMessage: newLast
+            ? {
+                text: newLast.text,
+                senderId: newLast.authorId,
+                timestamp: newLast.createdAt,
+              }
+            : null,
+        });
+      }
+    } catch (error) {
+      console.error("Erro ao apagar mensagem:", error);
+      alert("Não foi possível apagar a mensagem.");
+    }
+  };
+
   // Retorna os estados e a função para o componente principal.
   return {
     activeChatActivity,
@@ -128,5 +208,7 @@ export const useChat = (user, userData, allActivities) => {
     chatNotification,
     setChatNotification,
     handlePostComment,
+    handleEditComment,
+    handleDeleteComment,
   };
 };

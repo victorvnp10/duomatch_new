@@ -8,8 +8,12 @@ function ChatModal({
   comments,
   onClose,
   handlePostComment,
+  handleEditComment,
+  handleDeleteComment,
 }) {
   const [newComment, setNewComment] = useState("");
+  const [editingId, setEditingId] = useState(null);
+  const [editingText, setEditingText] = useState("");
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
@@ -21,6 +25,35 @@ function ChatModal({
     if (!newComment.trim()) return;
     handlePostComment(activity.id, newComment);
     setNewComment("");
+  };
+
+  /**
+   * Uma mensagem própria pode ser editada/apagada até o parceiro
+   * visualizá-la — depois disso, fica travada.
+   */
+  const canModify = (comment) => comment.authorId === user.uid && !comment.readAt;
+
+  const startEditing = (comment) => {
+    setEditingId(comment.id);
+    setEditingText(comment.text);
+  };
+
+  const cancelEditing = () => {
+    setEditingId(null);
+    setEditingText("");
+  };
+
+  const saveEditing = (comment) => {
+    if (editingText.trim() && editingText.trim() !== comment.text) {
+      handleEditComment(activity.id, comment.id, editingText);
+    }
+    cancelEditing();
+  };
+
+  const confirmDelete = (comment) => {
+    if (window.confirm("Apagar esta mensagem?")) {
+      handleDeleteComment(activity.id, comment.id);
+    }
   };
 
   return (
@@ -63,10 +96,12 @@ function ChatModal({
         <div className="flex-grow p-4 overflow-y-auto space-y-4">
           {comments.map((comment) => {
             const isMyComment = comment.authorId === user.uid;
+            const isEditing = editingId === comment.id;
+            const modifiable = canModify(comment);
             return (
               <div
                 key={comment.id}
-                className={`flex items-end gap-2 ${
+                className={`group flex items-end gap-2 ${
                   isMyComment ? "justify-end" : "justify-start"
                 }`}
               >
@@ -78,6 +113,26 @@ function ChatModal({
                     className="border-2 border-accent"
                   />
                 )}
+
+                {isMyComment && modifiable && !isEditing && (
+                  <div className="hidden group-hover:flex items-center gap-1 mb-1">
+                    <button
+                      onClick={() => startEditing(comment)}
+                      className="text-xs text-gray-400 hover:text-yellow-400 transition-colors"
+                      aria-label="Editar mensagem"
+                    >
+                      ✏️
+                    </button>
+                    <button
+                      onClick={() => confirmDelete(comment)}
+                      className="text-xs text-gray-400 hover:text-red-400 transition-colors"
+                      aria-label="Apagar mensagem"
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                )}
+
                 <div
                   className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ${
                     isMyComment
@@ -90,9 +145,46 @@ function ChatModal({
                       {comment.authorNickname}
                     </p>
                   )}
-                  <p className="whitespace-pre-wrap break-words">
-                    {comment.text}
-                  </p>
+                  {isEditing ? (
+                    <div className="space-y-2">
+                      <textarea
+                        value={editingText}
+                        onChange={(e) => setEditingText(e.target.value)}
+                        className="w-full px-2 py-1 rounded-lg bg-white/70 text-gray-900 text-sm resize-none focus:outline-none"
+                        rows={2}
+                        autoFocus
+                      />
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={cancelEditing}
+                          className="text-xs font-semibold text-gray-700 hover:text-gray-900"
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          onClick={() => saveEditing(comment)}
+                          className="text-xs font-semibold text-gray-900 underline"
+                        >
+                          Salvar
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="whitespace-pre-wrap break-words">
+                        {comment.text}
+                      </p>
+                      {comment.editedAt && (
+                        <p
+                          className={`text-[10px] mt-1 ${
+                            isMyComment ? "text-gray-700" : "text-gray-400"
+                          }`}
+                        >
+                          editada
+                        </p>
+                      )}
+                    </>
+                  )}
                 </div>
                 {isMyComment && (
                   <Avatar
