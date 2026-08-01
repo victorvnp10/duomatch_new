@@ -21,7 +21,7 @@ const toDateStr = (d) => d.toISOString().slice(0, 10);
 
 export const buildPreviewPartnerData = () => ({
   nickname: "Alex (exemplo)",
-  photoURL: "masc-7",
+  photoURL: "",
 });
 
 export const buildPreviewCoupleData = () => ({

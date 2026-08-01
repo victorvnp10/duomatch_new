@@ -29,11 +29,13 @@ export default function ProfileView(props) {
       setGender(userData.gender || "masculino");
       // Se não há avatar ou é uma URL antiga, definir um avatar padrão baseado no gênero
       const currentAvatar = userData.photoURL;
-      if (!currentAvatar || currentAvatar.startsWith('http')) {
+      if (currentAvatar && currentAvatar.startsWith('http')) {
         const defaultAvatar = userData.gender === "feminino" ? "fem-1" : "masc-1";
         setSelectedAvatar(defaultAvatar);
       } else {
-        setSelectedAvatar(currentAvatar);
+        // Sem avatar (string vazia/undefined) cai aqui também — o próprio
+        // valor já corresponde à opção "Sem avatar" do seletor.
+        setSelectedAvatar(currentAvatar || "");
       }
     }
   }, [userData]);
@@ -134,7 +136,12 @@ export default function ProfileView(props) {
                     {avatar.legacyEmoji}
                   </div>
                 ) : (
-                  <Avatar photoURL={avatar.id} size="w-full h-full" className="shadow-inner" />
+                  <Avatar
+                    photoURL={avatar.id}
+                    nickname={nickname}
+                    size="w-full h-full"
+                    className="shadow-inner"
+                  />
                 )}
               </button>
             ))}

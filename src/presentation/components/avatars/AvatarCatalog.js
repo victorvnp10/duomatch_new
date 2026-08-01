@@ -234,8 +234,19 @@ const CATALOG_BY_ID = [...FEMALE_AVATARS, ...MALE_AVATARS].reduce((acc, a) => {
   return acc;
 }, {});
 
-export const getAvatarOptionsForGender = (gender) =>
-  gender === "masculino" ? MALE_AVATARS : FEMALE_AVATARS;
+/**
+ * Opção explícita de "sem avatar": ao ser escolhida, salva `photoURL`
+ * como string vazia. O componente `Avatar` abaixo já trata um `photoURL`
+ * vazio como "sem avatar" e mostra a primeira letra do apelido — antes
+ * esse estado só acontecia por padrão (ninguém escolhia isso de
+ * propósito); agora vira uma opção normal no seletor.
+ */
+const NO_AVATAR_OPTION = { id: "", name: "Sem avatar" };
+
+export const getAvatarOptionsForGender = (gender) => [
+  NO_AVATAR_OPTION,
+  ...(gender === "masculino" ? MALE_AVATARS : FEMALE_AVATARS),
+];
 
 /**
  * Renderiza o avatar do usuário a partir de `photoURL`, que pode ser:
