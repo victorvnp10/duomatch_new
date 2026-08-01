@@ -115,7 +115,7 @@ function ChatModal({
                 )}
 
                 {isMyComment && modifiable && !isEditing && (
-                  <div className="hidden group-hover:flex items-center gap-1 mb-1">
+                  <div className="flex items-center gap-1 mb-1">
                     <button
                       onClick={() => startEditing(comment)}
                       className="text-xs text-gray-400 hover:text-yellow-400 transition-colors"
