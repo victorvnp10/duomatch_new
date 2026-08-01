@@ -20,7 +20,7 @@ const daysAgo = (n) => {
 const toDateStr = (d) => d.toISOString().slice(0, 10);
 
 export const buildPreviewPartnerData = () => ({
-  nickname: "Alex (exemplo)",
+  nickname: "Parceiro(a)",
   photoURL: "",
 });
 
