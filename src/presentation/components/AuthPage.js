@@ -12,8 +12,6 @@ function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [nickname, setNickname] = useState("");
-  const [gender, setGender] = useState("masculino");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [confirmEmail, setConfirmEmail] = useState("");
@@ -43,11 +41,6 @@ function AuthPage() {
           setLoading(false);
           return;
         }
-        if (!nickname.trim()) {
-          setError("O apelido é obrigatório.");
-          setLoading(false);
-          return;
-        }
 
         const userCredential = await createUserWithEmailAndPassword(
           auth,
@@ -56,10 +49,13 @@ function AuthPage() {
         );
         const user = userCredential.user;
 
+        // Nickname, gênero, data de nascimento e avatar ficam para a
+        // etapa seguinte (CompleteProfileView, a mesma usada por quem
+        // entra pelo Google) — aqui só criamos a conta em si.
         const initialUserData = {
           uid: user.uid,
-          nickname,
-          gender,
+          nickname: "",
+          gender: null,
           email,
           createdAt: serverTimestamp(),
           partnerId: null,
@@ -67,7 +63,7 @@ function AuthPage() {
         };
 
         await setDoc(doc(db, "users", user.uid), initialUserData);
-        setNewUserData({ nickname, gender, email });
+        setNewUserData({ nickname: "", gender: null, email });
       }
     } catch (err) {
       if (err.code === "auth/email-already-in-use") {
@@ -194,47 +190,8 @@ function AuthPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {!isLogin && (
-            <input
-              type="text"
-              placeholder="Apelido"
-              value={nickname}
-              onChange={(e) => setNickname(e.target.value)}
-              className={inputBaseClasses}
-              required
-            />
-          )}
-              {!isLogin && (
-                <div>
-                  <p className="text-sm text-gray-400 mb-1">Gênero</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setGender("masculino")}
-                      className={`py-2 rounded-lg border transition-colors ${
-                        gender === "masculino"
-                          ? "border-yellow-400 bg-yellow-400/10 text-yellow-300"
-                          : "border-gray-600 text-gray-400 hover:border-gray-500"
-                      }`}
-                    >
-                      Masculino
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setGender("feminino")}
-                      className={`py-2 rounded-lg border transition-colors ${
-                        gender === "feminino"
-                          ? "border-yellow-400 bg-yellow-400/10 text-yellow-300"
-                          : "border-gray-600 text-gray-400 hover:border-gray-500"
-                      }`}
-                    >
-                      Feminino
-                    </button>
-                  </div>
-                </div>
-              )}
-              <input
-                type="email"
+          <input
+            type="email"
                 placeholder="E-mail"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
