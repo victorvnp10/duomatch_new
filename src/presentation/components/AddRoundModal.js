@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 export default function AddRoundModal({ isOpen, onClose, onAddRound }) {
   const [name, setName] = useState("");
@@ -10,6 +10,20 @@ export default function AddRoundModal({ isOpen, onClose, onAddRound }) {
   const [minChallengesQty, setMinChallengesQty] = useState(1);
   const [minChallengesDays, setMinChallengesDays] = useState(7);
   const [minChallengesPenalty, setMinChallengesPenalty] = useState(10);
+
+  useEffect(() => {
+    if (isOpen) {
+      setName("");
+      setStartDate("");
+      setEndDate("");
+      setMinActivitiesQty(5);
+      setMinActivitiesDays(7);
+      setMinActivitiesPenalty(10);
+      setMinChallengesQty(1);
+      setMinChallengesDays(7);
+      setMinChallengesPenalty(10);
+    }
+  }, [isOpen]);
 
   if (!isOpen) {
     return null;

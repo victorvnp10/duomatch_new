@@ -22,7 +22,7 @@ export const updateStreak = async (coupleId, userData, allActivities, dailySugge
     if (hasActivityYesterday) {
       // Continua a sequência
       await updateDoc(coupleRef, {
-        streak: userData.coupleData?.streak ? userData.coupleData.streak + 1 : 1,
+        streak: userData.partnerData?.streak ? userData.partnerData.streak + 1 : 1,
         lastStreakUpdate: today,
         lastActivity: serverTimestamp()
       });
@@ -58,9 +58,10 @@ const checkActivityForDate = (date, userId, allActivities, dailySuggestions, hot
     );
   });
 
-  // 3. Desafios lançados (mesmo que não aceitos)
+  // 3. Desafios lançados (sem challengeState — para evitar duplicata com item 2)
   const challengesCreated = allActivities.filter(activity => {
     if (!activity.type?.startsWith("desafio")) return false;
+    if (activity.challengeState) return false; // já contado acima
     const createdDate = activity.createdAt?.toDate()?.toISOString().slice(0, 10);
     return createdDate === date && activity.createdBy === userId;
   });
@@ -68,13 +69,13 @@ const checkActivityForDate = (date, userId, allActivities, dailySuggestions, hot
   // 4. Sugestões especiais marcadas
   const specialSuggestions = Object.values(dailySuggestions || {}).filter(activity => {
     const selectionDate = activity.selections?.[userId]?.date;
-    return selectionDate === date && activity.selections?.[userId] === "selected";
+    return selectionDate === date && activity.selections?.[userId]?.status === "selected";
   });
 
   // 5. Sugestões picantes marcadas
   const hotSuggestionsMarked = Object.values(hotSuggestions || {}).filter(activity => {
     const selectionDate = activity.selections?.[userId]?.date;
-    return selectionDate === date && activity.selections?.[userId] === "selected";
+    return selectionDate === date && activity.selections?.[userId]?.status === "selected";
   });
 
   const totalActivities = regularActivities.length + dailyChallenges.length +

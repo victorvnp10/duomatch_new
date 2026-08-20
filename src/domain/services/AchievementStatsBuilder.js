@@ -34,7 +34,6 @@ export const buildAchievementStats = ({
   const completedChallenges = allActivities.filter(
     (a) => isChallenge(a) && isConfirmedByEither(a)
   ).length;
-  const completedDailyChallenges = coupleData?.dailyChallengeCompletions || 0;
 
   const completedActivities = allActivities.filter((a) =>
     isConfirmedByBoth(a)
@@ -57,11 +56,11 @@ export const buildAchievementStats = ({
 
   // Itens da wishlist já presenteados e confirmados.
   const wishlistItemsGifted = wishlistItems.filter(
-    (item) => item.status === "gifted" || item.status === "confirmed"
+    (item) => item.status === "confirmed"
   ).length;
 
   return {
-    totalChallengesCompleted: completedChallenges + completedDailyChallenges,
+    totalChallengesCompleted: completedChallenges,
     completedActivities,
     completedHotActivities,
     completedHotChallenges,

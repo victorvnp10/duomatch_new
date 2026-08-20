@@ -41,9 +41,7 @@ const countConfirmedActivitiesInRound = (allActivities, userId, activeRound, tod
     if (activity.type?.startsWith("desafio")) return false;
 
     const creationDate = activityCreationDate(activity, todayStr);
-    const wasCreatedInCurrentRound =
-      creationDate > activeRound.startDate ||
-      (creationDate === activeRound.startDate && creationDate === todayStr);
+    const wasCreatedInCurrentRound = creationDate >= activeRound.startDate;
     if (!wasCreatedInCurrentRound) return false;
 
     const selection = activity.selections?.[userId];
@@ -132,7 +130,9 @@ export const evaluateCyclicalRules = ({
   });
   if (activitiesResult) {
     if (activitiesResult.scoreDeltas) {
-      Object.assign(scoreDeltas, activitiesResult.scoreDeltas);
+      for (const [uid, delta] of Object.entries(activitiesResult.scoreDeltas)) {
+        scoreDeltas[uid] = (scoreDeltas[uid] || 0) + delta;
+      }
     }
     lastCheckedUpdates.activities = todayStr;
     hasUpdates = true;

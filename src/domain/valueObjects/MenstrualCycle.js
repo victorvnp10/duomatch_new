@@ -32,11 +32,11 @@ export const PHASES = {
   LUTEAL: "luteal",
 };
 
-const parseDate = (dateStr) => new Date(`${dateStr}T00:00:00`);
+const parseDate = (dateStr) => new Date(`${dateStr}T00:00:00Z`);
 
 const addDays = (dateStr, days) => {
   const date = parseDate(dateStr);
-  date.setDate(date.getDate() + days);
+  date.setUTCDate(date.getUTCDate() + days);
   return date.toISOString().slice(0, 10);
 };
 

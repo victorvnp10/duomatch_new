@@ -109,11 +109,11 @@ const SignalGame = ({ user, userData, coupleData, handleSetDailySignal, setView 
 
     const getCompatibility = () => {
       if (mySignal === partnerSignal) return "💖 Sintonia Perfeita!";
-      if ((mySignal === "romantic" && partnerSignal === "cuddly") ||
-          (mySignal === "cuddly" && partnerSignal === "romantic")) return "💕 Combinação Doce";
-      if ((mySignal === "passionate" && partnerSignal === "playful") ||
-          (mySignal === "playful" && partnerSignal === "passionate")) return "🔥 Química Explosiva";
-      if (mySignal === "recharging" || partnerSignal === "recharging") return "🌙 Noite Tranquila";
+      if ((mySignal === "willing" && partnerSignal === "unsure") ||
+          (mySignal === "unsure" && partnerSignal === "willing")) return "💕 Um anima o outro";
+      if ((mySignal === "willing" && partnerSignal === "resting") ||
+          (mySignal === "resting" && partnerSignal === "willing")) return "🔥 Um quer, o outro descansa";
+      if (mySignal === "resting" || partnerSignal === "resting") return "🌙 Noite Tranquila";
       return "✨ Encontrem o meio termo";
     };
 
@@ -353,15 +353,8 @@ const HotListItem = ({ activity, user, props }) => {
 const IntimateMemoriesSection = ({ finalizedHotItems, user, userData, setActiveChatActivity }) => {
   const [showHistory, setShowHistory] = useState(false);
   
-  // Log para debug
-  console.log('[MEMÓRIAS ÍNTIMAS] Renderizando seção:', {
-    totalItems: finalizedHotItems?.length || 0,
-    items: finalizedHotItems?.map(item => item.name) || []
-  });
-
   // Verificação de segurança
   if (!finalizedHotItems || !Array.isArray(finalizedHotItems) || finalizedHotItems.length === 0) {
-    console.log('[MEMÓRIAS ÍNTIMAS] Nenhum item para mostrar');
     return null;
   }
 
@@ -508,13 +501,6 @@ export default function HotZone(props) {
   const [showMatchNotification, setShowMatchNotification] = useState(false);
   const [matchedActivityName, setMatchedActivityName] = useState('');
 
-  // Debug: log quando os estados mudam
-  useEffect(() => {
-    if (showMatchNotification) {
-      console.log("HotZone: showMatchNotification mudou para true, activity:", matchedActivityName);
-    }
-  }, [showMatchNotification, matchedActivityName]);
-
   // Controle de animação de level up
   const previousLevelRef = useRef(null);
 
@@ -530,7 +516,6 @@ export default function HotZone(props) {
 
     // Detectar level up apenas quando o nível aumenta
     if (currentLevel > previousLevelRef.current) {
-      console.log(`🔥 Level up de intimidade! Nível anterior: ${previousLevelRef.current}, novo nível: ${currentLevel}, pontos: ${currentPoints}`);
       setNewLevel(currentLevel);
       setShowLevelUpAnimation(true);
     }
@@ -541,44 +526,25 @@ export default function HotZone(props) {
   // Sistema de eventos para notificação de match (igual ao MainView)
   useEffect(() => {
     const handleMatchEvent = (event) => {
-      console.log("Match event recebido na HotZone:", event.detail);
-      setMatchedActivityName(event.detail);
+      const name = typeof event.detail === "string" ? event.detail : event.detail?.activityName;
+      setMatchedActivityName(name || "");
       setShowMatchNotification(true);
     };
 
-    const handleHotMatchEvent = (activityName) => {
-      console.log("Hot match function event recebido na HotZone:", activityName);
-      setMatchedActivityName(activityName);
-      setShowMatchNotification(true);
-    };
-
-    // Registrar event listeners
     window.addEventListener('activityMatch', handleMatchEvent);
     window.addEventListener('hotActivityMatch', handleMatchEvent);
-
-    // Registrar função global para compatibilidade
-    window.dispatchHotMatchEvent = handleHotMatchEvent;
 
     return () => {
       window.removeEventListener('activityMatch', handleMatchEvent);
       window.removeEventListener('hotActivityMatch', handleMatchEvent);
-      delete window.dispatchHotMatchEvent;
     };
   }, []);
 
-  const hotItems = allActivities.filter(
+  const hotItems = useMemo(() => allActivities.filter(
     (activity) => activity.category === "Hot" && isActivityForToday(activity)
-  );
+  ), [allActivities]);
 
-  console.log(`[MEMÓRIAS DEBUG] Total de atividades Hot de hoje: ${hotItems.length}`, hotItems.map(item => ({
-    name: item.name,
-    type: item.type,
-    challengeState: item.challengeState,
-    myStatus: mySelections[item.id]?.status,
-    partnerStatus: partnerSelections?.[item.id]?.status
-  })));
-
-  const finalizedHotItems = hotItems.filter(
+  const finalizedHotItems = useMemo(() => hotItems.filter(
     (item) => {
       const isCompletedChallenge = ["completed", "not_completed", "declined", "expired"].includes(
         item.challengeState
@@ -586,33 +552,13 @@ export default function HotZone(props) {
       const isMatchedActivity = mySelections[item.id]?.status === "confirmed" &&
         partnerSelections?.[item.id]?.status === "confirmed";
       
-      const shouldInclude = isCompletedChallenge || isMatchedActivity;
-      
-      console.log(`[MEMÓRIAS DEBUG] ${item.name}:`, {
-        challengeState: item.challengeState,
-        myStatus: mySelections[item.id]?.status,
-        partnerStatus: partnerSelections?.[item.id]?.status,
-        isCompletedChallenge,
-        isMatchedActivity,
-        shouldInclude,
-        type: item.type,
-        category: item.category
-      });
-      
-      return shouldInclude;
+      return isCompletedChallenge || isMatchedActivity;
     }
-  );
+  ), [hotItems, mySelections, partnerSelections]);
 
-  const availableHotItems = hotItems.filter(
+  const availableHotItems = useMemo(() => hotItems.filter(
     (item) => !finalizedHotItems.some((finalized) => finalized.id === item.id)
-  );
-
-  console.log(`[MEMÓRIAS DEBUG] Resultado dos filtros:`, {
-    totalHotItems: hotItems.length,
-    finalizedItems: finalizedHotItems.length,
-    availableItems: availableHotItems.length,
-    finalizedNames: finalizedHotItems.map(item => item.name)
-  });
+  ), [hotItems, finalizedHotItems]);
 
   const sortedHotSuggestions = useMemo(() => {
     if (!hotSuggestions) return [];

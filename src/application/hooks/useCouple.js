@@ -8,6 +8,7 @@ import {
   writeBatch,
   collection,
   getDocs,
+  runTransaction,
 } from "../../infrastructure/firebase"; // Funções existentes do seu ficheiro central
 import { signOut } from "firebase/auth";
 import { arrayUnion } from "firebase/firestore";
@@ -27,28 +28,28 @@ export const useCouple = (user, userData) => {
     const todayStr = getTodayDateString();
     const coupleDocRef = doc(db, "duomatches", userData.coupleId);
 
-    // Estrutura de dados para o sinal do dia
-    const newSignalData = {
-      date: todayStr,
-      signals: {
-        [user.uid]: signal,
-      },
-    };
+    await runTransaction(db, async (transaction) => {
+      const docSnap = await transaction.get(coupleDocRef);
+      if (!docSnap.exists()) return;
 
-    // Se a data do sinal no banco for diferente da de hoje,
-    // nós reiniciamos o objeto inteiro.
-    if (coupleData?.dailySignals?.date !== todayStr) {
-      await updateDoc(coupleDocRef, {
-        dailySignals: newSignalData,
-      });
-    } else {
-      // Se for o mesmo dia, apenas atualizamos o sinal do usuário atual.
-      // Usamos a notação de ponto para atualizar apenas um campo do objeto.
-      const updatePath = `dailySignals.signals.${user.uid}`;
-      await updateDoc(coupleDocRef, {
-        [updatePath]: signal,
-      });
-    }
+      const data = docSnap.data();
+      const currentSignals = data.dailySignals;
+
+      if (!currentSignals || currentSignals.date !== todayStr) {
+        // Nova data — reseta o objeto inteiro
+        transaction.update(coupleDocRef, {
+          dailySignals: {
+            date: todayStr,
+            signals: { [user.uid]: signal },
+          },
+        });
+      } else {
+        // Mesmo dia — atualiza só o sinal do usuário atual
+        transaction.update(coupleDocRef, {
+          [`dailySignals.signals.${user.uid}`]: signal,
+        });
+      }
+    });
   };
 
   // Adicione a nova função ao retorno do hook
@@ -125,6 +126,7 @@ export const useCouple = (user, userData) => {
         "rewards",
         "wishlist",
         "dailySuggestions",
+        "hotSuggestions",
       ];
       for (const sub of subcollections) {
         const subcollectionRef = collection(
@@ -133,6 +135,15 @@ export const useCouple = (user, userData) => {
         );
         const snapshot = await getDocs(subcollectionRef);
         snapshot.docs.forEach((doc) => batch.delete(doc.ref));
+      }
+
+      // Deletar comments aninhados sob activities
+      const activitiesRef = collection(db, `duomatches/${coupleId}/activities`);
+      const activitiesSnapshot = await getDocs(activitiesRef);
+      for (const actDoc of activitiesSnapshot.docs) {
+        const commentsRef = collection(db, `duomatches/${coupleId}/activities/${actDoc.id}/comments`);
+        const commentsSnapshot = await getDocs(commentsRef);
+        commentsSnapshot.docs.forEach((commentDoc) => batch.delete(commentDoc.ref));
       }
 
       batch.delete(doc(db, "duomatches", coupleId));

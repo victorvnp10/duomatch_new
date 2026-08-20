@@ -21,6 +21,7 @@ import ShopView from "./ShopView";
 import WalletView from "./WalletView";
 import AllActivitiesView from "./AllActivitiesView";
 import ProfileView from "./ProfileView";
+import CycleView from "./CycleView";
 import BottomNavBar from "./BottomNavBar";
 import OnboardingView from "./OnboardingView";
 import AddItemModal from "./AddItemModal";
@@ -46,6 +47,7 @@ function PreviewApp({ user, userData }) {
   const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false);
   const [isAddRoundModalOpen, setIsAddRoundModalOpen] = useState(false);
   const hasAutoOpenedTour = useRef(false);
+  const nextIdCounter = useRef(10);
 
   const previewPartnerData = useMemo(() => buildPreviewPartnerData(), []);
   const userDataWithPreviewPartner = useMemo(
@@ -94,16 +96,18 @@ function PreviewApp({ user, userData }) {
   };
 
   const handleAddActivity = async (newActivity) => {
+    const id = `demo-custom-${nextIdCounter.current++}`;
     setAllActivities((prev) => [
-      { ...newActivity, id: `demo-custom-${prev.length + 1}` },
+      { ...newActivity, id },
       ...prev,
     ]);
     setIsAddItemModalOpen(false);
   };
 
   const handleAddRound = async (newRound) => {
+    const id = `demo-round-${nextIdCounter.current++}`;
     setRounds((prev) => [
-      { ...newRound, id: `demo-round-${prev.length + 1}`, scores: {} },
+      { ...newRound, id, scores: {} },
       ...prev,
     ]);
     setIsAddRoundModalOpen(false);
@@ -222,6 +226,14 @@ function PreviewApp({ user, userData }) {
           <ProfileView
             {...propsForChildren}
             partnerData={previewPartnerData}
+          />
+        );
+      case "cycle":
+        return (
+          <CycleView
+            {...propsForChildren}
+            coupleData={coupleData}
+            setCoupleData={(fn) => setCoupleData(fn)}
           />
         );
       default:

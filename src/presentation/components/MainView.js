@@ -404,13 +404,11 @@ export default function MainView(props) {
     achievements: coupleData?.achievements || [],
     partnerId: coupleData?.partnerId,
     streak: coupleData?.streak || 0,
-    dailyChallengeCompletions: coupleData?.dailyChallengeCompletions || 0,
     messageCount: coupleData?.messageCount || 0
   }), [
     coupleData?.achievements?.length,
     coupleData?.partnerId,
     coupleData?.streak,
-    coupleData?.dailyChallengeCompletions,
     coupleData?.messageCount
   ]);
 
@@ -443,21 +441,17 @@ export default function MainView(props) {
   // Sistema de eventos para notificações de match
   useEffect(() => {
     const handleMatchEvent = (event) => {
-      setMatchedActivityName(event.detail);
-      setShowMatchNotification(true);
-    };
-
-    const handleHotMatchEvent = (activityName) => {
-      setMatchedActivityName(activityName);
+      const name = typeof event.detail === "string" ? event.detail : event.detail?.activityName;
+      setMatchedActivityName(name || "");
       setShowMatchNotification(true);
     };
 
     window.addEventListener('activityMatch', handleMatchEvent);
-    window.dispatchHotMatchEvent = handleHotMatchEvent;
+    window.addEventListener('hotActivityMatch', handleMatchEvent);
 
     return () => {
       window.removeEventListener('activityMatch', handleMatchEvent);
-      delete window.dispatchHotMatchEvent;
+      window.removeEventListener('hotActivityMatch', handleMatchEvent);
     };
   }, []);
 

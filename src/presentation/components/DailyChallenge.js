@@ -1,9 +1,8 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { doc, updateDoc, getFirestore, increment } from 'firebase/firestore';
+import { doc, updateDoc, runTransaction, increment } from 'firebase/firestore';
+import { db } from '../../infrastructure/firebase';
 import { ChallengeIcon, TrophyIcon } from './Icons';
-
-const db = getFirestore();
 
 /**
  * Cada desafio semanal já vem com um `type` (romance, connection,
@@ -521,7 +520,6 @@ export const DailyChallenge = ({ userData, coupleData, rounds, onAcceptChallenge
         [weekKey]: challengeData
       });
 
-      console.log('Desafio semanal aceito com sucesso!');
     } catch (error) {
       console.error('Erro ao aceitar desafio semanal:', error);
       alert(`Erro ao aceitar desafio: ${error.message}`);
@@ -569,7 +567,6 @@ export const DailyChallenge = ({ userData, coupleData, rounds, onAcceptChallenge
         [weekKey]: updateData[`weeklyChallenge.${weekKey}`]
       });
       
-      console.log('Conclusão reivindicada com sucesso!');
     } catch (error) {
       console.error('Erro ao reivindicar conclusão:', error);
       alert(`Erro ao reivindicar conclusão: ${error.message}`);
@@ -621,7 +618,7 @@ export const DailyChallenge = ({ userData, coupleData, rounds, onAcceptChallenge
         }
       };
 
-      // Se confirmado, adicionar pontos no placar da rodada ativa
+      // Se confirmado, adicionar pontos no placar da rodada ativa via transaction
       if (confirmed) {
         const today = new Date().toISOString().slice(0, 10);
         const activeRound = rounds?.find(
@@ -631,12 +628,13 @@ export const DailyChallenge = ({ userData, coupleData, rounds, onAcceptChallenge
         if (activeRound) {
           const roundRef = doc(db, `duomatches/${userData.coupleId}/rounds`, activeRound.id);
           
-          // Usar increment para adicionar pontos ao placar do parceiro
-          await updateDoc(roundRef, {
-            [`scores.${partnerUid}`]: increment(getWeeklyChallenge.points)
+          await runTransaction(db, async (transaction) => {
+            const roundDoc = await transaction.get(roundRef);
+            if (!roundDoc.exists()) return;
+            transaction.update(roundRef, {
+              [`scores.${partnerUid}`]: increment(getWeeklyChallenge.points)
+            });
           });
-          
-          console.log(`Pontos adicionados ao placar: +${getWeeklyChallenge.points} para ${partnerUid}`);
         }
       }
 
@@ -648,11 +646,6 @@ export const DailyChallenge = ({ userData, coupleData, rounds, onAcceptChallenge
         ...currentLocal,
         [weekKey]: updateData[`weeklyChallenge.${weekKey}`]
       });
-      
-      const message = confirmed ? 
-        'Conclusão do parceiro confirmada! Pontos foram concedidos.' : 
-        'Conclusão do parceiro negada.';
-      console.log(message);
     } catch (error) {
       console.error('Erro ao confirmar parceiro:', error);
       alert(`Erro ao confirmar: ${error.message}`);

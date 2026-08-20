@@ -184,7 +184,7 @@ function CycleOwnerPanel({ periods, cycleStats, cycleSummary, onLogPeriodStart, 
             min={1}
             max={10}
             value={periodLength}
-            onChange={(e) => setPeriodLength(e.target.value)}
+            onChange={(e) => setPeriodLength(parseInt(e.target.value, 10) || 5)}
             className="w-full bg-ink border border-gray-700 rounded-xl p-2.5 text-white focus:border-accent focus:ring-accent"
           />
         </div>

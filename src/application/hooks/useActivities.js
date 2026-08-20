@@ -21,10 +21,8 @@ export const useActivities = (user, userData, coupleData, rounds) => {
   const [allActivities, setAllActivities] = useState([]);
   const [mySelections, setMySelections] = useState({});
   const [partnerSelections, setPartnerSelections] = useState({});
-  const [matches, setMatches] = useState([]);
   const [activityToDelete, setActivityToDelete] = useState(null);
   const [activityToEdit, setActivityToEdit] = useState(null);
-  const [timeRemaining, setTimeRemaining] = useState("");
   const [showMatchNotification, setShowMatchNotification] = useState(false);
   const [partnerNotification, setPartnerNotification] = useState({
     visible: false,
@@ -32,7 +30,6 @@ export const useActivities = (user, userData, coupleData, rounds) => {
   });
   const [showHotSelectionNotification, setShowHotSelectionNotification] =
     useState(false);
-  const [hotNotificationShown, setHotNotificationShown] = useState(false);
   const [pointsMessage, setPointsMessage] = useState("");
 
   /**
@@ -78,7 +75,7 @@ export const useActivities = (user, userData, coupleData, rounds) => {
       if (activitiesToProcess.length === 0 && hotActivitiesToProcess.length === 0) return;
 
       // Para cada atividade normal elegível, execute uma transação separada.
-      activitiesToProcess.forEach(async (act) => {
+      for (const act of activitiesToProcess) {
         const activityRef = doc(
           db,
           `duomatches/${userData.coupleId}/activities`,
@@ -123,10 +120,10 @@ export const useActivities = (user, userData, coupleData, rounds) => {
         } catch (error) {
           console.error("Falha na transação de pontos: ", error);
         }
-      });
+      }
 
       // Para cada atividade hot com match, incrementar pontos de intimidade
-      hotActivitiesToProcess.forEach(async (act) => {
+      for (const act of hotActivitiesToProcess) {
         const activityRef = doc(
           db,
           `duomatches/${userData.coupleId}/activities`,
@@ -163,8 +160,6 @@ export const useActivities = (user, userData, coupleData, rounds) => {
               transaction.update(coupleRef, {
                 intimacyPoints: increment(1),
               });
-              
-              console.log(`Pontos de intimidade adicionados para atividade hot: ${act.name}`);
             }
 
             // Marcar como processado para pontos de intimidade
@@ -173,7 +168,7 @@ export const useActivities = (user, userData, coupleData, rounds) => {
         } catch (error) {
           console.error("Falha na transação de pontos de intimidade: ", error);
         }
-      });
+      }
     },
     [rounds, user.uid, userData.coupleId, userData.partnerId]
   );
@@ -296,7 +291,6 @@ export const useActivities = (user, userData, coupleData, rounds) => {
       batch.update(coupleDocRef, {
         intimacyPoints: increment(1),
       });
-      console.log(`Pontos de intimidade adicionados para desafio hot completado: ${activity.name}`);
     }
 
     try {
@@ -414,51 +408,6 @@ export const useActivities = (user, userData, coupleData, rounds) => {
     setActivityToDelete(null);
   };
 
-  const confirmSelections = useCallback(async () => {
-    const today = getTodayDateString();
-    const batch = writeBatch(db);
-    let newMatchesFound = false;
-
-    allActivities.forEach((activity) => {
-      if (mySelections[activity.id]?.status === "selected") {
-        const activityRef = doc(
-          db,
-          `duomatches/${userData.coupleId}/activities`,
-          activity.id
-        );
-        batch.update(activityRef, {
-          [`selections.${user.uid}`]: { status: "confirmed", date: today },
-        });
-        if (partnerSelections[activity.id]?.status === "confirmed") {
-          newMatchesFound = true;
-        }
-      }
-    });
-
-    const coupleDocRef = doc(db, "duomatches", userData.coupleId);
-    batch.update(coupleDocRef, {
-      [`dailyStatus.${user.uid}`]: {
-        confirmedAt: serverTimestamp(),
-        date: today,
-      },
-    });
-
-    if (batch._mutations.length > 0) {
-      await batch.commit();
-    }
-
-    if (newMatchesFound) {
-      setShowMatchNotification(true);
-      setTimeout(() => setShowMatchNotification(false), 4000);
-    }
-  }, [
-    allActivities,
-    mySelections,
-    partnerSelections,
-    user.uid,
-    userData.coupleId,
-  ]);
-
   const handleAcceptChallenge = async (activityId) => {
     const activityRef = doc(
       db,
@@ -502,9 +451,8 @@ export const useActivities = (user, userData, coupleData, rounds) => {
     setShowHotSelectionNotification,
     pointsMessage,
     setPointsMessage,
-    handleSelectActivity, // A nova função automática
-    handleUnconfirmActivity, // Removida
-    confirmSelections, // Removida
+    handleSelectActivity,
+    handleUnconfirmActivity,
     handleAddActivity,
     handleUpdateActivity,
     handleDeleteActivity,

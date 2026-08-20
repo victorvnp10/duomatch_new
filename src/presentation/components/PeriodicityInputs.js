@@ -1,7 +1,6 @@
 import React from "react";
 import { getTodayDateString } from "../../shared/utils";
 
-// Este componente mostra o campo de input correto dependendo do tipo de periodicidade
 function PeriodicityInputs({ type, value, setValue }) {
   switch (type) {
     case "especifica":
@@ -11,7 +10,7 @@ function PeriodicityInputs({ type, value, setValue }) {
           value={value}
           min={getTodayDateString()}
           onChange={(e) => setValue(e.target.value)}
-          className="flex-grow px-4 py-2 border border-gray-300 rounded-lg"
+          className="flex-grow px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white"
         />
       );
 
@@ -20,7 +19,7 @@ function PeriodicityInputs({ type, value, setValue }) {
         <select
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          className="flex-grow px-4 py-2 border border-gray-300 rounded-lg"
+          className="flex-grow px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white"
         >
           <option value="">Selecione o dia</option>
           <option value="0">Domingo</option>
@@ -42,7 +41,7 @@ function PeriodicityInputs({ type, value, setValue }) {
           max="31"
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          className="flex-grow px-4 py-2 border border-gray-300 rounded-lg"
+          className="flex-grow px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400"
         />
       );
 
@@ -52,12 +51,12 @@ function PeriodicityInputs({ type, value, setValue }) {
           type="date"
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          className="flex-grow px-4 py-2 border border-gray-300 rounded-lg"
+          className="flex-grow px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white"
         />
       );
 
     default:
-      return null; // Não mostra nada se for 'none' ou 'diaria'
+      return null;
   }
 }
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   db,
   doc,
@@ -12,6 +12,7 @@ import {
   serverTimestamp,
   query,
   orderBy,
+  runTransaction,
 } from "../../infrastructure/firebase";
 import { getTodayDateString } from "../../shared/utils"; // Importar a função de data
 
@@ -25,6 +26,7 @@ export const useRewards = (user, userData, coupleData, rounds) => {
     rewardName: "",
   });
   const [approvalNotifications, setApprovalNotifications] = useState([]);
+  const notifiedRewardsRef = useRef(new Set());
 
   useEffect(() => {
     if (!userData?.coupleId) return;
@@ -43,9 +45,11 @@ export const useRewards = (user, userData, coupleData, rounds) => {
         if (
           reward.status === "pending_approval" &&
           reward.createdBy !== user.uid &&
-          !reward.notifiedForApproval
+          !reward.notifiedForApproval &&
+          !notifiedRewardsRef.current.has(reward.id)
         ) {
           newApprovalNotifications.push(reward);
+          notifiedRewardsRef.current.add(reward.id);
         }
       });
 
@@ -100,28 +104,17 @@ export const useRewards = (user, userData, coupleData, rounds) => {
     });
   };
 
-  // --- MUDANÇA 2: Lógica de compra totalmente corrigida ---
+  // --- MUDANÇA 2: Lógica de compra com transaction para evitar compra dupla ---
   const handlePurchaseReward = async (reward) => {
     if (!userData?.coupleId) return;
 
-    // 1. Encontrar a rodada ativa
     const todayStr = getTodayDateString();
     const activeRound = rounds.find(
       (r) => todayStr >= r.startDate && todayStr <= r.endDate
     );
 
-    // Se não houver rodada ativa, não é possível comprar.
     if (!activeRound) {
       alert("Não há uma rodada ativa. Não é possível comprar recompensas.");
-      return;
-    }
-
-    // 2. Pegar a pontuação do placar da rodada ativa (o lugar certo!)
-    const myScore = activeRound.scores?.[user.uid] || 0;
-
-    // 3. Comparar com o custo da recompensa
-    if (myScore < reward.cost) {
-      alert("Você não tem pontos suficientes para comprar esta recompensa.");
       return;
     }
 
@@ -130,31 +123,45 @@ export const useRewards = (user, userData, coupleData, rounds) => {
         `Tem certeza que deseja gastar ${reward.cost} pontos para comprar "${reward.name}"?`
       )
     ) {
-      const batch = writeBatch(db);
       const rewardRef = doc(
         db,
         `duomatches/${userData.coupleId}/rewards`,
         reward.id
       );
-      // 4. Referenciar o documento da rodada para deduzir os pontos
       const roundRef = doc(
         db,
         `duomatches/${userData.coupleId}/rounds`,
         activeRound.id
       );
 
-      batch.update(rewardRef, {
-        status: "purchased",
-        purchasedBy: user.uid,
-        purchasedAt: serverTimestamp(),
+      await runTransaction(db, async (transaction) => {
+        const rewardDoc = await transaction.get(rewardRef);
+        if (!rewardDoc.exists()) throw new Error("Recompensa não encontrada.");
+
+        const rewardData = rewardDoc.data();
+        if (rewardData.status !== "approved") {
+          throw new Error("Esta recompensa não está disponível para compra.");
+        }
+
+        const roundDoc = await transaction.get(roundRef);
+        if (!roundDoc.exists()) throw new Error("Rodada ativa não encontrada.");
+
+        const currentScore = roundDoc.data().scores?.[user.uid] || 0;
+        if (currentScore < reward.cost) {
+          throw new Error("Pontos insuficientes.");
+        }
+
+        transaction.update(rewardRef, {
+          status: "purchased",
+          purchasedBy: user.uid,
+          purchasedAt: serverTimestamp(),
+        });
+
+        transaction.update(roundRef, {
+          [`scores.${user.uid}`]: increment(-reward.cost),
+        });
       });
 
-      // 5. Deduzir os pontos do placar da rodada (o lugar certo!)
-      batch.update(roundRef, {
-        [`scores.${user.uid}`]: increment(-reward.cost),
-      });
-
-      await batch.commit();
       setPurchaseNotification({ visible: true, rewardName: reward.name });
     }
   };

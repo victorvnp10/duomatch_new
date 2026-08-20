@@ -42,7 +42,7 @@ export const buildPreviewRounds = (userUid) => [
       new Date(today.getFullYear(), today.getMonth(), today.getDate() + 25)
     ),
     scores: { [userUid]: 10, [DEMO_PARTNER_UID]: 10 },
-    rules: { minActivities: 5, minChallenges: 1 },
+    rules: { minActivities: { days: 7, quantity: 5, penalty: 10 }, minChallenges: { days: 7, quantity: 1, penalty: 10 } },
   },
 ];
 
@@ -111,14 +111,14 @@ export const buildPreviewWishlistItems = (userUid) => [
     name: "Fim de semana na praia",
     description: "Uma escapada de dois dias, só nós dois.",
     createdBy: userUid,
-    status: "pending",
+    status: "active",
   },
   {
     id: "demo-wish-2",
     name: "Aula de dança a dois",
     description: "Sempre quisemos aprender a dançar juntos.",
     createdBy: DEMO_PARTNER_UID,
-    status: "pending",
+    status: "active",
   },
 ];
 
@@ -128,13 +128,13 @@ export const buildPreviewRewards = () => [
     name: "Vale um dia sem tarefas domésticas",
     description: "Quem ganhar não faz nenhuma tarefa de casa por um dia.",
     cost: 30,
-    status: "available",
+    status: "pending_approval",
   },
   {
     id: "demo-reward-2",
     name: "Escolher o filme da noite por um mês",
     description: "Poder de decisão total sobre o que assistir.",
     cost: 25,
-    status: "available",
+    status: "pending_approval",
   },
 ];

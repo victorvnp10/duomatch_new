@@ -42,14 +42,14 @@ export default function EditWishlistItemModal({ item, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white p-6 rounded-xl shadow-md space-y-4 w-full max-w-lg">
+      <div className="bg-ink p-6 rounded-xl shadow-md space-y-4 w-full max-w-lg">
         <div className="flex justify-between items-center">
-          <h2 className="text-xl font-semibold text-gray-700">
+          <h2 className="text-xl font-semibold text-white">
             Editar Item da Lista de Desejos
           </h2>
           <button
             onClick={onClose}
-            className="p-2 rounded-full hover:bg-gray-200"
+            className="p-2 rounded-full hover:bg-gray-700 text-gray-300"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -72,7 +72,7 @@ export default function EditWishlistItemModal({ item, onClose, onSave }) {
           <div>
             <label
               htmlFor="itemName"
-              className="block text-sm font-medium text-gray-700"
+              className="block text-sm font-medium text-gray-300"
             >
               Nome do Desejo
             </label>
@@ -82,13 +82,13 @@ export default function EditWishlistItemModal({ item, onClose, onSave }) {
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
+              className="mt-1 block w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md shadow-sm text-white"
             />
           </div>
           <div>
             <label
               htmlFor="itemPoints"
-              className="block text-sm font-medium text-gray-700"
+              className="block text-sm font-medium text-gray-300"
             >
               Custo em Pontos
             </label>
@@ -99,13 +99,13 @@ export default function EditWishlistItemModal({ item, onClose, onSave }) {
               value={points}
               onChange={(e) => setPoints(e.target.value)}
               required
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
+              className="mt-1 block w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md shadow-sm text-white"
             />
           </div>
           <div>
             <label
               htmlFor="itemLink"
-              className="block text-sm font-medium text-gray-700"
+              className="block text-sm font-medium text-gray-300"
             >
               Link (Opcional)
             </label>
@@ -115,7 +115,7 @@ export default function EditWishlistItemModal({ item, onClose, onSave }) {
               placeholder="https://..."
               value={link}
               onChange={(e) => setLink(e.target.value)}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
+              className="mt-1 block w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md shadow-sm text-white placeholder-gray-500"
             />
           </div>
 
@@ -123,13 +123,13 @@ export default function EditWishlistItemModal({ item, onClose, onSave }) {
             <button
               type="button"
               onClick={onClose}
-              className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50"
+              className="bg-gray-700 py-2 px-4 border border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-200 hover:bg-gray-600"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+              className="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-accent hover:bg-accent-dark"
             >
               Salvar Alterações
             </button>

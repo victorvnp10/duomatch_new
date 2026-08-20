@@ -28,7 +28,7 @@ export default function CountdownTimer({ expiryTimestamp }) {
     }, 1000);
 
     return () => clearTimeout(timer);
-  });
+  }, [expiryTimestamp]);
 
   const timerComponents = [];
   Object.keys(timeLeft).forEach((interval) => {

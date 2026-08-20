@@ -29,11 +29,13 @@ export const useChat = (user, userData, allActivities) => {
     text: null,
   });
   const prevActivitiesRef = useRef();
+  const markedAsReadRef = useRef(new Set());
 
   // Efeito para buscar os comentários do chat que está ativo.
   useEffect(() => {
     if (!activeChatActivity) {
       setActiveChatComments([]);
+      markedAsReadRef.current.clear();
       return;
     }
     const commentsPath = `duomatches/${userData.coupleId}/activities/${activeChatActivity.id}/comments`;
@@ -46,14 +48,14 @@ export const useChat = (user, userData, allActivities) => {
       setActiveChatComments(commentsData);
 
       // Marca como lidas as mensagens do parceiro que ainda não tinham
-      // sido vistas — é o que informa ao autor que a mensagem já foi
-      // visualizada (uma das duas condições que travam edição/exclusão).
+      // sido vistas — usando ref para evitar re-escrita em cada snapshot.
       const unreadFromPartner = commentsData.filter(
-        (c) => c.authorId !== user.uid && !c.readAt
+        (c) => c.authorId !== user.uid && !c.readAt && !markedAsReadRef.current.has(c.id)
       );
       if (unreadFromPartner.length > 0) {
         const batch = writeBatch(db);
         unreadFromPartner.forEach((c) => {
+          markedAsReadRef.current.add(c.id);
           batch.update(doc(db, commentsPath, c.id), { readAt: serverTimestamp() });
         });
         batch

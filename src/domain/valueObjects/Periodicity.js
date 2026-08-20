@@ -61,7 +61,6 @@ export const isActivityForToday = (activity, todayDateString) => {
     return true;
   }
 
-  const today = new Date();
   const { type, value } = activity.periodicity;
 
   switch (type) {
@@ -69,15 +68,21 @@ export const isActivityForToday = (activity, todayDateString) => {
       return true;
     case "especifica":
       return value === todayDateString;
-    case "semanal":
-      return today.getDay() === parseInt(value, 10);
-    case "mensal":
-      return today.getDate() === parseInt(value, 10);
+    case "semanal": {
+      const date = new Date(`${todayDateString}T00:00:00Z`);
+      return date.getUTCDay() === parseInt(value, 10);
+    }
+    case "mensal": {
+      const day = parseInt(todayDateString.split("-")[2], 10);
+      return day === parseInt(value, 10);
+    }
     case "anual": {
       const [, month, day] = value.split("-");
+      const [, , todayDay] = todayDateString.split("-");
+      const todayMonth = todayDateString.split("-")[1];
       return (
-        today.getMonth() + 1 === parseInt(month, 10) &&
-        today.getDate() === parseInt(day, 10)
+        parseInt(todayMonth, 10) === parseInt(month, 10) &&
+        parseInt(todayDay, 10) === parseInt(day, 10)
       );
     }
     default:

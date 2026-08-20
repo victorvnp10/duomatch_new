@@ -6,6 +6,7 @@ import {
   updateDoc,
   setDoc,
   serverTimestamp,
+  runTransaction,
 } from "../../infrastructure/firebase";
 import { getTodayDateString } from "../../shared/utils";
 
@@ -690,62 +691,70 @@ export const useSuggestions = (userData, handleAddActivity, suggestionType) => {
 
       // Verificar se a sugestão já teve match antes de continuar
       if (currentSuggestion.matched) {
-        console.log("Sugestão já teve match, não é possível alterar seleção");
         return;
       }
 
-      // A verificação de match acontece após a atualização.
-      // O 'onSnapshot' garante que 'suggestions' sempre terá os dados mais recentes.
-      const partnerStatus = currentSuggestion.selections?.[userData.partnerId];
-      if (newStatus === "selected" && partnerStatus === "selected") {
-        // Primeiro marca a sugestão como matched e limpa as seleções
-        const batch = {
-          [`suggestions.${suggestionId}.matched`]: true,
-          [`suggestions.${suggestionId}.selections`]: {} // Limpa as seleções
-        };
-        await updateDoc(suggestionsRef, batch);
+      // A verificação de match acontece dentro de uma transação
+      // para ler o estado mais recente do Firestore e evitar duplicatas
+      if (newStatus === "selected") {
+        const suggestionType = config.collectionName === "hotSuggestions" ? "hot" : "normal";
+        
+        await runTransaction(db, async (transaction) => {
+          const docSnap = await transaction.get(suggestionsRef);
+          if (!docSnap.exists()) return;
+          
+          const freshData = docSnap.data();
+          const freshSuggestion = freshData?.suggestions?.[suggestionId];
+          if (!freshSuggestion || freshSuggestion.matched) return;
+          
+          const freshPartnerStatus = freshSuggestion.selections?.[userData.partnerId];
+          if (freshPartnerStatus !== "selected") return;
+          
+          // Match confirmado — limpar seleções e marcar como matched
+          transaction.update(suggestionsRef, {
+            [`suggestions.${suggestionId}.matched`]: true,
+            [`suggestions.${suggestionId}.selections`]: {},
+          });
 
-        // Prepara os dados da nova atividade a ser criada
-        const confirmedSelections = {
-          [userData.uid]: { status: "confirmed", date: today },
-          [userData.partnerId]: { status: "confirmed", date: today },
-        };
-        const { id, selections, matched, ...baseActivityData } =
-          currentSuggestion;
-        const finalActivityData = {
-          ...baseActivityData,
-          selections: confirmedSelections,
-          completionStatus: null,
-          createdBy: "SYSTEM",
-          createdAt: serverTimestamp(),
-        };
+          const confirmedSelections = {
+            [userData.uid]: { status: "confirmed", date: today },
+            [userData.partnerId]: { status: "confirmed", date: today },
+          };
+          const { id, selections, matched, ...baseActivityData } =
+            freshSuggestion;
+          const finalActivityData = {
+            ...baseActivityData,
+            selections: confirmedSelections,
+            completionStatus: null,
+            createdBy: "SYSTEM",
+            createdAt: serverTimestamp(),
+          };
 
-        // Adiciona a nova atividade na coleção principal
-        handleAddActivity(finalActivityData);
+          // Gravar a atividade dentro da mesma transação
+          const newActivityRef = doc(
+            db,
+            `duomatches/${userData.coupleId}/activities`,
+          );
+          transaction.set(newActivityRef, finalActivityData);
 
-        // Notificar sobre o match após um delay
-        setTimeout(() => {
-          if (suggestionType === "hot") {
-            console.log("Disparando hot match event:", currentSuggestion.name);
-            
-            // Para sugestões hot, usar o mesmo sistema da MainView
-            if (window.dispatchHotMatchEvent) {
-              window.dispatchHotMatchEvent(currentSuggestion.name);
+          // Notificar sobre o match após um delay
+          setTimeout(() => {
+            if (suggestionType === "hot") {
+              if (window.dispatchHotMatchEvent) {
+                window.dispatchHotMatchEvent(freshSuggestion.name);
+              }
+              const hotMatchEvent = new CustomEvent('hotActivityMatch', { 
+                detail: freshSuggestion.name 
+              });
+              window.dispatchEvent(hotMatchEvent);
+            } else {
+              const matchEvent = new CustomEvent('activityMatch', { 
+                detail: freshSuggestion.name 
+              });
+              window.dispatchEvent(matchEvent);
             }
-            
-            // Também disparar via CustomEvent
-            const hotMatchEvent = new CustomEvent('hotActivityMatch', { 
-              detail: currentSuggestion.name 
-            });
-            window.dispatchEvent(hotMatchEvent);
-          } else {
-            // Para sugestões normais, usar o evento padrão
-            const matchEvent = new CustomEvent('activityMatch', { 
-              detail: currentSuggestion.name 
-            });
-            window.dispatchEvent(matchEvent);
-          }
-        }, 1500);
+          }, 1500);
+        });
       }
     },
     [suggestions, userData, handleAddActivity, config.collectionName]

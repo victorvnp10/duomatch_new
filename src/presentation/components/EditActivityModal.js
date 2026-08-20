@@ -21,6 +21,16 @@ function EditActivityModal(props) {
   );
 
   useEffect(() => {
+    setName(activity.name);
+    setType(activity.type || "atividade");
+    setCategory(activity.category);
+    setPoints(activity.points || 0);
+    setDescription(activity.description || "");
+    setPeriodicityType(activity.periodicity?.type || "none");
+    setPeriodicityValue(activity.periodicity?.value || "");
+  }, [activity]);
+
+  useEffect(() => {
     if (type === "desafio_hot") {
       setCategory("Hot");
     }
@@ -44,13 +54,13 @@ function EditActivityModal(props) {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md mx-auto space-y-4">
-        <h3 className="text-xl font-bold text-gray-800">Editar Item</h3>
+      <div className="bg-ink p-6 rounded-lg shadow-xl w-full max-w-md mx-auto space-y-4">
+        <h3 className="text-xl font-bold text-white">Editar Item</h3>
 
         <select
           value={type}
           onChange={(e) => setType(e.target.value)}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+          className="w-full px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white"
         >
           <option value="atividade">Atividade</option>
           <option value="desafio">Desafio</option>
@@ -62,14 +72,14 @@ function EditActivityModal(props) {
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Nome da Atividade/Desafio"
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+          className="w-full px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400"
         />
 
         <textarea
           placeholder="Descrição (opcional)"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+          className="w-full px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400"
           rows="2"
         ></textarea>
 
@@ -77,7 +87,7 @@ function EditActivityModal(props) {
           <select
             value={category}
             onChange={(e) => setCategory(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+            className="w-full px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white"
             disabled={type === "desafio_hot"}
           >
             {Object.keys(categoryIcons).map((cat) => (
@@ -87,29 +97,26 @@ function EditActivityModal(props) {
             ))}
           </select>
 
-          {/* --- CORREÇÃO 1: O campo de pontos agora é sempre visível --- */}
-          {/* A condição {type.startsWith("desafio") && ...} foi removida daqui */}
           <input
             type="number"
             min="0"
             placeholder="Pontos"
             value={points}
             onChange={(e) => setPoints(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+            className="w-full px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400"
           />
         </div>
 
-        {/* Campos Condicionais para Atividades (Recorrência) */}
         {type === "atividade" && (
           <div className="pt-2">
-            <label className="text-sm font-medium text-gray-700">
+            <label className="text-sm font-medium text-gray-300">
               Recorrência
             </label>
             <div className="flex gap-4 mt-1">
               <select
                 value={periodicityType}
                 onChange={(e) => setPeriodicityType(e.target.value)}
-                className="w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-lg"
+                className="w-full sm:w-auto px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white"
               >
                 <option value="none">Nenhuma</option>
                 <option value="diaria">Diária</option>
@@ -130,13 +137,13 @@ function EditActivityModal(props) {
         <div className="mt-6 flex justify-end gap-4">
           <button
             onClick={onClose}
-            className="px-6 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+            className="px-6 py-2 bg-gray-700 text-gray-200 rounded-lg hover:bg-gray-600 transition-colors"
           >
             Cancelar
           </button>
           <button
             onClick={handleSubmit}
-            className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+            className="px-6 py-2 bg-accent text-white rounded-lg hover:bg-accent-dark transition-colors"
           >
             Salvar
           </button>
