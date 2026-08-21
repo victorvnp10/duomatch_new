@@ -50,11 +50,11 @@ export default function NotificationManager(props) {
       )}
       {/* Notificações existentes (inalteradas) */}
       {showMatchNotification && (
-        <div className="fixed bottom-24 right-4 md:right-10 bg-white shadow-lg rounded-lg p-4 flex items-center animate-bounce border-l-4 border-green-500 z-50">
+        <div className="fixed bottom-24 right-4 md:right-10 bg-ink shadow-lg rounded-lg p-4 flex items-center animate-bounce border-l-4 border-green-500 z-50">
           <span className="text-2xl mr-3">🎉</span>
           <div>
-            <h4 className="font-bold text-green-600">Vocês têm um match!</h4>
-            <p className="text-sm text-gray-600">
+            <h4 className="font-bold text-green-400">Vocês têm um match!</h4>
+            <p className="text-sm text-gray-300">
               Novos interesses em comum foram adicionados.
             </p>
           </div>
@@ -62,11 +62,11 @@ export default function NotificationManager(props) {
       )}
 
       {partnerNotification.visible && (
-        <div className="fixed top-20 right-4 md:right-10 bg-blue-100 border-l-4 border-blue-500 shadow-lg rounded-lg p-4 flex items-start z-50">
+        <div className="fixed top-20 right-4 md:right-10 bg-blue-900/80 border-l-4 border-blue-500 shadow-lg rounded-lg p-4 flex items-start z-50">
           <span className="text-2xl mr-3 pt-1">😉</span>
           <div>
-            <h4 className="font-bold text-blue-700">Seu par já escolheu!</h4>
-            <p className="text-sm text-gray-700">
+            <h4 className="font-bold text-blue-300">Seu par já escolheu!</h4>
+            <p className="text-sm text-gray-300">
               Agora é a sua vez de confirmar as atividades.
             </p>
           </div>
@@ -74,7 +74,7 @@ export default function NotificationManager(props) {
             onClick={() =>
               setPartnerNotification((p) => ({ ...p, visible: false }))
             }
-            className="ml-4 text-gray-500 font-bold text-lg"
+            className="ml-4 text-gray-400 hover:text-white font-bold text-lg"
           >
             &times;
           </button>
@@ -82,44 +82,43 @@ export default function NotificationManager(props) {
       )}
 
       {showHotSelectionNotification && (
-        <div className="fixed top-20 right-4 md:right-10 bg-red-100 border-l-4 border-red-500 shadow-lg rounded-lg p-4 flex items-start z-50 animate-bounce">
+        <div className="fixed top-20 right-4 md:right-10 bg-red-900/80 border-l-4 border-red-500 shadow-lg rounded-lg p-4 flex items-start z-50 animate-bounce">
           <span className="text-2xl mr-3 pt-1">
-            <FireIcon className="text-red-500" />
+            <FireIcon className="text-red-400" />
           </span>
           <div>
-            <h4 className="font-bold text-red-700">
+            <h4 className="font-bold text-red-300">
               O clima está esquentando...
             </h4>
-            <p className="text-sm text-gray-700">
+            <p className="text-sm text-gray-300">
               Seu parceiro(a) marcou um interesse na Hot Zone! 🔥
             </p>
           </div>
           <button
             onClick={() => setShowHotSelectionNotification(false)}
-            className="ml-4 text-gray-500 font-bold text-lg"
+            className="ml-4 text-gray-400 hover:text-white font-bold text-lg"
           >
             &times;
           </button>
         </div>
       )}
 
-      {/* Bloco da Wishlist corrigido para usar a função correta */}
       {wishlistNotification.visible && (
         <div
           onClick={() => {
             setView("wishlist");
             handleDismissWishlistNotification(wishlistNotification.itemId);
           }}
-          className="fixed bottom-24 right-4 md:right-10 bg-white border-l-4 border-purple-500 shadow-lg rounded-lg p-4 flex items-start z-50 cursor-pointer hover:shadow-xl"
+          className="fixed bottom-24 right-4 md:right-10 bg-ink border-l-4 border-purple-500 shadow-lg rounded-lg p-4 flex items-start z-50 cursor-pointer hover:shadow-xl"
         >
           <span className="text-2xl mr-3 pt-1">
             <GiftIcon />
           </span>
           <div className="flex-grow">
-            <h4 className="font-bold text-gray-800">
+            <h4 className="font-bold text-white">
               Novo item na Lista de Desejos!
             </h4>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-gray-300">
               Seu par adicionou: "{wishlistNotification.itemName}"
             </p>
           </div>
@@ -128,7 +127,7 @@ export default function NotificationManager(props) {
               e.stopPropagation();
               handleDismissWishlistNotification(wishlistNotification.itemId);
             }}
-            className="ml-4 text-gray-500 hover:text-gray-800 font-bold text-lg"
+            className="ml-4 text-gray-400 hover:text-white font-bold text-lg"
             aria-label="Fechar notificação"
           >
             &times;
@@ -136,7 +135,6 @@ export default function NotificationManager(props) {
         </div>
       )}
 
-      {/* --- NOVO BLOCO PARA NOTIFICAÇÕES DE APROVAÇÃO DE RECOMPENSA --- */}
       {approvalNotifications.map((reward, index) => (
         <div
           key={reward.id}
@@ -144,15 +142,15 @@ export default function NotificationManager(props) {
             setView("shop");
             dismissApprovalNotification(reward.id);
           }}
-          className="fixed bottom-40 right-4 md:right-10 bg-white border-l-4 border-orange-500 shadow-lg rounded-lg p-4 flex items-start z-50 cursor-pointer hover:shadow-xl transition-transform"
-          style={{ transform: `translateY(-${index * 110}px)` }} // Empilha as notificações se houver mais de uma
+          className="fixed bottom-40 right-4 md:right-10 bg-ink border-l-4 border-orange-500 shadow-lg rounded-lg p-4 flex items-start z-50 cursor-pointer hover:shadow-xl transition-transform"
+          style={{ transform: `translateY(-${index * 110}px)` }}
         >
-          <span className="text-2xl mr-3 pt-1 text-orange-500">
+          <span className="text-2xl mr-3 pt-1 text-orange-400">
             <StarIcon />
           </span>
           <div className="flex-grow">
-            <h4 className="font-bold text-gray-800">Recompensa para Aprovar</h4>
-            <p className="text-sm text-gray-600">
+            <h4 className="font-bold text-white">Recompensa para Aprovar</h4>
+            <p className="text-sm text-gray-300">
               Seu par sugeriu: "{reward.name}"
             </p>
           </div>
@@ -161,7 +159,7 @@ export default function NotificationManager(props) {
               e.stopPropagation();
               dismissApprovalNotification(reward.id);
             }}
-            className="ml-4 text-gray-500 hover:text-gray-800 font-bold text-lg"
+            className="ml-4 text-gray-400 hover:text-white font-bold text-lg"
             aria-label="Fechar notificação"
           >
             &times;
@@ -169,21 +167,20 @@ export default function NotificationManager(props) {
         </div>
       ))}
 
-      {/* Outras notificações */}
       {purchaseNotification.visible && (
         <div
           onClick={() => {
             setView("shop");
             setPurchaseNotification((p) => ({ ...p, visible: false }));
           }}
-          className="fixed bottom-56 right-4 md:right-10 bg-white border-l-4 border-yellow-500 shadow-lg rounded-lg p-4 flex items-start z-50 cursor-pointer hover:shadow-xl"
+          className="fixed bottom-56 right-4 md:right-10 bg-ink border-l-4 border-yellow-500 shadow-lg rounded-lg p-4 flex items-start z-50 cursor-pointer hover:shadow-xl"
         >
           <span className="text-2xl mr-3 pt-1">
             <TrophyIcon />
           </span>
           <div className="flex-grow">
-            <h4 className="font-bold text-gray-800">Recompensa Resgatada!</h4>
-            <p className="text-sm text-gray-600">
+            <h4 className="font-bold text-white">Recompensa Resgatada!</h4>
+            <p className="text-sm text-gray-300">
               Seu par comprou: "{purchaseNotification.rewardName}"
             </p>
           </div>
@@ -192,7 +189,7 @@ export default function NotificationManager(props) {
               e.stopPropagation();
               setPurchaseNotification((p) => ({ ...p, visible: false }));
             }}
-            className="ml-4 text-gray-500 hover:text-gray-800 font-bold text-lg"
+            className="ml-4 text-gray-400 hover:text-white font-bold text-lg"
             aria-label="Fechar notificação"
           >
             &times;
@@ -209,16 +206,16 @@ export default function NotificationManager(props) {
             if (act) setActiveChatActivity(act);
             setChatNotification({ visible: false });
           }}
-          className="fixed bottom-72 right-4 md:right-10 bg-white border-l-4 border-green-500 shadow-lg rounded-lg p-4 flex items-start z-50 cursor-pointer hover:shadow-xl"
+          className="fixed bottom-72 right-4 md:right-10 bg-ink border-l-4 border-green-500 shadow-lg rounded-lg p-4 flex items-start z-50 cursor-pointer hover:shadow-xl"
         >
-          <span className="text-2xl mr-3 pt-1 text-green-500">
+          <span className="text-2xl mr-3 pt-1 text-green-400">
             <ChatBubbleIcon />
           </span>
           <div className="flex-grow">
-            <h4 className="font-bold text-gray-800">
+            <h4 className="font-bold text-white">
               Nova mensagem em "{chatNotification.activityName}"
             </h4>
-            <p className="text-sm text-gray-600 truncate">
+            <p className="text-sm text-gray-300 truncate">
               {chatNotification.text}
             </p>
           </div>
@@ -227,7 +224,7 @@ export default function NotificationManager(props) {
               e.stopPropagation();
               setChatNotification({ visible: false });
             }}
-            className="ml-4 text-gray-500 hover:text-gray-800 font-bold text-lg"
+            className="ml-4 text-gray-400 hover:text-white font-bold text-lg"
             aria-label="Fechar notificação"
           >
             &times;

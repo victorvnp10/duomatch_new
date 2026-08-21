@@ -258,8 +258,8 @@ function LinkingPage({ user, userData, onSkip, onBack }) {
 
   if (linkingSuccess) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-        <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 text-center space-y-4">
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
+        <div className="w-full max-w-md bg-ink rounded-2xl shadow-xl p-8 text-center space-y-4">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             className="mx-auto h-16 w-16 text-green-500"
@@ -272,8 +272,8 @@ function LinkingPage({ user, userData, onSkip, onBack }) {
               clipRule="evenodd"
             />
           </svg>
-          <h2 className="text-2xl font-bold text-gray-800">Casal Vinculado!</h2>
-          <p className="text-gray-600">
+          <h2 className="text-2xl font-bold text-white">Casal Vinculado!</h2>
+          <p className="text-gray-300">
             Agora vocês estão conectados. O aplicativo vai começar...
           </p>
         </div>
@@ -282,15 +282,15 @@ function LinkingPage({ user, userData, onSkip, onBack }) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 text-center space-y-6">
-        <h2 className="text-2xl font-bold text-gray-800">Vincular Contas</h2>
-        <p className="text-gray-600">
+    <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
+      <div className="w-full max-w-md bg-ink rounded-2xl shadow-xl p-8 text-center space-y-6">
+        <h2 className="text-2xl font-bold text-white">Vincular Contas</h2>
+        <p className="text-gray-300">
           Olá, {userData.nickname}! Para começar, conecte-se com seu par.
         </p>
 
-        <div className="space-y-4 p-4 border-t border-b">
-          <p className="font-semibold">Seu parceiro(a) já gerou um código?</p>
+        <div className="space-y-4 p-4 border-t border-b border-gray-700">
+          <p className="font-semibold text-white">Seu parceiro(a) já gerou um código?</p>
           <form
             onSubmit={handleLinkAccount}
             className="flex flex-col sm:flex-row gap-2"
@@ -300,7 +300,7 @@ function LinkingPage({ user, userData, onSkip, onBack }) {
               placeholder="Insira o código aqui"
               value={inviteCode}
               onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
-              className="flex-grow px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400"
+              className="flex-grow px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-400"
             />
             <button
               type="submit"
@@ -313,13 +313,13 @@ function LinkingPage({ user, userData, onSkip, onBack }) {
         </div>
 
         <div className="space-y-4 p-4">
-          <p className="font-semibold">
+          <p className="font-semibold text-white">
             Ou gere um novo código para seu parceiro(a):
           </p>
           {generatedCode ? (
-            <div className="p-4 bg-pink-100 border-2 border-dashed border-pink-300 rounded-lg">
-              <p className="text-gray-700">Compartilhe este código:</p>
-              <p className="text-3xl font-bold text-pink-600 tracking-widest">
+            <div className="p-4 bg-pink-900/30 border-2 border-dashed border-pink-500 rounded-lg">
+              <p className="text-gray-300">Compartilhe este código:</p>
+              <p className="text-3xl font-bold text-pink-400 tracking-widest">
                 {generatedCode}
               </p>
             </div>
@@ -327,22 +327,21 @@ function LinkingPage({ user, userData, onSkip, onBack }) {
             <button
               onClick={generateCode}
               disabled={loading}
-              className="w-full bg-gray-600 text-white py-2 rounded-lg hover:bg-gray-700 transition-colors disabled:bg-gray-400"
+              className="w-full bg-gray-700 text-white py-2 rounded-lg hover:bg-gray-600 transition-colors disabled:bg-gray-600"
             >
               Gerar Código de Convite
             </button>
           )}
         </div>
 
-        {error && <p className="text-red-500 text-sm">{error}</p>}
+        {error && <p className="text-red-400 text-sm">{error}</p>}
 
-        {/* --- OPÇÃO DE CONTINUAR SEM VINCULAR AGORA --- */}
         {!onBack && (
           <div className="pt-4">
             <button
               onClick={handleSkipLinking}
               disabled={skipping}
-              className="w-full text-sm font-semibold text-gray-500 hover:text-pink-600 transition-colors underline disabled:opacity-50"
+              className="w-full text-sm font-semibold text-gray-400 hover:text-pink-400 transition-colors underline disabled:opacity-50"
             >
               {skipping ? "Só um instante..." : "Vincular depois — quero só conhecer o app"}
             </button>

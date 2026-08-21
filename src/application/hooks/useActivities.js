@@ -9,11 +9,9 @@ import {
   deleteDoc,
   writeBatch,
   increment,
-  Timestamp,
-  serverTimestamp,
   query,
   orderBy,
-  runTransaction, // <-- MUDANÇA 1: Importar a função de transação
+  runTransaction,
 } from "../../infrastructure/firebase";
 import { getTodayDateString } from "../../shared/utils";
 
@@ -190,7 +188,6 @@ export const useActivities = (user, userData, coupleData, rounds) => {
       const activitiesData = [];
       let mySels = {};
       let partnerSels = {};
-      let currentMatches = [];
 
       querySnapshot.forEach((docSnap) => {
         const data = { id: docSnap.id, ...docSnap.data() };
@@ -206,8 +203,6 @@ export const useActivities = (user, userData, coupleData, rounds) => {
           partnerChoice && partnerChoice.date === today
             ? partnerChoice
             : { status: "pending", date: null };
-
-        // Matches serão filtrados no MainView para separar hoje vs jornada
       });
 
       checkForPoints(activitiesData);
@@ -438,12 +433,10 @@ export const useActivities = (user, userData, coupleData, rounds) => {
     allActivities,
     mySelections,
     partnerSelections,
-    matches,
     activityToDelete,
     setActivityToDelete,
     activityToEdit,
     setActivityToEdit,
-    timeRemaining,
     showMatchNotification,
     partnerNotification,
     setPartnerNotification,

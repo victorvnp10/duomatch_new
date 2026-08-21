@@ -598,7 +598,7 @@ const masterSuggestionPool = [
   },
 ];
 
-export const useSuggestions = (userData, handleAddActivity, suggestionType) => {
+export const useSuggestions = (userData, _handleAddActivity, suggestionType) => {
   // O estado agora é um OBJETO, que é mais eficiente para o Firestore
   const [suggestions, setSuggestions] = useState({});
 
@@ -666,7 +666,7 @@ export const useSuggestions = (userData, handleAddActivity, suggestionType) => {
   // Função para lidar com o clique em uma sugestão
   const handleSelectSuggestion = useCallback(
     async (suggestionId) => {
-      if (!userData?.coupleId || !handleAddActivity) return;
+      if (!userData?.coupleId) return;
 
       const today = getTodayDateString();
       const suggestionsRef = doc(
@@ -757,7 +757,7 @@ export const useSuggestions = (userData, handleAddActivity, suggestionType) => {
         });
       }
     },
-    [suggestions, userData, handleAddActivity, config.collectionName]
+    [suggestions, userData, config.collectionName]
   );
 
   return { suggestions, handleSelectSuggestion };

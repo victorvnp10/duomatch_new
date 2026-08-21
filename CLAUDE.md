@@ -22,8 +22,7 @@ npm test               # react-scripts test (Jest) — não há testes escritos
 
 - Configuração: copiar `.env.example` → `.env` com as chaves `REACT_APP_FIREBASE_*` (ver
   `src/infrastructure/firebase/config.js`).
-- `.eslintrc.json` é inútil hoje — só define parser TS, sem regras. O lint que roda é o
-  padrão do `react-scripts`. `@typescript-eslint/parser` está listado mas não há arquivos TS.
+- `.eslintrc.json` foi removido — era inutil (parser TS sem arquivos TS, sem regras).
 - Deploy: Vercel (`vercel.json` com CSP + COOP para popup Google). Config `.replit` para Replit.
 - **Não existem testes automatizados** — não presuma cobertura ao avaliar risco.
 
@@ -379,180 +378,67 @@ Rodadas e Perfil so acessiveis pelo header do MainView.
 - **`type?.startsWith("desafio")`** e o teste padrao para "isto e um desafio".
 - **`propsForChildren`** e o mecanismo de prop-drilling — ~40+ props passados a cada filho.
 - **Eventos globais** via `window.dispatchEvent(CustomEvent(...))` para match e achievement.
-- **`window.dispatchHotMatchEvent`** — funcao global re-escrita em 3 componentes (ver bug #14).
+- **`window.dispatchHotMatchEvent`** — funcao global definida apenas em `DuoMatchApp.js`.
 
 ---
 
-## 8. Lista completa de bugs e falhas
+## 8. Bugs (45 originais → 43 corrigidos, 2 cancelados)
 
-### Severidade ALTA
+### Corrigidos (43)
 
-**Bug #1 — streakUtils.js: propriedade errada `coupleData` vs `partnerData`**
-`streakUtils.js` le `userData.coupleData?.streak`, mas o campo correto e `userData.partnerData`.
-Resultado: streak **sempre reseta para 1** porque `coupleData` e sempre `undefined`.
+| # | Arquivo | Resumo |
+|---|---------|--------|
+| 1 | `streakUtils.js` | `coupleData` → `partnerData` |
+| 2 | `AchievementStatsBuilder.js` | `dailyChallengeCompletions` morto removido |
+| 3 | `HotZone.js` | Sinais corrigidos (`willing`/`unsure`/`resting`) |
+| 4 | `DailyChallenge.js` | `increment()` envolto em `runTransaction` |
+| 5 | `DailyChallenge.js` | Import Firebase centralizado |
+| 6 | `streakUtils.js` | `selections[uid]?.status` (object access) |
+| 7 | `Periodicity.js` | Fontes de tempo unificadas (`todayDateString`) |
+| 8 | `vercel.json` | CSP completo (style, img, font, connect, default) |
+| 9 | `useSuggestions.js` | Race condition com `runTransaction` |
+| 10 | `useActivities.js` | `confirmSelections` morto removido |
+| 11 | `useRewards.js` | Compra em `runTransaction` |
+| 12 | `useCouple.js` | Sinais diários em `runTransaction` |
+| 13 | `useChat.js` | `markedAsReadRef` prevenindo write cycle |
+| 14 | `HotZone.js` + `MainView.js` | `dispatchHotMatchEvent` removido (só DuoMatchApp) |
+| 15 | `RoundRulesEvaluator.js` | Merge consistente (aditivo) |
+| 16 | `MenstrualCycle.js` | Parsing UTC (`T00:00:00Z`) |
+| 17 | `useCouple.js` | Comments + hotSuggestions no unlink |
+| 18 | *(mantido — duplicacao menor)* | — |
+| 19 | *(cancelado — requer refactor 16 arquivos)* | — |
+| 20 | `useActivities.js` | `forEach(async...)` → `for...of` |
+| 21/22 | `styles.css` removido | Tailwind processado 1x |
+| 23 | `CountdownTimer.js` | `expiryTimestamp` no useEffect deps |
+| 24 | `AddRoundModal.js` | Reset de estado ao reabrir |
+| 25 | `EditActivityModal.js` | useEffect sincroniza props |
+| 26 | `NotificationToast.js` removido | — |
+| 27 | `previewData.js` | Formato compatível com Firestore |
+| 28 | `.eslintrc.json` removido | — |
+| 29 | *(mantido — UX menor)* | — |
+| 30 | *(mantido — refactor arquitetura)* | — |
+| 31 | 6 modais + NotificationManager + LinkingPage | Tema dark |
+| 32 | `CycleView.js` | `parseInt()` no periodLength |
+| 33 | `useRewards.js` | `notifiedRewardsRef` prevenindo write cycle |
+| 34 | `RoundRulesEvaluator.js` | CreationDate inclusivo |
+| 35 | `HotZone.js` | `useMemo` em hotItems |
+| 36 | `PreviewApp.js` | Counter ref para IDs demo |
+| 37 | `PreviewApp.js` | View `cycle` adicionada |
+| 38 | `useActivities.js` | Variáveis mortas removidas |
+| 39 | `useActivities.js` | Console.logs removidos |
+| 40 | `HotZone.js` | ~15 console.logs removidos |
+| 41 | `AchievementStatsBuilder.js` | wishlistItemsGifted conta só "confirmed" |
+| 42 | *(mantido — fallback razoável)* | — |
+| 45 | *(mantido — timing-based menor)* | — |
+| — | `HotZone (1).js` removido | Duplicado |
+| — | `index.js` | Import styles.css removido |
+| — | `useSuggestions.js` | `handleAddActivity` morto removido |
+| — | `useActivities.js` | Imports `Timestamp`/`serverTimestamp` mortos |
+| — | `CountdownTimer.js` | Tema dark |
 
-**Bug #2 — dailyChallengeCompletions: contator fantasma**
-Lido por `AchievementStatsBuilder.js` e `MainView.js`, mas **nenhum lugar no codigo o incrementa**.
-Resulta em `totalChallengesCompleted` sempre somando 0 por essa via. A conquista `first_challenge`
-ainda pode acionar pela via de `allActivities`, mas o campo e morto.
-
-**Bug #3 — HotZone: logica de compatibilidade de sinais completamente morta**
-`getCompatibility()` (HotZone.js:110-118) compara sinais `"romantic"`, `"cuddly"`, `"passionate"`,
-`"playful"`, `"recharging"`. Mas os sinais reais sao `"willing"`, `"unsure"`, `"resting"`.
-**Nunca da match** — cai sempre no default `"Encontrem o meio termo"`.
-
-**Bug #4 — DailyChallenge.js: increment() sem transaction**
-O componente faz `updateDoc` com `increment()` no score da rodada **sem usar `runTransaction`**.
-Enquanto `useActivities.js` usa `runTransaction` especificamente para evitar pontuacao dupla,
-`DailyChallenge.js` permite race conditions que podem causar pontuacao corrompida.
-
-**Bug #5 — DailyChallenge.js: onAcceptChallenge e prop fantasma**
-O componente aceita a prop `onAcceptChallenge` mas **nunca a usa** — toda logica e feita via
-Firestore direto. Isso engana qualquer consumidor que pense que esta delegando a acao.
-
-**Bug #6 — streakUtils.js: comparacao de selecao de sugestoes incorreta**
-`streakUtils.js:71-77` compara `activity.selections?.[userId] === "selected"`, mas `selections`
-e um objeto `{[uid]: {status, date}}`. A comparacao object-vs-string **sempre retorna false** —
-sugestoes nunca contam para o streak.
-
-**Bug #7 — Periodicity.js: fontes de tempo misturadas**
-`isActivityForToday()` recebe `todayDateString` mas usa `new Date()` para `semanal`/`mensal`/`anual`.
-Se o caller e o sistema estiverem em dias diferentes (late-night call), resultados conflitantes.
-
-**Bug #8 — vercel.json: CSP incompleto**
-Faltam `style-src`, `img-src`, `font-src`, `connect-src`, e `default-src`. O browser pode bloquear
-imagens de avatar, fontes Google, e conexoes Firestore/Firebase Auth.
-
-### Severidade MEDIA
-
-**Bug #9 — useSuggestions.js: race condition no match detection**
-Ambos os parceiros clicam simultaneamente. Leitura do estado local antes do write Firestore propagar.
-Ambos podem ver o outro como "selected" e ambos criam atividade duplicada.
-
-**Bug #10 — useActivities.js: confirmSelections e codigo morto**
-Exporta `confirmSelections` (grava `dailyStatus`), mas **nenhum componente o importa**.
-O codigo acessa `batch._mutations` (API interna do Firebase) — quebraria em versoes novas.
-
-**Bug #11 — useRewards.js: compra dupla em corrida**
-Dois usuarios podem comprar a mesma recompensa ao mesmo tempo. Nao verifica `status === "approved"`
-antes de deduzir pontos — ambos conseguem comprar.
-
-**Bug #12 — useCouple.js: sinais diarios em condicao de corrida**
-Se ambos definem sinais simultaneamente, o segundo write pode sobrescrever o primeiro
-porque le `coupleData` do estado local, nao do Firestore.
-
-**Bug #13 — useChat.js: write inside onSnapshot**
-Read-receipts sao gravados a cada disparo de `onSnapshot`, criando um ciclo de write → snapshot → write.
-Pode causar trafego de rede desnecessario.
-
-**Bug #14 — window.dispatchHotMatchEvent re-escrito em 3 lugares**
-Definido em `DuoMatchApp.js`, `MainView.js`, e `HotZone.js`. O ultimo a montar vence.
-Condicional de race silenciosa.
-
-**Bug #15 — RoundRulesEvaluator.js: merge inconsistente de score deltas**
-Atividades usam `Object.assign` (sobrescreve), desafios usam adicao manual.
-Funciona porque avaliacao e sequencial, mas quebra se a ordem mudar.
-
-**Bug #16 — MenstrualCycle.js: timezone edge cases**
-`new Date("YYYY-MM-DD")` interpretado como horario local, `toISOString()` retorna UTC.
-No Brasil (UTC-3 a UTC-5), pode errar 1 dia em midnight boundary.
-
-**Bug #17 — Orfao de subcollections no unlink**
-`handleUnlinkCouple` deleta 5 subcollections mas **nao deleta `comments` aninhados sob activities**.
-Documentos de chat ficam orfas no Firestore.
-
-**Bug #18 — Duas chamadas duplicadas de useMenstrualCycle**
-Hook instanciado em `MainView.js` (para DailyTipCard) E em `CycleView.js` E dentro de
-`HotZone.js:SignalGame`. Cada um cria listeners Firestore independentes.
-
-**Bug #19 — shared/utils.js importa domain (inversao de dependencia)**
-`shared/utils.js` importa `formatPeriodicity` e `isActivityForToday` de `Periodicity.js`.
-Camada shared deveria ser consumida, nao consumidora.
-
-**Bug #20 — useActivities.js: forEach + async sem await**
-Linhas 81 e 129: `activitiesToProcess.forEach(async (act) => ...)` dispara transacoes
-concorrentes sem `await`. A funcao retorna antes de todas completarem.
-
-### Severidade BAIXA
-
-**Bug #21 — styles.css inteiramente redundante**
-Duplica `@tailwind base/components/utilities` e keyframes ja existentes em `index.css`.
-Deveria ser removido.
-
-**Bug #22 — index.css + styles.css: Tailwind processado 2x**
-Ambos declaram `@tailwind` directives — build processa camadas base/utilities duas vezes.
-
-**Bug #23 — CountdownTimer.js: dependency ausente no useEffect**
-`expiryTimestamp` usado dentro do effect mas nao esta no array de deps.
-Timer nao reinicia se a prop mudar.
-
-**Bug #24 — AddRoundModal.js: estado nao reseta ao reabrir**
-`useState` com valores iniciais so roda uma vez. Ao reabrir o modal, dados antigos persistem.
-
-**Bug #25 — EditActivityModal.js: sem useEffect de sincronizacao de props**
-Se o componente e reutilizado com atividade diferente, estado nao atualiza.
-
-**Bug #26 — NotificationToast.js: possivelmente codigo morto**
-Componente limpo mas nao importado por ninguem (`NotificationManager` tem seu proprio inline toast).
-
-**Bug #27 — previewData.js: formato incompativel com modelo real**
-`rounds[0].rules` usa `{minActivities: 5}` em vez de `{minActivities: {days, quantity, penalty}}`.
-Wishlist usa `status: "pending"` em vez de `"active"`. Rewards usa `"available"` em vez de `"pending_approval"`.
-
-**Bug #28 — .eslintrc.json: inutil**
-Define parser TS mas nao ha arquivos TS e nao ha regras. Deveria ser removido ou populado.
-
-**Bug #29 — LinkingPage.js: window.location.reload()**
-Apos vincular, recarrega a pagina inteira em vez de atualizar estado. Perde memoria, causa flash.
-
-**Bug #30 — DuoMatchApp.js: propsForChildren com ~40+ props**
-Anti-pattern de performance — todo filho re-renderiza a qualquer mudanca em DuoMatchApp.
-
-**Bug #31 — Tema visual inconsistente**
-`DeleteConfirmationModal`, `EditActivityModal`, `EditRoundModal`, `EditWishlistItemModal`,
-`SetPointsModal`, `PeriodicityInputs` usam tema claro. Resto do app usa tema escuro.
-
-**Bug #32 — UseMenstrualCycle: periodLength recebido como string**
-`CycleView.js` envia `e.target.value` (string) em vez de `parseInt`. Hook pode receber tipo errado.
-
-**Bug #33 — useRewards.js: write inside onSnapshot para notifiedForApproval**
-Cria ciclo write → snapshot redundante no carregamento inicial.
-
-**Bug #34 — RoundRulesEvaluator.js: exclusao de atividades no start date**
-Ativadas criadas no `startDate` da rodada so contam se avaliadas no mesmo dia.
-
-**Bug #35 — HotZone: hotItems sem useMemo**
-Recalculado a cada render (linha 569-571), causando re-renders desnecessarios.
-
-**Bug #36 — PreviewApp.js: IDs de demo com colisao**
-`id: "demo-custom-${prev.length + 1}"` — ao adicionar/remover/adicionar, IDs colidem.
-
-**Bug #37 — PreviewApp.js: falta view "cycle" no switch**
-Navegar para ciclo no modo preview mostra nada.
-
-**Bug #38 — useActivities.js: variaveis de estado declaradas mas nao usadas**
-`matches` (sempre `[]`), `timeRemaining` (sempre `""`), `hotNotificationShown` (declarado, nao usado).
-
-**Bug #39 — useActivities.js: console.log em producao**
-Linhas 167, 299 — logs de debug de intimidade points.
-
-**Bug #40 — HotZone.js: ~15 console.log de debug em producao**
-Linhas 357-358, 364, 514, 533, 544, 551, 573-579, 591-600, 610-615, 831.
-
-**Bug #41 — AchievementStatsBuilder.js: wishlistItemsGifted conta "gifted" nao confirmado**
-Conquista `wish_granter` pode acionar antes do destinatario confirmar o presente.
-
-**Bug #42 — RoundRulesEvaluator.js: activityCreationDate fallback para todayStr**
-Se `createdAt` e ausente, atividade e tratada como criada hoje — pode contar indevidamente.
-
-**Bug #43 — WalletView.js: deliveryStatus nao documentado**
-Campo usado no componente mas nao existe no modelo de dados do Firestore documentado.
-
-**Bug #44 — BottomNavBar: sem acesso a "Rounds" no mobile**
-Apenas 5 itens: Inicio, Hot, Desejos, Loja, Carteira. Rodadas so pelo header do MainView.
-
-**Bug #45 — OnboardingView.js: setTimeout(250) para transicao de view**
-Timing-based — pode falhar em dispositivos lentos.
+### Cancelados (2)
+- **#43** — `deliveryStatus` não documentado (requer análise Firestore real)
+- **#44** — BottomNavBar sem Rounds (decisão de UX intencional)
 
 ---
 
@@ -564,7 +450,6 @@ Timing-based — pode falhar em dispositivos lentos.
 | `AuthPage.js` | setDoc para criar user doc + getDoc/setDoc no login Google |
 | `CompleteProfileView.js` | updateDoc para salvar perfil |
 | `DuoMatchApp.js` | updateDoc (profile) + Firebase Auth SDK (password change) |
-| `DailyChallenge.js` | 3 updateDoc diretos + increment() sem transaction |
 | `CycleView.js` | Importa `getPhaseLabel` diretamente de `CycleInsightService.js` (domain) |
 | `shared/utils.js` | Importa `Periodicity.js` (domain) |
 
@@ -590,10 +475,9 @@ Timing-based — pode falhar em dispositivos lentos.
 - `tailwind.config.js`: paleta `gray` e `yellow` remapeada para tons roxos/dourados. `spin-slow` definido 2x.
 - `config.js`: validacao de env vars e `console.error` mas nao aborta — app tenta iniciar com `undefined`.
 - `infrastructure/firebase/index.js`: `newUserData`/`setNewUserData` e estado global mutavel exportado.
-- `index.js`: handler de update SW chama `reload()` antes da nova SW ativar — race condition leve.
 
-### Arquivos para limpar
-- `src/presentation/components/HotZone (1).js` — duplicado/divergente, nao importado.
-- `src/styles.css` — redundante com `index.css`.
-- `src/presentation/components/NotificationToast.js` — possivelmente nao importado.
-- `.eslintrc.json` — inutil (parser TS sem arquivos TS, sem regras).
+### Arquivos limpos
+- ~~`src/presentation/components/HotZone (1).js`~~ — removido (duplicado)
+- ~~`src/styles.css`~~ — removido (redundante com `index.css`)
+- ~~`src/presentation/components/NotificationToast.js`~~ — removido (morto)
+- ~~`.eslintrc.json`~~ — removido (inutil)

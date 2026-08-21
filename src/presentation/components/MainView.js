@@ -465,8 +465,6 @@ export default function MainView(props) {
       if (userData?.coupleId) {
         updateStreak(userData.coupleId, { ...userData, coupleData }, allActivities, dailySuggestions, hotSuggestions);
       }
-
-      console.log("Atividade selecionada com sucesso!");
     } catch (error) {
       console.error("Erro ao selecionar atividade:", error);
     } finally {
@@ -483,8 +481,6 @@ export default function MainView(props) {
       if (userData?.coupleId) {
         updateStreak(userData.coupleId, { ...userData, coupleData }, allActivities, dailySuggestions, hotSuggestions);
       }
-
-      console.log("Seleção enviada com sucesso!");
     } catch (error) {
       console.error("Erro ao selecionar sugestão:", error);
     } finally {
@@ -501,8 +497,6 @@ export default function MainView(props) {
       if (userData?.coupleId) {
         updateStreak(userData.coupleId, { ...userData, coupleData }, allActivities, dailySuggestions, hotSuggestions);
       }
-
-      console.log("Seleção hot enviada!");
     } catch (error) {
       console.error("Erro ao selecionar hot suggestion:", error);
     } finally {

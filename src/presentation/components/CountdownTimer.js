@@ -57,7 +57,7 @@ export default function CountdownTimer({ expiryTimestamp }) {
   });
 
   return (
-    <div className="inline-flex items-center text-xs font-mono bg-gray-200 text-gray-700 px-2 py-1 rounded-full ml-2">
+    <div className="inline-flex items-center text-xs font-mono bg-gray-800 text-gray-300 px-2 py-1 rounded-full ml-2">
       <ClockIcon />
       <div className="ml-1 space-x-1">
         {timerComponents.length ? timerComponents : <span>Expirado</span>}

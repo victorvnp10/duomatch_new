@@ -774,7 +774,6 @@ export default function HotZone(props) {
           activityName={matchedActivityName}
           isHot={true}
           onComplete={() => {
-            console.log("MatchNotification completada na HotZone");
             setShowMatchNotification(false);
           }}
         />
