@@ -20,7 +20,7 @@ import StreakTracker from "./StreakTracker";
 import DailyChallenge from "./DailyChallenge";
 import AchievementSystem from "./AchievementSystem";
 import MatchNotification from "./MatchNotification";
-import { isActivityForToday, getTodayDateString } from "../../shared/utils";
+import { isActivityForToday, getTodayDateString, getDateString } from "../../shared/utils";
 import { updateStreak } from "../../shared/utils/streakUtils";
 import CountdownTimer from "./CountdownTimer";
 import { useAchievements } from "../../application/hooks/useAchievements";
@@ -118,9 +118,10 @@ export default function MainView(props) {
   const [showMatchNotification, setShowMatchNotification] = useState(false);
   const [matchedActivityName, setMatchedActivityName] = useState('');
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const todayStr = today.toISOString().slice(0, 10);
+  // Data LOCAL (convenção do projeto) — toISOString() é UTC e, no fuso
+  // brasileiro, viraria "amanhã" entre 21h e 23:59, quebrando rodada ativa,
+  // placar e regras cíclicas à noite.
+  const todayStr = getTodayDateString();
   const activeRound = rounds.find(
     (r) => todayStr >= r.startDate && todayStr <= r.endDate
   );
@@ -197,15 +198,13 @@ export default function MainView(props) {
   );
 
   useEffect(() => {
+    const creationDateOf = (act) =>
+      act.createdAt?.toDate ? getDateString(act.createdAt.toDate()) : null;
     const activitiesFromToday = availableActivities.filter(
-      (act) =>
-        act.createdAt &&
-        act.createdAt.toDate().toISOString().slice(0, 10) === todayStr
+      (act) => creationDateOf(act) === todayStr
     );
     const activitiesFromBeforeToday = availableActivities.filter(
-      (act) =>
-        !act.createdAt ||
-        act.createdAt.toDate().toISOString().slice(0, 10) !== todayStr
+      (act) => creationDateOf(act) !== todayStr
     );
     const pendingChallenges = availableActivities.filter((act) =>
       act.type?.startsWith("desafio")
@@ -247,46 +246,24 @@ export default function MainView(props) {
     const activitiesRule = activeRound.rules.minActivities;
     const challengesRule = activeRound.rules.minChallenges;
 
-    const getCreationDate = (act) =>
-      act.createdAt?.toDate
-        ? act.createdAt.toDate().toISOString().slice(0, 10)
-        : act.createdAt?.slice(0, 10) || todayStr;
-
-    const wasCreatedInCurrentRound = (creationDate) =>
-      creationDate > activeRound.startDate ||
-      (creationDate === activeRound.startDate && creationDate === todayStr);
-
     if (activitiesRule) {
-      // Conta atividades CRIADAS na rodada atual e CONFIRMADAS por cada
-      // pessoa dentro do período da rodada.
-      const countConfirmedActivities = (uid) =>
-        allActivities.filter((act) => {
-          if (act.type?.startsWith("desafio")) return false;
-          if (!wasCreatedInCurrentRound(getCreationDate(act))) return false;
-
-          const selection = act.selections?.[uid];
-          if (selection?.status !== "confirmed") return false;
-
-          return (
-            selection.date >= activeRound.startDate &&
-            selection.date <= activeRound.endDate
-          );
-        }).length;
-
-      // Sugestões especiais (diárias e da Hot Zone) marcadas por cada
-      // pessoa HOJE, mas que ainda não viraram um match — sem isso, uma
-      // sugestão que só uma das pessoas já marcou nunca aparecia neste
-      // painel, mesmo sendo um sinal real de engajamento. Uma vez que
-      // vira match, ela some daqui e passa a contar como atividade
-      // confirmada (o Firestore limpa as seleções da sugestão no match).
-      const countMarkedSuggestions = (uid) =>
-        [...Object.values(dailySuggestions || {}), ...Object.values(hotSuggestions || {})]
-          .filter((suggestion) => !suggestion.matched && suggestion.selections?.[uid] === "selected")
-          .length;
-
-      const myCount = countConfirmedActivities(user.uid) + countMarkedSuggestions(user.uid);
-      const partnerCount =
-        countConfirmedActivities(userData.partnerId) + countMarkedSuggestions(userData.partnerId);
+      // B2-18: usa os MESMOS contadores do domínio que o avaliador usa
+      // para pontuar. A implementação inline anterior divergia em dois
+      // pontos (critério de criação na rodada + bônus de sugestões
+      // marcadas), então o painel mostrava "meta cumprida" enquanto o
+      // avaliador aplicava penalidade.
+      const myCount = countConfirmedActivitiesInRound(
+        allActivities,
+        user.uid,
+        activeRound,
+        todayStr
+      );
+      const partnerCount = countConfirmedActivitiesInRound(
+        allActivities,
+        userData.partnerId,
+        activeRound,
+        todayStr
+      );
 
       const today = new Date(todayStr);
       const startDate = new Date(activeRound.startDate);
@@ -302,18 +279,17 @@ export default function MainView(props) {
     }
 
     if (challengesRule) {
-      // Conta desafios CRIADOS por cada pessoa durante a rodada ativa.
-      const countCreatedChallenges = (uid) =>
-        allActivities.filter((act) => {
-          if (!act.type?.startsWith("desafio")) return false;
-          if (act.createdBy !== uid) return false;
-
-          const activityDate = getCreationDate(act);
-          return activityDate >= activeRound.startDate && activityDate <= activeRound.endDate;
-        }).length;
-
-      const myChallengesCount = countCreatedChallenges(user.uid);
-      const partnerChallengesCount = countCreatedChallenges(userData.partnerId);
+      // Mesmo critério do avaliador (desafios criados por cada pessoa)
+      const myChallengesCount = countChallengesCreatedInRound(
+        allActivities,
+        user.uid,
+        activeRound
+      );
+      const partnerChallengesCount = countChallengesCreatedInRound(
+        allActivities,
+        userData.partnerId,
+        activeRound
+      );
 
       const today = new Date(todayStr);
       const startDate = new Date(activeRound.startDate);
@@ -332,8 +308,6 @@ export default function MainView(props) {
   }, [
     activeRound,
     allActivities,
-    dailySuggestions,
-    hotSuggestions,
     user.uid,
     userData.partnerId,
     todayStr,
@@ -438,7 +412,9 @@ export default function MainView(props) {
     dailyActivities,
   });
 
-  // Sistema de eventos para notificações de match
+  // Sistema de eventos para notificações de match.
+  // Matches HOT não são tratados aqui: o overlay temático fica no
+  // DuoMatchApp (global) e no HotZone — evita overlay duplicado/errado.
   useEffect(() => {
     const handleMatchEvent = (event) => {
       const name = typeof event.detail === "string" ? event.detail : event.detail?.activityName;
@@ -447,11 +423,9 @@ export default function MainView(props) {
     };
 
     window.addEventListener('activityMatch', handleMatchEvent);
-    window.addEventListener('hotActivityMatch', handleMatchEvent);
 
     return () => {
       window.removeEventListener('activityMatch', handleMatchEvent);
-      window.removeEventListener('hotActivityMatch', handleMatchEvent);
     };
   }, []);
 

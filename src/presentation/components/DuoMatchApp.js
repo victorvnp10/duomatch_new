@@ -279,11 +279,14 @@ export default function DuoMatchApp({ user, userData }) {
     <div className="relative min-h-screen bg-gray-900">
       {isTourOpen && <OnboardingView onFinish={handleFinishOnboarding} setView={setView} />}
       <div className="pb-24 md:pb-0">{renderCurrentView()}
-        {showHotMatchNotification && (
+        {/* Overlay global de hot match — cobre todas as views EXCETO "hot",
+            onde o HotZone já exibe o seu próprio overlay temático. */}
+        {showHotMatchNotification && view !== "hot" && (
           <MatchNotification
+            isVisible={showHotMatchNotification}
             activityName={hotMatchedActivityName}
-            onClose={() => setShowHotMatchNotification(false)}
             isHot={true}
+            onComplete={() => setShowHotMatchNotification(false)}
           />
         )}
 

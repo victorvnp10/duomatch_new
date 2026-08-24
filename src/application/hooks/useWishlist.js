@@ -12,6 +12,7 @@ import {
   writeBatch,
   increment,
   serverTimestamp,
+  runTransaction,
 } from "../../infrastructure/firebase";
 import { getTodayDateString } from "../../shared/utils";
 import { arrayUnion } from "firebase/firestore"; // 2. Adicione esta nova linha
@@ -104,8 +105,14 @@ export const useWishlist = (user, userData, coupleData, rounds) => {
 
   // Função para adicionar um novo item à lista
   const handleAddItemToWishlist = async (itemData) => {
-    if (!itemData.name || !itemData.points) {
-      alert("O nome e os pontos do desejo são obrigatórios.");
+    // 0 é um valor legítimo (desejo sem pontos); negativo não.
+    if (
+      !itemData.name ||
+      itemData.points == null ||
+      !Number.isFinite(Number(itemData.points)) ||
+      Number(itemData.points) < 0
+    ) {
+      alert("O nome do desejo é obrigatório e os pontos não podem ser negativos.");
       return;
     }
     const batch = writeBatch(db);
@@ -153,9 +160,16 @@ export const useWishlist = (user, userData, coupleData, rounds) => {
   // Função para marcar um item como "presenteado"
   const handleGiftWishlistItem = async (itemId) => {
     const itemRef = doc(db, `duomatches/${userData.coupleId}/wishlist`, itemId);
-    await updateDoc(itemRef, {
-      status: "gifted",
-      giftedBy: user.uid,
+    // Guarda transacional: só presenteia se o item ainda estiver "active",
+    // evitando sobrescrever giftedBy de um item já presenteado/confirmado.
+    await runTransaction(db, async (transaction) => {
+      const itemDoc = await transaction.get(itemRef);
+      if (!itemDoc.exists()) return;
+      if (itemDoc.data().status !== "active") return;
+      transaction.update(itemRef, {
+        status: "gifted",
+        giftedBy: user.uid,
+      });
     });
   };
 
@@ -170,25 +184,40 @@ export const useWishlist = (user, userData, coupleData, rounds) => {
       alert("Não há uma rodada ativa para registrar os pontos do presente!");
       return;
     }
-    const batch = writeBatch(db);
     const itemRef = doc(
       db,
       `duomatches/${userData.coupleId}/wishlist`,
       item.id
     );
-    batch.update(itemRef, { status: "confirmed" });
     const roundRef = doc(
       db,
       `duomatches/${userData.coupleId}/rounds`,
       activeRound.id
     );
-    if (item.giftedBy && item.points > 0) {
-      batch.update(roundRef, {
-        [`scores.${item.giftedBy}`]: increment(item.points),
+
+    try {
+      // Transação impede pontos duplicados por duplo clique ou confirmação
+      // simultânea em dois dispositivos: só credita se status for "gifted".
+      await runTransaction(db, async (transaction) => {
+        const itemDoc = await transaction.get(itemRef);
+        if (!itemDoc.exists()) return;
+
+        const freshItem = itemDoc.data();
+        if (freshItem.status !== "gifted") return;
+
+        transaction.update(itemRef, { status: "confirmed" });
+
+        if (freshItem.giftedBy && freshItem.points > 0) {
+          transaction.update(roundRef, {
+            [`scores.${freshItem.giftedBy}`]: increment(freshItem.points),
+          });
+        }
       });
+      alert(`Presente "${item.name}" confirmado! Pontos adicionados à rodada.`);
+    } catch (error) {
+      console.error("Erro ao confirmar presente:", error);
+      alert("Ocorreu um erro ao confirmar o presente. Tente novamente.");
     }
-    await batch.commit();
-    alert(`Presente "${item.name}" confirmado! Pontos adicionados à rodada.`);
   };
 
   // Retorna os estados e as funções que o componente principal precisará.

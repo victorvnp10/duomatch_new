@@ -7,7 +7,6 @@ import {
   onSnapshot,
   updateDoc,
   deleteDoc,
-  writeBatch,
   increment,
   query,
   orderBy,
@@ -254,13 +253,6 @@ export const useActivities = (user, userData, coupleData, rounds) => {
       return;
     }
 
-    const challengedId = Object.keys(activity.selections).find(
-      (id) => id !== activity.createdBy
-    );
-    const winnerId =
-      resolution === "completed" ? challengedId : activity.createdBy;
-
-    const batch = writeBatch(db);
     const activityRef = doc(
       db,
       `duomatches/${userData.coupleId}/activities`,
@@ -271,25 +263,43 @@ export const useActivities = (user, userData, coupleData, rounds) => {
       `duomatches/${userData.coupleId}/rounds`,
       activeRound.id
     );
-
-    batch.update(activityRef, { challengeState: resolution });
-
-    if (winnerId && activity.points > 0) {
-      batch.update(roundRef, {
-        [`scores.${winnerId}`]: increment(activity.points),
-      });
-    }
-
-    // Se for um desafio hot e foi completado, incrementa pontos de intimidade
-    if (resolution === "completed" && (activity.category === "Hot" || activity.type === "desafio_hot")) {
-      const coupleDocRef = doc(db, "duomatches", userData.coupleId);
-      batch.update(coupleDocRef, {
-        intimacyPoints: increment(1),
-      });
-    }
+    const coupleDocRef = doc(db, "duomatches", userData.coupleId);
 
     try {
-      await batch.commit();
+      // Transação impede pontuação duplicada por duplo clique ou pelos dois
+      // parceiros resolvendo ao mesmo tempo: a guarda relê o estado REAL do
+      // servidor e só aplica pontos se o desafio ainda estiver "accepted".
+      await runTransaction(db, async (transaction) => {
+        const activityDoc = await transaction.get(activityRef);
+        if (!activityDoc.exists()) return;
+
+        const fresh = activityDoc.data();
+        if (fresh.challengeState !== "accepted") return;
+
+        const challengedId = Object.keys(fresh.selections || {}).find(
+          (id) => id !== fresh.createdBy
+        );
+        const winnerId =
+          resolution === "completed" ? challengedId : fresh.createdBy;
+
+        transaction.update(activityRef, { challengeState: resolution });
+
+        if (winnerId && fresh.points > 0) {
+          transaction.update(roundRef, {
+            [`scores.${winnerId}`]: increment(fresh.points),
+          });
+        }
+
+        // Se for um desafio hot e foi completado, incrementa pontos de intimidade
+        if (
+          resolution === "completed" &&
+          (fresh.category === "Hot" || fresh.type === "desafio_hot")
+        ) {
+          transaction.update(coupleDocRef, {
+            intimacyPoints: increment(1),
+          });
+        }
+      });
       setPointsMessage(`Desafio "${activity.name}" finalizado!`);
     } catch (error) {
       console.error("Erro ao resolver desafio:", error);
@@ -334,14 +344,17 @@ export const useActivities = (user, userData, coupleData, rounds) => {
           // Disparar evento de match após delay
           setTimeout(() => {
             if (activity?.category === "Hot") {
-              // Para atividades hot, usar o evento específico
+              // Para atividades hot, usar o evento específico — UMA única
+              // vez (dispatchHotMatchEvent já dispara 'hotActivityMatch').
               if (window.dispatchHotMatchEvent) {
                 window.dispatchHotMatchEvent(activityName);
+              } else {
+                window.dispatchEvent(
+                  new CustomEvent("hotActivityMatch", {
+                    detail: { activityName },
+                  })
+                );
               }
-              const hotMatchEvent = new CustomEvent('hotActivityMatch', { 
-                detail: activityName 
-              });
-              window.dispatchEvent(hotMatchEvent);
             } else {
               // Para atividades normais
               const matchEvent = new CustomEvent('activityMatch', { 

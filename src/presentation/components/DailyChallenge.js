@@ -3,6 +3,21 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { doc, updateDoc, runTransaction, increment } from 'firebase/firestore';
 import { db } from '../../infrastructure/firebase';
 import { ChallengeIcon, TrophyIcon } from './Icons';
+import { getTodayDateString, getDateString } from '../../shared/utils';
+
+/**
+ * Retorna a SEGUNDA-FEIRA que inicia a semana da data informada.
+ * A fórmula `date - day + 1` erra no domingo (getDay() === 0 avançaria
+ * para a segunda da semana SEGUINTE, mudando o desafio e o weekKey).
+ */
+const getStartOfWeek = (date) => {
+  const start = new Date(date);
+  const day = start.getDay(); // 0 = domingo
+  const diff = day === 0 ? -6 : 1 - day;
+  start.setDate(start.getDate() + diff);
+  start.setHours(0, 0, 0, 0);
+  return start;
+};
 
 /**
  * Cada desafio semanal já vem com um `type` (romance, connection,
@@ -393,10 +408,7 @@ export const DailyChallenge = ({ userData, coupleData, rounds, onAcceptChallenge
 
   // Função para obter o desafio da semana
   const getWeeklyChallenge = useMemo(() => {
-    const now = new Date();
-    const startOfWeek = new Date(now);
-    startOfWeek.setDate(now.getDate() - now.getDay() + 1); // Segunda-feira
-    startOfWeek.setHours(0, 0, 0, 0);
+    const startOfWeek = getStartOfWeek(new Date());
 
     // Usar a data da segunda-feira para gerar um índice consistente
     const weekSeed = startOfWeek.getTime();
@@ -408,8 +420,7 @@ export const DailyChallenge = ({ userData, coupleData, rounds, onAcceptChallenge
   // Calcular progresso da semana
   const calculateWeeklyProgress = useMemo(() => {
     const now = new Date();
-    const startOfWeek = new Date(now);
-    startOfWeek.setDate(now.getDate() - now.getDay() + 1); // Segunda-feira
+    const startOfWeek = getStartOfWeek(now);
     const endOfWeek = new Date(startOfWeek);
     endOfWeek.setDate(startOfWeek.getDate() + 6); // Domingo
     endOfWeek.setHours(23, 59, 59, 999);
@@ -431,11 +442,7 @@ export const DailyChallenge = ({ userData, coupleData, rounds, onAcceptChallenge
   const getChallengeState = useMemo(() => {
     if (!userData?.uid) return null;
 
-    const startOfWeek = calculateWeeklyProgress.startOfWeek;
-    const year = startOfWeek.getFullYear();
-    const month = String(startOfWeek.getMonth() + 1).padStart(2, '0');
-    const day = String(startOfWeek.getDate()).padStart(2, '0');
-    const weekKey = `${year}-${month}-${day}`;
+    const weekKey = getDateString(calculateWeeklyProgress.startOfWeek);
 
     // Usar dados locais primeiro, depois dados do Firestore
     const sourceData = localChallengeData || coupleData?.weeklyChallenge;
@@ -482,14 +489,10 @@ export const DailyChallenge = ({ userData, coupleData, rounds, onAcceptChallenge
 
     setIsLoading(true);
     try {
-      const weekKey = getChallengeState?.weekKey || (() => {
-        const startOfWeek = calculateWeeklyProgress.startOfWeek;
-        const year = startOfWeek.getFullYear();
-        const month = String(startOfWeek.getMonth() + 1).padStart(2, '0');
-        const day = String(startOfWeek.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-      })();
-      
+      const weekKey =
+        getChallengeState?.weekKey ||
+        getDateString(calculateWeeklyProgress.startOfWeek);
+
       const coupleRef = doc(db, 'duomatches', userData.coupleId);
       
       // Obter dados existentes ou criar novo array
@@ -597,55 +600,79 @@ export const DailyChallenge = ({ userData, coupleData, rounds, onAcceptChallenge
       const existingConfirmations = existingData.confirmations || {};
       const partnerConfirmation = existingConfirmations[partnerUid] || {};
 
-      const updatedPartnerConfirmation = {
-        ...partnerConfirmation,
-        status: confirmed ? 'confirmed' : 'denied',
-        confirmedBy: userData.uid,
-        confirmedAt: new Date()
-      };
+      // Se confirmado, registrar status E pontos na MESMA transação,
+      // relendo o servidor para garantir que os pontos sejam concedidos
+      // apenas na PRIMEIRA confirmação (idempotência contra duplo clique
+      // ou falha entre a transação e a gravação do status).
+      const today = getTodayDateString();
+      const activeRound = rounds?.find(
+        (r) => today >= r.startDate && today <= r.endDate
+      );
+      const roundRef = activeRound
+        ? doc(db, `duomatches/${userData.coupleId}/rounds`, activeRound.id)
+        : null;
 
-      if (confirmed) {
-        updatedPartnerConfirmation.pointsAwarded = getWeeklyChallenge.points;
-      }
+      let updatedChallengeDataForLocal = null;
 
-      const updateData = {
-        [`weeklyChallenge.${weekKey}`]: {
-          ...existingData,
+      await runTransaction(db, async (transaction) => {
+        const coupleSnap = await transaction.get(coupleRef);
+        const roundSnap = roundRef ? await transaction.get(roundRef) : null;
+
+        // Estado REAL do servidor (não o snapshot React possivelmente antigo)
+        const serverData =
+          coupleSnap.exists()
+            ? coupleSnap.data()?.weeklyChallenge?.[weekKey] || {}
+            : {};
+        const serverConfirmations = serverData.confirmations || {};
+        const partnerServerConfirmation = serverConfirmations[partnerUid] || {};
+
+        const alreadyAwarded =
+          partnerServerConfirmation.status === 'confirmed' &&
+          partnerServerConfirmation.pointsAwarded != null;
+
+        const updatedPartnerConfirmation = {
+          ...partnerServerConfirmation,
+          status: confirmed ? 'confirmed' : 'denied',
+          confirmedBy: userData.uid,
+          confirmedAt: new Date()
+        };
+
+        if (confirmed) {
+          updatedPartnerConfirmation.pointsAwarded = getWeeklyChallenge.points;
+        }
+
+        updatedChallengeDataForLocal = {
+          ...serverData,
           confirmations: {
-            ...existingConfirmations,
+            ...serverConfirmations,
             [partnerUid]: updatedPartnerConfirmation
           }
-        }
-      };
+        };
 
-      // Se confirmado, adicionar pontos no placar da rodada ativa via transaction
-      if (confirmed) {
-        const today = new Date().toISOString().slice(0, 10);
-        const activeRound = rounds?.find(
-          (r) => today >= r.startDate && today <= r.endDate
-        );
+        transaction.update(coupleRef, {
+          [`weeklyChallenge.${weekKey}`]: updatedChallengeDataForLocal
+        });
 
-        if (activeRound) {
-          const roundRef = doc(db, `duomatches/${userData.coupleId}/rounds`, activeRound.id);
-          
-          await runTransaction(db, async (transaction) => {
-            const roundDoc = await transaction.get(roundRef);
-            if (!roundDoc.exists()) return;
-            transaction.update(roundRef, {
-              [`scores.${partnerUid}`]: increment(getWeeklyChallenge.points)
-            });
+        if (
+          confirmed &&
+          !alreadyAwarded &&
+          roundSnap &&
+          roundSnap.exists()
+        ) {
+          transaction.update(roundRef, {
+            [`scores.${partnerUid}`]: increment(getWeeklyChallenge.points)
           });
         }
-      }
-
-      await updateDoc(coupleRef, updateData);
-      
-      // Atualizar estado local para resposta imediata na UI
-      const currentLocal = localChallengeData || coupleData?.weeklyChallenge || {};
-      setLocalChallengeData({
-        ...currentLocal,
-        [weekKey]: updateData[`weeklyChallenge.${weekKey}`]
       });
+
+      // Atualizar estado local para resposta imediata na UI
+      if (updatedChallengeDataForLocal) {
+        const currentLocal = localChallengeData || coupleData?.weeklyChallenge || {};
+        setLocalChallengeData({
+          ...currentLocal,
+          [weekKey]: updatedChallengeDataForLocal
+        });
+      }
     } catch (error) {
       console.error('Erro ao confirmar parceiro:', error);
       alert(`Erro ao confirmar: ${error.message}`);
@@ -658,12 +685,8 @@ export const DailyChallenge = ({ userData, coupleData, rounds, onAcceptChallenge
   useEffect(() => {
     if (coupleData?.weeklyChallenge && localChallengeData) {
       // Se os dados do Firestore foram atualizados, limpar cache local
-      const startOfWeek = calculateWeeklyProgress.startOfWeek;
-      const year = startOfWeek.getFullYear();
-      const month = String(startOfWeek.getMonth() + 1).padStart(2, '0');
-      const day = String(startOfWeek.getDate()).padStart(2, '0');
-      const weekKey = `${year}-${month}-${day}`;
-      
+      const weekKey = getDateString(calculateWeeklyProgress.startOfWeek);
+
       if (coupleData.weeklyChallenge[weekKey] && localChallengeData[weekKey]) {
         // Se os dados do servidor estão mais recentes, limpar cache local
         setLocalChallengeData(null);
@@ -675,8 +698,8 @@ export const DailyChallenge = ({ userData, coupleData, rounds, onAcceptChallenge
   const activeRound = useMemo(() => {
     if (!rounds || rounds.length === 0) return null;
 
-    const today = new Date().toISOString().slice(0, 10);
-    return rounds.find(round => 
+    const today = getTodayDateString();
+    return rounds.find(round =>
       today >= round.startDate && today <= round.endDate
     );
   }, [rounds]);

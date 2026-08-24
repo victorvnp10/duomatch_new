@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { onAuthStateChanged } from "firebase/auth";
-import { auth, db, doc, getDoc, setDoc, onSnapshot, newUserData } from "../../infrastructure/firebase";
+import { auth, db, doc, getDoc, setDoc, onSnapshot, newUserData, setNewUserData } from "../../infrastructure/firebase";
 
 /**
  * Hook de aplicação: única fonte de verdade sobre o estado de autenticação
@@ -41,6 +41,10 @@ export const useAuth = () => {
       if (!currentUser) {
         setUser(null);
         setUserData(null);
+        // Limpa o estado global de cadastro — sem isso, o nickname/email
+        // de um usuário anterior vazaria para o próximo login na mesma
+        // sessão (SPA não recarrega a página no logout).
+        setNewUserData(null);
         setLoading(false);
         return;
       }
@@ -50,6 +54,8 @@ export const useAuth = () => {
 
       unsubscribeUser = onSnapshot(userDocRef, async (userDocSnap) => {
         if (userDocSnap.exists()) {
+          // Doc confirmado — o bridge de cadastro não é mais necessário.
+          setNewUserData(null);
           const currentData = { uid: currentUser.uid, ...userDocSnap.data() };
 
           unsubscribePartner();
@@ -94,13 +100,18 @@ export const useAuth = () => {
             uid: currentUser.uid,
             nickname: newUserData?.nickname || currentUser.displayName || "",
             gender: newUserData?.gender ?? null,
-            email: newUserData?.email || currentUser.email,
+            // Email SEMPRE do usuário autenticado — nunca do estado global
+            // de cadastro, que pode ser de uma sessão anterior (outro usuário).
+            email: currentUser.email || "",
             partnerId: null,
             coupleId: null,
             score: 0,
           };
-          await setDoc(userDocRef, initialData);
-          setUserData(initialData);
+          // merge: true — se o setDoc rico do AuthPage chegar em paralelo,
+          // esta escrita não pode substituí-lo por completo.
+          await setDoc(userDocRef, initialData, { merge: true });
+          // NÃO sobrescrever userData aqui: o snapshot (latency compensation)
+          // já entrega o doc real; setar o objeto mínimo reverteria o estado.
           setLoading(false);
         }
       });

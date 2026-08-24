@@ -20,13 +20,23 @@ const MS_PER_DAY = 1000 * 60 * 60 * 24;
 const daysBetween = (laterDateStr, earlierDateStr) =>
   Math.floor((new Date(laterDateStr) - new Date(earlierDateStr)) / MS_PER_DAY);
 
+// Formata em data LOCAL (YYYY-MM-DD). `toISOString()` é UTC e, em fusos
+// negativos (ex.: Brasil), deslocava a criação para "amanhã" à noite,
+// excluindo atividades criadas no mesmo dia da contagem da rodada.
+const toLocalDateString = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
 /** Retorna a rodada ativa na data informada, ou `null`. */
 export const findActiveRound = (rounds, todayStr) =>
   rounds.find((r) => todayStr >= r.startDate && todayStr <= r.endDate) || null;
 
 const activityCreationDate = (activity, fallback) => {
   if (activity.createdAt?.toDate) {
-    return activity.createdAt.toDate().toISOString().slice(0, 10);
+    return toLocalDateString(activity.createdAt.toDate());
   }
   return activity.createdAt?.slice(0, 10) || fallback;
 };
@@ -35,8 +45,13 @@ const activityCreationDate = (activity, fallback) => {
  * Conta quantas atividades (não-desafio) um usuário confirmou dentro da
  * rodada atual, considerando apenas atividades criadas depois do início
  * da rodada (evita contar atividades antigas de rodadas anteriores).
+ *
+ * EXPORTADA também para a UI (MainView): o painel de progresso precisa
+ * exibir EXATAMENTE o mesmo critério que o avaliador usa para pontuar —
+ * critérios divergentes faziam o usuário ver "meta cumprida" e ainda
+ * assim levar penalidade.
  */
-const countConfirmedActivitiesInRound = (allActivities, userId, activeRound, todayStr) => {
+export const countConfirmedActivitiesInRound = (allActivities, userId, activeRound, todayStr) => {
   return allActivities.filter((activity) => {
     if (activity.type?.startsWith("desafio")) return false;
 
@@ -55,7 +70,7 @@ const countConfirmedActivitiesInRound = (allActivities, userId, activeRound, tod
 };
 
 /** Conta quantos desafios um usuário criou dentro da rodada atual. */
-const countChallengesCreatedInRound = (allActivities, userId, activeRound) => {
+export const countChallengesCreatedInRound = (allActivities, userId, activeRound) => {
   return allActivities.filter((activity) => {
     if (!activity.type?.startsWith("desafio")) return false;
     if (activity.createdBy !== userId) return false;

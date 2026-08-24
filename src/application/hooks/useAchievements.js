@@ -34,7 +34,7 @@ export function useAchievements({
 
       const stats = buildAchievementStats({
         userId: userData.uid,
-        partnerId: coupleData.partnerId || userData.partnerId,
+        partnerId: userData.partnerId,
         allActivities,
         coupleData,
         rewards,
@@ -66,9 +66,10 @@ export function useAchievements({
   }, [
     userData?.coupleId,
     userData?.uid,
-    coupleData?.achievements,
-    allActivities.length,
-    rewards.length,
-    wishlistItems.length,
+    userData?.partnerId,
+    coupleData,
+    allActivities,
+    rewards,
+    wishlistItems,
   ]);
 }

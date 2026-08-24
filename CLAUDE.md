@@ -384,6 +384,14 @@ Rodadas e Perfil so acessiveis pelo header do MainView.
 
 ## 8. Bugs (45 originais → 43 corrigidos, 2 cancelados)
 
+> **Segunda auditoria concluída**: novos bugs numerados `B2-01` a `B2-55` documentados em
+> `BUG_FIX_PLAN_2.md` (ainda NAO corrigidos). Destaques: regressao do fix #1
+> (`streakUtils.js:25` le `partnerData.streak`, campo que nunca existe), penalidade ciclica
+> aplicada 2x (`useRoundRules.js`), pontos duplicados na resolucao de desafio e na
+> confirmacao de wishlist, CountdownTimer congelado, 4 conquistas de desafio inalcancaveis,
+> notificacao de hot match morta + evento disparado 2x, weekKey do desafio semanal errado no
+> domingo, familia de datas UTC (6 pontos), custo negativo de reward permite inflar pontos.
+
 ### Corrigidos (43)
 
 | # | Arquivo | Resumo |

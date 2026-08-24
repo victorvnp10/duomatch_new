@@ -3,12 +3,28 @@ import {
   db,
   doc,
   onSnapshot,
-  updateDoc,
-  setDoc,
   serverTimestamp,
   runTransaction,
 } from "../../infrastructure/firebase";
 import { getTodayDateString } from "../../shared/utils";
+
+// Gera um objeto de sugestões aleatórias no formato persistido
+// (chamado apenas DENTRO de transações, para concorrência segura).
+const buildRandomSuggestions = (pool) => {
+  const shuffled = [...pool].sort(() => 0.5 - Math.random());
+  return shuffled.slice(0, 5).reduce((acc, s, index) => {
+    const id = `sug_${index}`;
+    acc[id] = {
+      ...s,
+      id,
+      selections: {},
+      matched: false,
+      type: "atividade",
+      periodicity: null,
+    };
+    return acc;
+  }, {});
+};
 
 // Repositório expandido de sugestões sensuais - 60+ opções para variedade máxima
 const hotSuggestionPool = [
@@ -602,6 +618,19 @@ export const useSuggestions = (userData, _handleAddActivity, suggestionType) => 
   // O estado agora é um OBJETO, que é mais eficiente para o Firestore
   const [suggestions, setSuggestions] = useState({});
 
+  // Dia de referência do listener e dos handlers. Reavaliado periodicamente
+  // para que o app aberto na virada da meia-noite migre para o doc do novo
+  // dia — listener e cliques sempre operam sobre o MESMO dia.
+  const [today, setToday] = useState(getTodayDateString());
+
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      const now = getTodayDateString();
+      setToday((prev) => (prev === now ? prev : now));
+    }, 30000);
+    return () => clearInterval(intervalId);
+  }, []);
+
   // Objeto de configuração para tornar o hook dinâmico
   const config = useMemo(() => {
     if (suggestionType === "hot") {
@@ -616,28 +645,19 @@ export const useSuggestions = (userData, _handleAddActivity, suggestionType) => 
     };
   }, [suggestionType]);
 
-  // Função para gerar novas sugestões para o dia
-  const generateSuggestionsForToday = useCallback(
+  // Geração transacional: só grava um conjunto novo se o doc do dia ainda
+  // não existir. Dois clientes gerando em paralelo chegam ao MESMO doc —
+  // o segundo reutiliza o primeiro em vez de sobrescrevê-lo (um setDoc
+  // full-replace apagaria seleções já feitas).
+  const ensureSuggestionsForDay = useCallback(
     async (ref) => {
-      const shuffled = [...config.pool].sort(() => 0.5 - Math.random());
-      // Transforma o array em um objeto, onde a chave é o ID da sugestão
-      const selectedSuggestionsObject = shuffled
-        .slice(0, 5)
-        .reduce((acc, s, index) => {
-          const id = `sug_${index}`;
-          // Adiciona campos necessários para a lógica de seleção e match
-          acc[id] = {
-            ...s,
-            id,
-            selections: {},
-            matched: false,
-            type: "atividade",
-            periodicity: null,
-          };
-          return acc;
-        }, {});
-      // Salva o objeto no Firestore
-      await setDoc(ref, { suggestions: selectedSuggestionsObject });
+      await runTransaction(db, async (transaction) => {
+        const snap = await transaction.get(ref);
+        if (snap.exists()) return;
+        transaction.set(ref, {
+          suggestions: buildRandomSuggestions(config.pool),
+        });
+      });
     },
     [config.pool]
   );
@@ -645,7 +665,6 @@ export const useSuggestions = (userData, _handleAddActivity, suggestionType) => 
   // Efeito para "ouvir" as sugestões do dia em tempo real
   useEffect(() => {
     if (!userData?.coupleId) return;
-    const today = getTodayDateString();
     const suggestionsRef = doc(
       db,
       `duomatches/${userData.coupleId}/${config.collectionName}`,
@@ -656,108 +675,149 @@ export const useSuggestions = (userData, _handleAddActivity, suggestionType) => 
       if (docSnap.exists()) {
         setSuggestions(docSnap.data().suggestions || {});
       } else {
-        generateSuggestionsForToday(suggestionsRef);
+        ensureSuggestionsForDay(suggestionsRef);
       }
     });
 
     return () => unsubscribe();
-  }, [userData?.coupleId, generateSuggestionsForToday, config.collectionName]);
+  }, [userData?.coupleId, ensureSuggestionsForDay, config.collectionName, today]);
 
-  // Função para lidar com o clique em uma sugestão
+  // Função para lidar com o clique em uma sugestão.
+  // Toda a leitura/escrita acontece DENTRO da transação (estado real do
+  // servidor, não o estado React possivelmente obsoleto) e os efeitos
+  // colaterais (eventos/toasts) acontecem DEPOIS que a transação commita —
+  // o corpo de uma transação pode executar várias vezes em caso de retry.
   const handleSelectSuggestion = useCallback(
     async (suggestionId) => {
-      if (!userData?.coupleId) return;
+      if (!userData?.coupleId || !userData?.uid || !userData?.partnerId) return;
 
-      const today = getTodayDateString();
       const suggestionsRef = doc(
         db,
         `duomatches/${userData.coupleId}/${config.collectionName}`,
         today
       );
-      const currentSuggestion = suggestions[suggestionId];
+      const suggestionType =
+        config.collectionName === "hotSuggestions" ? "hot" : "normal";
 
-      if (!currentSuggestion) {
-        console.error("Erro: Sugestão não encontrada.");
-        return;
-      }
+      let matchInfo = null;
 
-      const myCurrentStatus = currentSuggestion.selections?.[userData.uid];
-      const newStatus = myCurrentStatus === "selected" ? null : "selected";
-
-      // Atualiza o Firestore com a seleção do usuário. A notação de ponto
-      // garante que apenas o campo do usuário seja alterado, sem sobreescrever o do parceiro.
-      const updatePath = `suggestions.${suggestionId}.selections.${userData.uid}`;
-      await updateDoc(suggestionsRef, { [updatePath]: newStatus });
-
-      // Verificar se a sugestão já teve match antes de continuar
-      if (currentSuggestion.matched) {
-        return;
-      }
-
-      // A verificação de match acontece dentro de uma transação
-      // para ler o estado mais recente do Firestore e evitar duplicatas
-      if (newStatus === "selected") {
-        const suggestionType = config.collectionName === "hotSuggestions" ? "hot" : "normal";
-        
+      try {
         await runTransaction(db, async (transaction) => {
           const docSnap = await transaction.get(suggestionsRef);
-          if (!docSnap.exists()) return;
-          
-          const freshData = docSnap.data();
-          const freshSuggestion = freshData?.suggestions?.[suggestionId];
+          const existing = docSnap.exists()
+            ? docSnap.data().suggestions
+            : null;
+
+          let workingSuggestions = existing;
+          const mustCreateDoc = !existing;
+
+          if (!workingSuggestions) {
+            // Doc do dia ainda não existe — gera dentro da própria transação,
+            // garantindo que clientes simultâneos compartilhem o mesmo doc.
+            workingSuggestions = buildRandomSuggestions(config.pool);
+          }
+
+          const freshSuggestion = workingSuggestions[suggestionId];
           if (!freshSuggestion || freshSuggestion.matched) return;
-          
-          const freshPartnerStatus = freshSuggestion.selections?.[userData.partnerId];
-          if (freshPartnerStatus !== "selected") return;
-          
-          // Match confirmado — limpar seleções e marcar como matched
-          transaction.update(suggestionsRef, {
-            [`suggestions.${suggestionId}.matched`]: true,
-            [`suggestions.${suggestionId}.selections`]: {},
-          });
 
-          const confirmedSelections = {
-            [userData.uid]: { status: "confirmed", date: today },
-            [userData.partnerId]: { status: "confirmed", date: today },
-          };
-          const { id, selections, matched, ...baseActivityData } =
-            freshSuggestion;
-          const finalActivityData = {
-            ...baseActivityData,
-            selections: confirmedSelections,
-            completionStatus: null,
-            createdBy: "SYSTEM",
-            createdAt: serverTimestamp(),
-          };
+          // Toggle calculado a partir do estado REAL do servidor
+          const myCurrentStatus = freshSuggestion.selections?.[userData.uid];
+          const newStatus =
+            myCurrentStatus === "selected" ? null : "selected";
 
-          // Gravar a atividade dentro da mesma transação
-          const newActivityRef = doc(
-            db,
-            `duomatches/${userData.coupleId}/activities`,
-          );
-          transaction.set(newActivityRef, finalActivityData);
+          if (mustCreateDoc) {
+            workingSuggestions = {
+              ...workingSuggestions,
+              [suggestionId]: {
+                ...freshSuggestion,
+                selections: { [userData.uid]: newStatus },
+              },
+            };
+            transaction.set(suggestionsRef, {
+              suggestions: workingSuggestions,
+            });
+          } else {
+            // Notação de ponto altera apenas o campo do usuário, sem
+            // sobrescrever a seleção do parceiro.
+            transaction.update(suggestionsRef, {
+              [`suggestions.${suggestionId}.selections.${userData.uid}`]:
+                newStatus,
+            });
+          }
 
-          // Notificar sobre o match após um delay
-          setTimeout(() => {
-            if (suggestionType === "hot") {
-              if (window.dispatchHotMatchEvent) {
-                window.dispatchHotMatchEvent(freshSuggestion.name);
-              }
-              const hotMatchEvent = new CustomEvent('hotActivityMatch', { 
-                detail: freshSuggestion.name 
-              });
-              window.dispatchEvent(hotMatchEvent);
-            } else {
-              const matchEvent = new CustomEvent('activityMatch', { 
-                detail: freshSuggestion.name 
-              });
-              window.dispatchEvent(matchEvent);
-            }
-          }, 1500);
+          // Match: ambos selecionaram a mesma sugestão
+          if (
+            newStatus === "selected" &&
+            freshSuggestion.selections?.[userData.partnerId] === "selected"
+          ) {
+            // Limpar seleções e marcar como matched
+            transaction.update(suggestionsRef, {
+              [`suggestions.${suggestionId}.matched`]: true,
+              [`suggestions.${suggestionId}.selections`]: {},
+            });
+
+            const confirmedSelections = {
+              [userData.uid]: { status: "confirmed", date: today },
+              [userData.partnerId]: { status: "confirmed", date: today },
+            };
+            const {
+              id,
+              selections,
+              matched,
+              ...baseActivityData
+            } = freshSuggestion;
+            const finalActivityData = {
+              ...baseActivityData,
+              selections: confirmedSelections,
+              completionStatus: null,
+              createdBy: "SYSTEM",
+              createdAt: serverTimestamp(),
+            };
+
+            // Gravar a atividade dentro da mesma transação
+            const newActivityRef = doc(
+              db,
+              `duomatches/${userData.coupleId}/activities`
+            );
+            transaction.set(newActivityRef, finalActivityData);
+
+            matchInfo = {
+              name: freshSuggestion.name,
+              type: suggestionType,
+            };
+          }
         });
+      } catch (error) {
+        console.error("Erro ao selecionar sugestão:", error);
+        alert("Não foi possível registrar sua escolha. Tente novamente.");
+        return;
+      }
+
+      // Notificar sobre o match FORA da transação — disparado uma única vez,
+      // somente se o commit realmente aconteceu.
+      if (matchInfo) {
+        setTimeout(() => {
+          if (matchInfo.type === "hot") {
+            // dispatchHotMatchEvent já dispara 'hotActivityMatch' — usar
+            // UMA única vez para não duplicar o evento.
+            if (window.dispatchHotMatchEvent) {
+              window.dispatchHotMatchEvent(matchInfo.name);
+            } else {
+              window.dispatchEvent(
+                new CustomEvent("hotActivityMatch", {
+                  detail: { activityName: matchInfo.name },
+                })
+              );
+            }
+          } else {
+            window.dispatchEvent(
+              new CustomEvent("activityMatch", { detail: matchInfo.name })
+            );
+          }
+        }, 1500);
       }
     },
-    [suggestions, userData, config.collectionName]
+    [userData, config.collectionName, config.pool, today]
   );
 
   return { suggestions, handleSelectSuggestion };

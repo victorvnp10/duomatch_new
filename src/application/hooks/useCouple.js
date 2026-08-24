@@ -8,6 +8,7 @@ import {
   writeBatch,
   collection,
   getDocs,
+  getDoc,
   runTransaction,
 } from "../../infrastructure/firebase"; // Funções existentes do seu ficheiro central
 import { signOut } from "firebase/auth";
@@ -118,8 +119,16 @@ export const useCouple = (user, userData) => {
     }
 
     const { coupleId, partnerId } = userData;
-    const batch = writeBatch(db);
     try {
+      // B2-20: só zera o documento do parceiro se ele AINDA pertence a este
+      // casal — se ele já se desvinculou e re-vinculou com outra pessoa,
+      // sobrescrever coupleId aqui o expulsaria do casal novo.
+      const partnerSnap = await getDoc(doc(db, "users", partnerId));
+      const partnerBelongsToThisCouple =
+        partnerSnap.exists() && partnerSnap.data().coupleId === coupleId;
+
+      // Coleta todas as referências a deletar antes de abrir batches
+      const deleteRefs = [];
       const subcollections = [
         "activities",
         "rounds",
@@ -134,7 +143,7 @@ export const useCouple = (user, userData) => {
           `duomatches/${coupleId}/${sub}`
         );
         const snapshot = await getDocs(subcollectionRef);
-        snapshot.docs.forEach((doc) => batch.delete(doc.ref));
+        snapshot.docs.forEach((docSnapshot) => deleteRefs.push(docSnapshot.ref));
       }
 
       // Deletar comments aninhados sob activities
@@ -143,20 +152,39 @@ export const useCouple = (user, userData) => {
       for (const actDoc of activitiesSnapshot.docs) {
         const commentsRef = collection(db, `duomatches/${coupleId}/activities/${actDoc.id}/comments`);
         const commentsSnapshot = await getDocs(commentsRef);
-        commentsSnapshot.docs.forEach((commentDoc) => batch.delete(commentDoc.ref));
+        commentsSnapshot.docs.forEach((commentDoc) => deleteRefs.push(commentDoc.ref));
       }
 
-      batch.delete(doc(db, "duomatches", coupleId));
-      batch.update(doc(db, "users", user.uid), {
-        partnerId: null,
-        coupleId: null,
-      });
-      batch.update(doc(db, "users", partnerId), {
-        partnerId: null,
-        coupleId: null,
-      });
+      // B2-10: um casal antigo pode ter centenas de docs (activities +
+      // comments + sugestões diárias) — um único batch estoura o limite de
+      // 500 operações do Firestore. Deleta em chunks de 450; o doc do casal
+      // e a zeragem dos usuários vão no batch FINAL, depois que todo o
+      // resto já foi apagado com sucesso.
+      const CHUNK_SIZE = 450;
+      for (let i = 0; i < deleteRefs.length; i += CHUNK_SIZE) {
+        const chunk = deleteRefs.slice(i, i + CHUNK_SIZE);
+        const batch = writeBatch(db);
+        chunk.forEach((ref) => batch.delete(ref));
+        await batch.commit();
+      }
 
-      await batch.commit();
+      const finalBatch = writeBatch(db);
+      finalBatch.delete(doc(db, "duomatches", coupleId));
+      // B2-21: limpa onboardingSkipped — sem isso o App.js roteava direto
+      // para o PreviewApp em vez da tela de vincular após desvincular.
+      finalBatch.update(doc(db, "users", user.uid), {
+        partnerId: null,
+        coupleId: null,
+        onboardingSkipped: false,
+      });
+      if (partnerBelongsToThisCouple) {
+        finalBatch.update(doc(db, "users", partnerId), {
+          partnerId: null,
+          coupleId: null,
+        });
+      }
+      await finalBatch.commit();
+
       await signOut(auth);
       alert("Casal desvinculado com sucesso. Você será desconectado.");
     } catch (error) {

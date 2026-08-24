@@ -8,6 +8,7 @@ import {
 } from "./Icons"; // Adicionei ArrowLeftIcon
 import AddRoundModal from "./AddRoundModal";
 import EditRoundModal from "./EditRoundModal";
+import { getTodayDateString } from "../../shared/utils";
 
 export default function RoundsView(props) {
   const {
@@ -42,7 +43,8 @@ export default function RoundsView(props) {
   };
 
   const { activeRounds, futureRounds, pastRounds } = useMemo(() => {
-    const today = new Date().toISOString().slice(0, 10);
+    // Data LOCAL — toISOString() é UTC e classificava errado à noite
+    const today = getTodayDateString();
     const active = [];
     const future = [];
     const past = [];

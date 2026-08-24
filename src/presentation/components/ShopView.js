@@ -90,7 +90,11 @@ function ShopView({
   };
 
   const handleCostChange = (rewardId, cost) => {
-    setApprovalCosts((prev) => ({ ...prev, [rewardId]: Number(cost) }));
+    const parsed = Number(cost);
+    // B2-12: bloqueia entrada inválida/negativa já no input
+    // (o hook revalida inteiro 0–100000 no momento de aprovar)
+    if (!Number.isFinite(parsed) || parsed < 0) return;
+    setApprovalCosts((prev) => ({ ...prev, [rewardId]: Math.floor(parsed) }));
   };
 
   const availableRewards = rewards.filter(

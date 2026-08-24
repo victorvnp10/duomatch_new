@@ -23,11 +23,14 @@ export default function CountdownTimer({ expiryTimestamp }) {
   );
 
   useEffect(() => {
-    const timer = setTimeout(() => {
+    // Atualiza imediatamente ao montar/trocar o prazo e depois a cada segundo.
+    setTimeLeft(calculateTimeLeft(expiryTimestamp));
+
+    const timer = setInterval(() => {
       setTimeLeft(calculateTimeLeft(expiryTimestamp));
     }, 1000);
 
-    return () => clearTimeout(timer);
+    return () => clearInterval(timer);
   }, [expiryTimestamp]);
 
   const timerComponents = [];

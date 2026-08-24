@@ -3,11 +3,14 @@ import {
   isActivityForToday as isActivityForTodayDomain,
 } from "../domain/valueObjects/Periodicity";
 
-export const getTodayDateString = () => {
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = String(today.getMonth() + 1).padStart(2, "0");
-  const day = String(today.getDate()).padStart(2, "0");
+export const getTodayDateString = () => getDateString(new Date());
+
+// Formata um Date para "YYYY-MM-DD" no fuso LOCAL do dispositivo
+// (convenção do projeto — nunca usar toISOString(), que é UTC).
+export const getDateString = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 };
 

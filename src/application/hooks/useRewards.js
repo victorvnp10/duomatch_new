@@ -65,7 +65,10 @@ export const useRewards = (user, userData, coupleData, rounds) => {
           const rewardRef = doc(db, rewardsPath, reward.id);
           batch.update(rewardRef, { notifiedForApproval: true });
         });
-        batch.commit();
+        // B2-46: sem catch, falha de rede aqui vira unhandled rejection
+        batch.commit().catch((error) =>
+          console.error("Erro ao marcar notificações de aprovação:", error)
+        );
       }
     });
 
@@ -92,16 +95,39 @@ export const useRewards = (user, userData, coupleData, rounds) => {
 
   const handleApproveReward = async (rewardId, finalCost) => {
     if (!userData?.coupleId) return;
+    // B2-12: custo negativo/inválido INFLAVA pontos na compra (deduzia
+    // valor negativo = adicionava). Valida antes de aprovar.
+    const parsedCost = Number(finalCost);
+    if (!Number.isInteger(parsedCost) || parsedCost < 0 || parsedCost > 100000) {
+      alert("Custo inválido: informe um número inteiro entre 0 e 100000.");
+      return;
+    }
     const rewardRef = doc(
       db,
       `duomatches/${userData.coupleId}/rewards`,
       rewardId
     );
-    await updateDoc(rewardRef, {
-      status: "approved",
-      approvedBy: user.uid,
-      cost: finalCost,
-    });
+    try {
+      // Transação com guarda: se o parceiro já aprovou (ou comprou) entre
+      // abrir a tela e clicar em aprovar, não sobrescreve o estado.
+      await runTransaction(db, async (transaction) => {
+        const rewardDoc = await transaction.get(rewardRef);
+        if (!rewardDoc.exists()) throw new Error("Recompensa não encontrada.");
+        if (rewardDoc.data().status !== "pending_approval") {
+          throw new Error(
+            "Esta recompensa já foi processada por outra pessoa."
+          );
+        }
+        transaction.update(rewardRef, {
+          status: "approved",
+          approvedBy: user.uid,
+          cost: parsedCost,
+        });
+      });
+    } catch (error) {
+      console.error("Erro ao aprovar recompensa:", error);
+      alert(error.message || "Não foi possível aprovar a recompensa.");
+    }
   };
 
   // --- MUDANÇA 2: Lógica de compra com transaction para evitar compra dupla ---
@@ -134,35 +160,41 @@ export const useRewards = (user, userData, coupleData, rounds) => {
         activeRound.id
       );
 
-      await runTransaction(db, async (transaction) => {
-        const rewardDoc = await transaction.get(rewardRef);
-        if (!rewardDoc.exists()) throw new Error("Recompensa não encontrada.");
+      try {
+        await runTransaction(db, async (transaction) => {
+          const rewardDoc = await transaction.get(rewardRef);
+          if (!rewardDoc.exists()) throw new Error("Recompensa não encontrada.");
 
-        const rewardData = rewardDoc.data();
-        if (rewardData.status !== "approved") {
-          throw new Error("Esta recompensa não está disponível para compra.");
-        }
+          const rewardData = rewardDoc.data();
+          if (rewardData.status !== "approved") {
+            throw new Error("Esta recompensa não está disponível para compra.");
+          }
 
-        const roundDoc = await transaction.get(roundRef);
-        if (!roundDoc.exists()) throw new Error("Rodada ativa não encontrada.");
+          const roundDoc = await transaction.get(roundRef);
+          if (!roundDoc.exists()) throw new Error("Rodada ativa não encontrada.");
 
-        const currentScore = roundDoc.data().scores?.[user.uid] || 0;
-        if (currentScore < reward.cost) {
-          throw new Error("Pontos insuficientes.");
-        }
+          const currentScore = roundDoc.data().scores?.[user.uid] || 0;
+          if (currentScore < reward.cost) {
+            throw new Error("Pontos insuficientes.");
+          }
 
-        transaction.update(rewardRef, {
-          status: "purchased",
-          purchasedBy: user.uid,
-          purchasedAt: serverTimestamp(),
+          transaction.update(rewardRef, {
+            status: "purchased",
+            purchasedBy: user.uid,
+            purchasedAt: serverTimestamp(),
+          });
+
+          transaction.update(roundRef, {
+            [`scores.${user.uid}`]: increment(-reward.cost),
+          });
         });
-
-        transaction.update(roundRef, {
-          [`scores.${user.uid}`]: increment(-reward.cost),
-        });
-      });
-
-      setPurchaseNotification({ visible: true, rewardName: reward.name });
+        setPurchaseNotification({ visible: true, rewardName: reward.name });
+      } catch (error) {
+        // B2-35: erros da transação eram engolidos — usuário clicava,
+        // nada acontecia e não havia feedback.
+        console.error("Erro ao comprar recompensa:", error);
+        alert(error.message || "Não foi possível concluir a compra.");
+      }
     }
   };
 

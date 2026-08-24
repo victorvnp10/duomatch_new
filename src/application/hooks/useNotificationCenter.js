@@ -52,7 +52,14 @@ export function useNotificationCenter({
     allActivities.forEach((activity) => {
       if (!activity.type?.startsWith("desafio")) return;
       if (activity.createdBy !== userData.partnerId) return;
-      if (activity.challengeState) return; // já aceito/recusado/resolvido
+      // "pending_acceptance" é o estado inicial de TODO desafio criado pelo
+      // parceiro (AddItemModal) e é exatamente o caso a notificar — só
+      // ignorar quando já foi aceito/recusado/resolvido.
+      if (
+        activity.challengeState &&
+        activity.challengeState !== "pending_acceptance"
+      )
+        return;
 
       items.push({
         id: `partner-challenge-${activity.id}`,

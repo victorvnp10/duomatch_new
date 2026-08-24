@@ -31,9 +31,15 @@ export const buildAchievementStats = ({
   const isChallenge = (activity) => activity.type?.startsWith("desafio");
   const isHot = (activity) => activity.category === "Hot";
 
-  const completedChallenges = allActivities.filter(
-    (a) => isChallenge(a) && isConfirmedByEither(a)
-  ).length;
+  // Desafios NÃO usam selections.status === "confirmed" no fluxo atual
+  // (aceitar grava "accepted"; resolver grava apenas challengeState).
+  // O sinal canônico de conclusão é challengeState === "completed";
+  // mantemos o teste legado por selections para dados antigos.
+  const isCompletedChallenge = (activity) =>
+    isChallenge(activity) &&
+    (activity.challengeState === "completed" || isConfirmedByEither(activity));
+
+  const completedChallenges = allActivities.filter(isCompletedChallenge).length;
 
   const completedActivities = allActivities.filter((a) =>
     isConfirmedByBoth(a)
@@ -44,7 +50,7 @@ export const buildAchievementStats = ({
   ).length;
 
   const completedHotChallenges = allActivities.filter(
-    (a) => isChallenge(a) && isHot(a) && isConfirmedByEither(a)
+    (a) => isCompletedChallenge(a) && isHot(a)
   ).length;
 
   // Pontos gastos: soma o custo de todas as recompensas já compradas.
