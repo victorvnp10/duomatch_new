@@ -70,11 +70,30 @@ function AuthPage() {
         setError("Este e-mail já está em uso. Tente fazer login.");
       } else if (
         err.code === "auth/invalid-credential" ||
+        err.code === "auth/invalid-login-credentials" ||
+        err.code === "auth/user-not-found" ||
         err.code === "auth/wrong-password"
       ) {
         setError("E-mail ou senha inválidos.");
+      } else if (err.code === "auth/invalid-email") {
+        setError("E-mail inválido.");
+      } else if (err.code === "auth/too-many-requests") {
+        setError(
+          "Muitas tentativas. Aguarde alguns minutos antes de tentar novamente."
+        );
+      } else if (err.code === "auth/network-request-failed") {
+        setError("Falha de conexão. Verifique sua internet e tente de novo.");
+      } else if (
+        err.code === "auth/operation-not-allowed" ||
+        err.code === "auth/configuration-not-found"
+      ) {
+        setError(
+          "Login por e-mail/senha não está habilitado neste projeto Firebase."
+        );
       } else {
         setError("Ocorreu um erro. Tente novamente.");
+        // eslint-disable-next-line no-console
+        console.error("Erro no login por e-mail:", err);
       }
     } finally {
       setLoading(false);
