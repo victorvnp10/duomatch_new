@@ -1,9 +1,15 @@
-import React, { useState } from "react";
-import { auth, db, setNewUserData, googleProvider } from "../../infrastructure/firebase";
+import React, { useState, useEffect } from "react";
+import {
+  auth,
+  db,
+  setNewUserData,
+  googleProvider,
+  signInWithRedirect,
+  getRedirectResult,
+} from "../../infrastructure/firebase";
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  signInWithPopup,
 } from "firebase/auth";
 import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
 import { HeartIcon } from "./Icons";
@@ -101,43 +107,62 @@ function AuthPage() {
   };
 
   /**
-   * "Continuar com o Google": se a conta já tem documento em `users`,
-   * o `useAuth` detecta o snapshot e o `App.js` navega sozinho — não
-   * precisa de mais nada aqui. Se é a primeira vez dessa pessoa, o
-   * documento já é criado aqui mesmo (o Google não fornece gênero, então
-   * esse campo fica vazio) — criar o documento imediatamente, na mesma
-   * função, evita uma corrida com o `onAuthStateChanged` do `useAuth`:
-   * ele dispara assim que o popup resolve, e se não encontrasse nem o
-   * documento nem o `newUserData` preenchido, deslogava a pessoa
-   * sozinho. O `App.js` é quem trava o acesso ao resto do app até o
-   * gênero ser escolhido (`CompleteGenderView`).
+   * Cria o documento do usuário em `users` se ainda não existir. Usado tanto
+   * pelo fluxo de Google quanto pelo de e-mail. Para o Google, criar o doc
+   * imediatamente evita a corrida com o `onAuthStateChanged` do `useAuth`,
+   * que de outro modo deslogaria a pessoa se não encontrasse nem o doc nem o
+   * `newUserData` preenchido.
    */
+  const ensureGoogleUserDoc = async (googleUser) => {
+    const userRef = doc(db, "users", googleUser.uid);
+    const existingDoc = await getDoc(userRef);
+    if (!existingDoc.exists()) {
+      await setDoc(userRef, {
+        uid: googleUser.uid,
+        nickname: googleUser.displayName || "",
+        gender: null,
+        email: googleUser.email,
+        createdAt: serverTimestamp(),
+        partnerId: null,
+        coupleId: null,
+      });
+    }
+  };
+
+  /**
+   * Processa o retorno do Google Auth via REDIRECT. O fluxo anterior usava
+   * `signInWithPopup`, que é quebrado em produção quando a Vercel envia a
+   * header `Cross-Origin-Opener-Policy`: o SDK do Firebase consulta
+   * `popupWindow.closed` e o navegador bloqueia essa leitura cross-origin,
+   * abortando o login como `auth/popup-closed-by-user` — sintoma de "não
+   * sai da tela de login". O redirect evita o popup e essa interação.
+   */
+  useEffect(() => {
+    let cancelled = false;
+    getRedirectResult(auth)
+      .then(async (result) => {
+        if (!result) return; // nenhum redirect pendente
+        if (cancelled) return;
+        const googleUser = result.user;
+        await ensureGoogleUserDoc(googleUser);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        console.error("Erro ao processar login do Google:", err);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const handleGoogleSignIn = async () => {
     setError("");
     setLoading(true);
     try {
-      const result = await signInWithPopup(auth, googleProvider);
-      const googleUser = result.user;
-      const userRef = doc(db, "users", googleUser.uid);
-      const existingDoc = await getDoc(userRef);
-
-      if (!existingDoc.exists()) {
-        await setDoc(userRef, {
-          uid: googleUser.uid,
-          nickname: googleUser.displayName || "",
-          gender: null,
-          email: googleUser.email,
-          createdAt: serverTimestamp(),
-          partnerId: null,
-          coupleId: null,
-        });
-      }
+      await signInWithRedirect(auth, googleProvider);
     } catch (err) {
-      // Popup fechado pela própria pessoa não é um erro real.
-      if (err.code !== "auth/popup-closed-by-user") {
-        setError("Não foi possível continuar com o Google. Tente novamente.");
-        console.error("Erro no login com Google:", err);
-      }
+      setError("Não foi possível continuar com o Google. Tente novamente.");
+      console.error("Erro no login com Google:", err);
     } finally {
       setLoading(false);
     }

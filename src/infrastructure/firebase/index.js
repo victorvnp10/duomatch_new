@@ -1,5 +1,11 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, signOut, GoogleAuthProvider } from "firebase/auth";
+import {
+  getAuth,
+  signOut,
+  signInWithRedirect,
+  getRedirectResult,
+  GoogleAuthProvider,
+} from "firebase/auth";
 import {
   initializeFirestore,
   persistentLocalCache,
@@ -31,9 +37,9 @@ const auth = getAuth(app);
 /**
  * Provider do Google para "Continuar com o Google" no cadastro/login.
  * A conta precisa estar habilitada em Firebase Console > Authentication >
- * Sign-in method > Google, e o domínio de produção (www.duomatch.com.br)
+ * Sign-in method > Google, e o domínio de produção (ex.: www.duomatch.com.br)
  * precisa estar na lista de "Authorized domains" da mesma tela — sem
- * isso o popup do Google recusa ou não retorna corretamente para o site.
+ * isso o redirect do Google recusa ou não retorna corretamente para o site.
  */
 const googleProvider = new GoogleAuthProvider();
 
@@ -64,6 +70,8 @@ export {
   googleProvider,
   db,
   signOut,
+  signInWithRedirect,
+  getRedirectResult,
   Timestamp,
   serverTimestamp,
   doc,

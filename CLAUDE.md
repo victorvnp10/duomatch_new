@@ -23,7 +23,11 @@ npm test               # react-scripts test (Jest) — não há testes escritos
 - Configuração: copiar `.env.example` → `.env` com as chaves `REACT_APP_FIREBASE_*` (ver
   `src/infrastructure/firebase/config.js`).
 - `.eslintrc.json` foi removido — era inutil (parser TS sem arquivos TS, sem regras).
-- Deploy: Vercel (`vercel.json` com CSP + COOP para popup Google). Config `.replit` para Replit.
+- Deploy: Vercel (`vercel.json` com CSP para Google Auth via **redirect**). Config `.replit` para Replit.
+  - **Login Google = `signInWithRedirect`** (nao popup): o popup quebrava em producao porque a header
+    `Cross-Origin-Opener-Policy` impedia o SDK de ler `popupWindow.closed`, abortando com
+    `auth/popup-closed-by-user` ("nao sai do login"). O redirect faz navegacao top-level, sem essa
+    interacao. Ver `AuthPage.js` (usa `getRedirectResult` para criar o doc do usuario).
 - **Não existem testes automatizados** — não presuma cobertura ao avaliar risco.
 
 ---
@@ -443,6 +447,7 @@ Rodadas e Perfil so acessiveis pelo header do MainView.
 | — | `useSuggestions.js` | `handleAddActivity` morto removido |
 | — | `useActivities.js` | Imports `Timestamp`/`serverTimestamp` mortos |
 | — | `CountdownTimer.js` | Tema dark |
+| — | `AuthPage.js` + `vercel.json` | Google: `signInWithPopup` → `signInWithRedirect` + `getRedirectResult`. COOP bloqueava `popupWindow.closed` e abonava o login como `auth/popup-closed-by-user` ("nao sai do login") |
 
 ### Travamento/cascata (4) — analise de "sistema travado"
 
@@ -483,7 +488,7 @@ Rodadas e Perfil so acessiveis pelo header do MainView.
 - **NAO intercepta** Firestore/Firebase Auth (tem proprio mecanismo offline via IndexedDB).
 - Manifest completo com icons maskable, theme_color, display standalone, shortcuts.
 - Meta tags iOS (apple-mobile-web-app-capable, apple-touch-icon).
-- `vercel.json` define CSP + COOP para popup Google.
+- `vercel.json` define CSP para Google Auth via **redirect** (`signInWithRedirect`).
 
 ---
 
