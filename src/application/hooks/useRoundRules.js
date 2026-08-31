@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useRef } from "react";
 import { db, doc, increment, runTransaction } from "../../infrastructure/firebase";
 import { getTodayDateString } from "../../shared/utils";
 import {
@@ -65,9 +65,18 @@ export const useRoundRules = ({ user, userData, rounds, allActivities }) => {
     }
   }, [rounds, allActivities, user?.uid, userData?.partnerId, userData?.coupleId]);
 
+  // Mantém sempre a versão mais recente da avaliação sem recriar o listener.
+  // O efeito abaixo só depende de primitivas (tamanhos + coupleId), então não
+  // dispara a cada mudança de identidade dos arrays/rodadas, evitando a
+  // cascata de re-transactions a cada snapshot do Firestore.
+  const runEvaluationRef = useRef(runEvaluation);
+  useEffect(() => {
+    runEvaluationRef.current = runEvaluation;
+  });
+
   useEffect(() => {
     if (rounds.length > 0 && allActivities.length > 0 && userData?.coupleId) {
-      runEvaluation();
+      runEvaluationRef.current();
     }
-  }, [rounds, allActivities, userData?.coupleId, runEvaluation]);
+  }, [rounds.length, allActivities.length, userData?.coupleId]);
 };

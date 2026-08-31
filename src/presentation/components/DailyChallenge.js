@@ -683,16 +683,17 @@ export const DailyChallenge = ({ userData, coupleData, rounds, onAcceptChallenge
 
   // Resetar dados locais quando dados do Firestore chegarem
   useEffect(() => {
-    if (coupleData?.weeklyChallenge && localChallengeData) {
-      // Se os dados do Firestore foram atualizados, limpar cache local
-      const weekKey = getDateString(calculateWeeklyProgress.startOfWeek);
+    if (!coupleData?.weeklyChallenge || !localChallengeData) return;
 
-      if (coupleData.weeklyChallenge[weekKey] && localChallengeData[weekKey]) {
-        // Se os dados do servidor estão mais recentes, limpar cache local
-        setLocalChallengeData(null);
-      }
+    const weekKey = getDateString(calculateWeeklyProgress.startOfWeek);
+    if (coupleData.weeklyChallenge[weekKey] && localChallengeData[weekKey]) {
+      // Se os dados do servidor já chegaram, limpar o cache local — sem
+      // incluir `localChallengeData` nas deps, o efeito só dispara quando o
+      // dado do servidor muda (e não a cada re-render/atualização local),
+      // evitando o ping-pong de re-render que travava o componente.
+      setLocalChallengeData(null);
     }
-  }, [coupleData?.weeklyChallenge, localChallengeData, calculateWeeklyProgress.startOfWeek]);
+  }, [coupleData?.weeklyChallenge]);
 
   // Verificar se há uma rodada ativa
   const activeRound = useMemo(() => {

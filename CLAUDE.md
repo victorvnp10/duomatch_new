@@ -382,7 +382,7 @@ Rodadas e Perfil so acessiveis pelo header do MainView.
 
 ---
 
-## 8. Bugs (45 originais → 43 corrigidos, 2 cancelados)
+## 8. Bugs (45 originais → 43 corrigidos, 2 cancelados) + 4 de travamento/cascata
 
 > **Segunda auditoria concluída**: novos bugs numerados `B2-01` a `B2-55` documentados em
 > `BUG_FIX_PLAN_2.md` (ainda NAO corrigidos). Destaques: regressao do fix #1
@@ -443,6 +443,20 @@ Rodadas e Perfil so acessiveis pelo header do MainView.
 | — | `useSuggestions.js` | `handleAddActivity` morto removido |
 | — | `useActivities.js` | Imports `Timestamp`/`serverTimestamp` mortos |
 | — | `CountdownTimer.js` | Tema dark |
+
+### Travamento/cascata (4) — analise de "sistema travado"
+
+> **Auditoria de travamento**: sintoma principal de "app congelado" era **crash na view main**:
+> `useActivities.js` NAO retornava `matches` (foi perdido num refactor), mas `MainView.js:174`
+> chamava `matches.some(...)` — `TypeError` derrubava a arvore a cada render. Reforco causava
+> cascata de re-render/trava via deps instaveis.
+
+| # | Arquivo | Causa raiz | Correcao |
+|---|---------|-----------|----------|
+| T1 | `useActivities.js` | `matches` nunca retornado pelo hook (variavel `undefined`) → `MainView.js:174` `matches.some()` quebrava a main view | `matches` calculado com `useMemo` (confirmaçoes do dia) e retornado |
+| T2 | `useActivities.js` | `checkForPoints` no array de deps do onSnapshot: mudava de identidade a cada snapshot de rodadas → cancelava/recriava o listener (janela de perda de eventos + churn) | `checkForPointsRef` (useRef) + effect chaveado em primitivas `[coupleId, partnerId, uid]` |
+| T3 | `useRoundRules.js` | `runEvaluation` nos deps (arrays com identidade nova a cada snapshot) → re-evaluation/re-transaction em cascata | `runEvaluationRef` + effect chaveado em `[rounds.length, allActivities.length, coupleId]` |
+| T4 | `DailyChallenge.js` | `useEffect` reseta `localChallengeData` com a propria state em deps → re-render ping-pong | effect chaveado so em `coupleData?.weeklyChallenge` |
 
 ### Cancelados (2)
 - **#43** — `deliveryStatus` não documentado (requer análise Firestore real)

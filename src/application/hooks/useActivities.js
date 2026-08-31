@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   db,
   doc,
@@ -28,6 +28,26 @@ export const useActivities = (user, userData, coupleData, rounds) => {
   const [showHotSelectionNotification, setShowHotSelectionNotification] =
     useState(false);
   const [pointsMessage, setPointsMessage] = useState("");
+
+  // Matches do dia: atividades em que os dois parceiros confirmaram hoje.
+  // Consumidores (MainView, useNotificationCenter) recebem `matches` via
+  // prop-drilling — sem isso o acesso a `matches.some(...)` em MainView
+  // quebrava com `TypeError` (variável `undefined`), travando a view.
+  const matches = useMemo(() => {
+    if (!user?.uid || !userData?.partnerId) return [];
+    const today = getTodayDateString();
+    return allActivities.filter((act) => {
+      if (act.type?.startsWith("desafio")) return false;
+      const myS = act.selections?.[user.uid];
+      const partnerS = act.selections?.[userData.partnerId];
+      return (
+        myS?.status === "confirmed" &&
+        myS?.date === today &&
+        partnerS?.status === "confirmed" &&
+        partnerS?.date === today
+      );
+    });
+  }, [allActivities, user?.uid, userData?.partnerId]);
 
   /**
    * Função central para verificar e atribuir pontos de ATIVIDADES NORMAIS e INTIMIDADE.
@@ -172,11 +192,24 @@ export const useActivities = (user, userData, coupleData, rounds) => {
 
   // O resto do arquivo permanece igual...
 
+  // Mantém sempre a versão mais recente de `checkForPoints` sem derrubar o
+  // listener de atividades a cada mudança de `rounds`/identidade. Antes, a
+  // função estava no array de deps do useEffect abaixo e, como ela muda de
+  // referência a cada snapshot de rodadas, o onSnapshot era cancelado e
+  // recriado constantemente — janela de perda de eventos + re-render em cascata.
+  const checkForPointsRef = useRef(checkForPoints);
+  useEffect(() => {
+    checkForPointsRef.current = checkForPoints;
+  }, [checkForPoints]);
+
   // useEffect principal que busca e monitora as atividades em tempo real.
   useEffect(() => {
-    if (!userData?.coupleId || !userData.partnerId) return;
+    const coupleId = userData?.coupleId;
+    const partnerId = userData?.partnerId;
+    const uid = user?.uid;
+    if (!coupleId || !partnerId || !uid) return;
 
-    const activitiesPath = `duomatches/${userData.coupleId}/activities`;
+    const activitiesPath = `duomatches/${coupleId}/activities`;
     const q = query(
       collection(db, activitiesPath),
       orderBy("createdAt", "desc")
@@ -191,8 +224,8 @@ export const useActivities = (user, userData, coupleData, rounds) => {
       querySnapshot.forEach((docSnap) => {
         const data = { id: docSnap.id, ...docSnap.data() };
         activitiesData.push(data);
-        const myChoice = data.selections?.[user.uid];
-        const partnerChoice = data.selections?.[userData.partnerId];
+        const myChoice = data.selections?.[uid];
+        const partnerChoice = data.selections?.[partnerId];
 
         mySels[data.id] =
           myChoice && myChoice.date === today
@@ -204,7 +237,7 @@ export const useActivities = (user, userData, coupleData, rounds) => {
             : { status: "pending", date: null };
       });
 
-      checkForPoints(activitiesData);
+      checkForPointsRef.current(activitiesData);
 
       setAllActivities(activitiesData);
       setMySelections(mySels);
@@ -212,7 +245,7 @@ export const useActivities = (user, userData, coupleData, rounds) => {
     });
 
     return () => unsubscribe();
-  }, [userData, user, checkForPoints]);
+  }, [userData?.coupleId, userData?.partnerId, user?.uid]);
 
   const handleSetActivityResolution = async (activityId, resolution) => {
     const choiceText =
@@ -446,6 +479,7 @@ export const useActivities = (user, userData, coupleData, rounds) => {
     allActivities,
     mySelections,
     partnerSelections,
+    matches,
     activityToDelete,
     setActivityToDelete,
     activityToEdit,
