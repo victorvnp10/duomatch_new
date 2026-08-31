@@ -294,9 +294,15 @@ Codigo de convite de 6 caracteres. `creatorId`, `creatorNickname`, `createdAt`. 
 
 ### Regra ciclica (RoundRulesEvaluator)
 - Define meta minima de atividades/desafios por periodo dentro de uma rodada.
-- Se o parceiro A cumpriu a meta e B nao: A ganha `+penalty`, B perde `-penalty`.
-- Se ambos cumpriram ou ambos falharam: sem alteracao.
+- **Pontuacao INDIVIDUAL e independente do parceiro**: para cada usuario, cumprir a
+  meta (`count >= rule.quantity`) no periodo = `+penalty`; nao cumprir = `-penalty`.
+  (Antes era diferencial/competitiva — so aplicava quando um cumpria e o outro nao;
+  corrigido para incentivar uso individual.)
 - Avaliacao so roda quando o periodo (em dias) desde a ultima checagem >= `rule.days`.
+- **Dois sistemas de pontuacao SOMAM no `scores` da rodada**: (1) regra ciclica acima;
+  (2) conclusao — atividade feita em casal (ambos concluiram) = ambos ganham
+  `activity.points`; desafio recebido cumprido = quem cumpriu ganha `challenge.points`
+  (`useActivities.js`).
 
 ### Conquistas (12 no catalogo)
 Unlock por条件oes puras em `domain/entities/Achievement.js`:

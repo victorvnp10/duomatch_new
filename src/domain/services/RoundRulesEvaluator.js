@@ -97,12 +97,14 @@ const evaluateGoal = ({ rule, lastCheckedDate, todayStr, userId, partnerId, coun
   const iMetGoal = myCount >= rule.quantity;
   const partnerMetGoal = partnerCount >= rule.quantity;
 
-  let scoreDeltas = null;
-  if (iMetGoal && !partnerMetGoal) {
-    scoreDeltas = { [userId]: rule.penalty, [partnerId]: -rule.penalty };
-  } else if (!iMetGoal && partnerMetGoal) {
-    scoreDeltas = { [userId]: -rule.penalty, [partnerId]: rule.penalty };
-  }
+  // Pontuação INDIVIDUAL e independente do parceiro: cada usuário ganha
+  // `penalty` se cumprir a meta e perde `penalty` se não cumprir. Antes a
+  // regra era diferencial/competitiva (só aplicava quando um cumpria e o
+  // outro não), o que contradizia o objetivo do placar de incentivar o uso.
+  const scoreDeltas = {
+    [userId]: iMetGoal ? rule.penalty : -rule.penalty,
+    [partnerId]: partnerMetGoal ? rule.penalty : -rule.penalty,
+  };
 
   return { myCount, partnerCount, iMetGoal, partnerMetGoal, scoreDeltas };
 };
