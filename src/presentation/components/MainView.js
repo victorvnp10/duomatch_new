@@ -22,6 +22,10 @@ import AchievementSystem from "./AchievementSystem";
 import MatchNotification from "./MatchNotification";
 import { isActivityForToday, getTodayDateString, getDateString } from "../../shared/utils";
 import { updateStreak } from "../../shared/utils/streakUtils";
+import {
+  countConfirmedActivitiesInRound,
+  countChallengesCreatedInRound,
+} from "../../domain/services/RoundRulesEvaluator";
 import CountdownTimer from "./CountdownTimer";
 import { useAchievements } from "../../application/hooks/useAchievements";
 import { useMenstrualCycle } from "../../application/hooks/useMenstrualCycle";

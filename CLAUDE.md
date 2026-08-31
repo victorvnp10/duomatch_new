@@ -448,6 +448,7 @@ Rodadas e Perfil so acessiveis pelo header do MainView.
 | — | `useActivities.js` | Imports `Timestamp`/`serverTimestamp` mortos |
 | — | `CountdownTimer.js` | Tema dark |
 | — | `AuthPage.js` + `vercel.json` | Google: `signInWithPopup` → `signInWithRedirect` + `getRedirectResult`. COOP bloqueava `popupWindow.closed` e abonava o login como `auth/popup-closed-by-user` ("nao sai do login") |
+| — | `MainView.js` | `countConfirmedActivitiesInRound` / `countChallengesCreatedInRound` nao importados de `RoundRulesEvaluator` → `ReferenceError` crashava a main view (B2-18) |
 
 ### Travamento/cascata (4) — analise de "sistema travado"
 
