@@ -426,6 +426,8 @@ export default function DuoMatchApp({ user, userData }) {
         count={notificationCount}
         chatNotification={chatHandlers.chatNotification}
         onNavigate={setView}
+        pushEnabled={Boolean(user?.uid && userData?.coupleId)}
+        userId={user?.uid}
       />
     </div>
   );

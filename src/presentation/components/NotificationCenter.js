@@ -20,7 +20,14 @@ export default function NotificationCenter({ notifications, count, setView }) {
   const notificationsSupported = isSystemNotificationsSupported();
 
   const handleEnableNotifications = async () => {
-    setPermission(await requestNotificationPermission());
+    const result = await requestNotificationPermission();
+    setPermission(result);
+    if (result === "granted") {
+      // Avisa a ponte de PWA (usePushSubscription) para registrar o Web Push
+      // (token FCM) — só o pedido de permissão do Notification API não basta
+      // para notificar "com app fechado".
+      window.dispatchEvent(new CustomEvent("duomatch:push-optin"));
+    }
   };
 
   // Calcula a posição do painel a partir da posição real do botão na tela
@@ -128,7 +135,7 @@ export default function NotificationCenter({ notifications, count, setView }) {
             )}
             {notificationsSupported && permission === "granted" && (
               <p className="text-center text-xs text-gray-400">
-                🔔 Notificações do sistema ativadas
+                🔔 Ativadas — você recebe notificações mesmo com o app fechado.
               </p>
             )}
             {notificationsSupported && permission === "denied" && (

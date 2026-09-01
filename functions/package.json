@@ -1,0 +1,18 @@
+{
+  "name": "duomatch-functions",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Cloud Functions do DuoMatch — emitem Web Push (FCM) para notificações 'com app fechado' (atividade do par, desafio do par, lembrete diário).",
+  "engines": {
+    "node": "20"
+  },
+  "main": "index.js",
+  "scripts": {
+    "deploy": "firebase deploy --only functions",
+    "serve": "firebase emulators:start --only functions"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.1.0",
+    "firebase-functions": "^5.0.0"
+  }
+}

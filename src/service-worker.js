@@ -1,5 +1,75 @@
 /* eslint-disable no-restricted-globals */
 
+// ── PUSH (FCM) — notificações "com app fechado" ─────────────────────────
+// Este é o ÚNICO service worker do app (Workbox precache + FCM num só —
+// dois SW disputando o escopo "/" se anulariam). As libs do FCM vêm por
+// importScripts (CDN compat). Em vez de hardcodar a config do Firebase no
+// arquivo, a PRÓPRIA URL do SW a carrega: `/service-worker.js?fb=<JSON>` —
+// a página injeta via serviceWorkerRegistration.js (que tem acesso às env
+// REACT_APP_*). Sem env no SW não há push, mas o precache segue normal.
+importScripts(
+  "https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js",
+  "https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"
+);
+
+const parseQueryConfig = () => {
+  try {
+    const params = new URLSearchParams(self.location.search);
+    const raw = params.get("fb");
+    return raw ? JSON.parse(decodeURIComponent(raw)) : null;
+  } catch (e) {
+    return null;
+  }
+};
+
+const firebaseConfig = parseQueryConfig();
+if (firebaseConfig && firebaseConfig.projectId) {
+  firebase.initializeApp(firebaseConfig);
+  const messaging = firebase.messaging();
+
+  // Background: app fechado/segundo plano — monta e mostra a notificação.
+  // (Foreground o app cuida via usePwaNotifications; FCM entrega ao onMessage
+  // e aqui não dispara — sem notificação duplicada).
+  messaging.onBackgroundMessage((payload) => {
+    const data = payload?.data || {};
+    const notification = payload?.notification || {};
+    const targetView = data.targetView || "";
+    self.registration.showNotification(
+      notification.title || data.title || "DuoMatch",
+      {
+        body: notification.body || data.body || "",
+        icon: "/logo192.png",
+        badge: "/icons/maskable-192.png",
+        tag: data.eventId ? `duomatch-${data.eventId}` : "duomatch-default",
+        data: { targetView, clickUrl: targetView ? `/?view=${targetView}` : "/" },
+        silent: false,
+      }
+    );
+  });
+}
+
+// Clique na notificação do sistema: foca uma janela aberta do app e navega
+// para a view alvo (`?view=` é lida no primeiro render de DuoMatchApp.js),
+// ou abre uma nova janela se o app estiver fechado.
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const clickUrl = event.notification?.data?.clickUrl || "/";
+  event.waitUntil(
+    clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then((windowClients) => {
+        for (const client of windowClients) {
+          if ("focus" in client) {
+            client.focus();
+            if (client.url !== clickUrl) client.navigate(clickUrl);
+            return;
+          }
+        }
+        return clients.openWindow(clickUrl);
+      })
+  );
+});
+
 // O react-scripts detecta automaticamente a presença deste arquivo e
 // injeta, no momento do build, o manifesto de precache (todos os assets
 // de `build/`, com hash de conteúdo) na constante `self.__WB_MANIFEST`

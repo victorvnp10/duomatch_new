@@ -32,6 +32,16 @@ import {
 
 import { firebaseConfig } from "./config";
 
+// Messaging (Web Push/FCM): usado pelo push "com app fechado". Importado
+// de forma LAZY (a instância só é criada quando pushSubscription pedir),
+// porque o módulo "firebase/messaging" depende de service worker/contexto
+// seguro e não deve carregar em todo bootstrap do app.
+import {
+  getMessaging,
+  getToken,
+  isSupported as isMessagingSupported,
+} from "firebase/messaging";
+
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
@@ -66,10 +76,25 @@ export const setNewUserData = (data) => {
   newUserData = data;
 };
 
+let messagingInstance = null;
+
+/**
+ * Instância lazy do Cloud Messaging (Web Push). Só cria quando chamada
+ * (nunca no bootstrap), exigindo contexto seguro + service worker.
+ */
+export const getFirebaseMessaging = () => {
+  if (!messagingInstance) {
+    messagingInstance = getMessaging(app);
+  }
+  return messagingInstance;
+};
+
 export {
   auth,
   googleProvider,
   db,
+  getToken,
+  isMessagingSupported,
   signOut,
   signInWithRedirect,
   getRedirectResult,

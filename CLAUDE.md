@@ -21,9 +21,11 @@ npm test               # react-scripts test (Jest) — não há testes escritos
 ```
 
 - Configuração: copiar `.env.example` → `.env` com as chaves `REACT_APP_FIREBASE_*` (ver
-  `src/infrastructure/firebase/config.js`).
+  `src/infrastructure/firebase/config.js`). Para push "com app fechado" adicionar
+  `REACT_APP_FIREBASE_VAPID_KEY` (Console > Configurações do projeto > Cloud Messaging > Web Push).
 - `.eslintrc.json` foi removido — era inutil (parser TS sem arquivos TS, sem regras).
-- Deploy: Vercel (`vercel.json` com CSP para Google Auth via **redirect**). Config `.replit` para Replit.
+- Deploy: Vercel (`vercel.json` com CSP para Google Auth via **redirect** + endpoints de
+  FCM em `connect-src`). Config `.replit` para Replit.
   - **Login Google = `signInWithRedirect`** (nao popup): o popup quebrava em producao porque a header
     `Cross-Origin-Opener-Policy` impedia o SDK de ler `popupWindow.closed`, abortando com
     `auth/popup-closed-by-user` ("nao sai do login"). O redirect faz navegacao top-level, sem essa
@@ -128,17 +130,28 @@ npm test               # react-scripts test (Jest) — não há testes escritos
 | Application | `src/application/hooks/useNotificationCenter.js` (puro/sem side effects, usado no MainView e no DuoMatchApp) |
 | Presentation | `src/presentation/components/NotificationCenter.js` (sino + painel de pendencias + botao de permissao), `NotificationManager.js` (toasts efemeros) |
 
-### Notificacoes do sistema (PWA, sem backend)
+### Notificacoes do sistema (PWA) + Web Push (FCM, app fechado)
 | Camada | Arquivo |
 |---|---|
 | Presentation (service) | `src/presentation/pwa/systemNotifications.js` (Notification API + dedup + App Badging) |
 | Presentation (hook) | `src/presentation/pwa/usePwaNotifications.js` (bridge foco/pendencia + retry + badge) |
+| Presentation (push) | `src/presentation/pwa/pushSubscription.js`, `src/presentation/pwa/usePushSubscription.js` (token FCM → `pushTokens/{uid}`) |
 | Presentation (componente) | `src/presentation/pwa/PwaNotificationBridge.js` (sem UI), montado no `DuoMatchApp.js` |
+| SW (FCM) | `src/service-worker.js` (Workbox + handler `onBackgroundMessage` + `notificationclick` num UNICO SW) |
+| Backend (emissor) | `functions/index.js` (Cloud Functions: triggers de Firestore + cron do lembrete) |
 
-> **Escopo (decisao):** notificacoes disparam enquanto uma aba com o app esta
-> aberta (frente ou segundo plano PWA). Com app fechado ou offline, exige Web Push
-> (FCM + backend) — fora do escopo. Clicar na notificacao foca o app e navega
-> (`targetView`). Badge usa `navigator.setAppBadge` (requer HTTPS + PWA instalado).
+> **Escopo (decisao ATUALIZADA):** alem das notificacoes com aba aberta (puros
+> lado cliente), o app agora tem **Web Push (FCM)** para notificar **com app
+> fechado** — o SW unico (Workbox + FCM) mostra a notificacao em background e o
+> emissor e server-side (`functions/`): gatilhos que espelham os criterios da
+> Central (par marcou atividade, par lancou desafio) + cron diario 21h SP
+> (lembrete). O CLIENTE está implementado e builda; as FUNCTIONS precisam de
+> deploy manual (Console/Cloud Shell — ver header do `functions/index.js`).
+> Sem `REACT_APP_FIREBASE_VAPID_KEY` no `.env` o push e no-op silencioso.
+> Clicar na notificacao foca/navega (`?view=<target>`); badge usa
+> `navigator.setAppBadge` (requer HTTPS + PWA instalado).
+> **Importante:** a região dos triggers de Firestore precisa ser a mesma da
+> localização do banco (`FIRESTORE_REGION`, default `us-central1`).
 
 ### Tour / onboarding
 | Camada | Arquivo |
@@ -160,7 +173,8 @@ npm test               # react-scripts test (Jest) — não há testes escritos
 ### Infraestrutura Firebase
 | Camada | Arquivo |
 |---|---|
-| Infrastructure | `src/infrastructure/firebase/config.js` (43 linhas), `src/infrastructure/firebase/index.js` (84 linhas), `src/infrastructure/firebase/repositories/ContentRepository.js` |
+| Infrastructure | `src/infrastructure/firebase/config.js` (43 linhas), `src/infrastructure/firebase/index.js` (exporta `getFirebaseMessaging`/`getToken`/`isMessagingSupported` lazy), `src/infrastructure/firebase/repositories/ContentRepository.js` |
+| Backend (serverless) | `functions/` (Cloud Functions — ver seção de notificações) |
 
 ### Utilitarios compartilhados
 | Camada | Arquivo |
@@ -313,6 +327,22 @@ Depois disso, leituras vem do Firestore — pode-se ampliar/editar no banco sem 
 
 ### `inviteCodes/{code}` (colecao raiz)
 Codigo de convite de 6 caracteres. `creatorId`, `creatorNickname`, `createdAt`. Deletado ao consumir.
+
+### `pushTokens/{uid}` (colecao raiz — Web Push / FCM)
+Tokens de push de cada usuario (um doc por usuario, varios devices). Escrito pelo cliente
+(`src/presentation/pwa/pushSubscription.js`) via `setDoc` + merge, lido pelas Cloud Functions
+(ao notificar com app fechado). **Nao versionado** em regras de seguranca (Console):
+`allow create, update: if request.auth.uid == uid`.
+
+| Campo | Tipo | Observacoes |
+|---|---|---|
+| `uid` | string | Duplicado do ID do doc |
+| `tokens` | `{ [deviceId]: string }` | Map device→token FCM (deviceId estavel por navegador via localStorage) |
+| `updatedAt` | Timestamp | Ultimo registro/refresh |
+
+Tokens rejeitados pelo FCM (`unregistered`) sao podados pela function `sendPushToUser`.
+**Regras de seguranca sugeridas (colecao raiz `pushTokens`):**
+`match /pushTokens/{uid} { allow read, update: if request.auth.uid == uid; allow create: if request.auth.uid == request.resource.data.uid; }` (functions usam admin SDK e ignoram regras).
 
 ---
 
@@ -546,10 +576,14 @@ Rodadas e Perfil so acessiveis pelo header do MainView.
 ## 10. PWA
 
 - Service worker Workbox: precache de assets, cache-first para imagens, stale-while-revalidate para fontes.
+  **Unico SW**: os handlers de push do FCM (`onBackgroundMessage` + `notificationclick`) ficam no MESMO
+  `src/service-worker.js` — dois SW disputando o escopo `/` se anulariam. A config do Firebase chega no
+  SW via query no URL de registro (`service-worker.js?fb=<JSON>`), injetada por `serviceWorkerRegistration.js`.
 - **NAO intercepta** Firestore/Firebase Auth (tem proprio mecanismo offline via IndexedDB).
 - Manifest completo com icons maskable, theme_color, display standalone, shortcuts.
 - Meta tags iOS (apple-mobile-web-app-capable, apple-touch-icon).
-- `vercel.json` define CSP para Google Auth via **redirect** (`signInWithRedirect`).
+- `vercel.json` define CSP para Google Auth via **redirect** (`signInWithRedirect`) + conecta-se aos
+  endpoints do FCM (`fcm.googleapis.com`, `fcmregistrations.googleapis.com`) no `connect-src`.
 
 ---
 

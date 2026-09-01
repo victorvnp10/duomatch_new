@@ -18,7 +18,20 @@ export function register(config) {
     }
 
     window.addEventListener("load", () => {
-      const swUrl = `${process.env.PUBLIC_URL}/service-worker.js`;
+      const swConfigJson = JSON.stringify({
+        apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
+        authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
+        projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
+        storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
+        messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
+        appId: process.env.REACT_APP_FIREBASE_APP_ID,
+      });
+      // Config do FCM via query no próprio URL do SW (o swSrc não tem acesso
+      // às env REACT_APP_*): o SW lê `self.location.search` e inicializa o
+      // firebase/messaging para o push "com app fechado" (ver service-worker.js).
+      const swUrl = `${process.env.PUBLIC_URL}/service-worker.js?fb=${encodeURIComponent(
+        swConfigJson
+      )}`;
 
       if (isLocalhost) {
         checkValidServiceWorker(swUrl, config);
