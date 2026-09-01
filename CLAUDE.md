@@ -432,9 +432,11 @@ Rodadas e Perfil so acessiveis pelo header do MainView.
 ## 8. Bugs (45 originais → 43 corrigidos, 2 cancelados) + 4 de travamento/cascata
 
 > **Segunda auditoria concluída**: novos bugs numerados `B2-01` a `B2-55` documentados em
-> `BUG_FIX_PLAN_2.md` (a maioria já corrigida — ver "Status atual" no topo do plano).
-> Únicas pendências: `B2-32` (LinkingPage não atômico — batch não transacional) e
-> `B2-33` (meta de desafios conta criação — decisão de produto).
+> `BUG_FIX_PLAN_2.md` (todos corrigidos — ver "Status atual" no topo do plano).
+> Única pendência: `B2-33` (meta de desafios conta criação — decisão de produto).
+> Último item de código entregue: `B2-32` (vinculação atômica no LinkingPage —
+> convite reservado/consumido por transação, guard "conta já vinculada" e rollback
+> compensatório do seed).
 > Destaques já corrigidos: regressao do fix #1 (`streakUtils.js`), penalidade ciclica
 > aplicada 2x (`useRoundRules.js`), pontos duplicados na resolucao de desafio e na
 > confirmacao de wishlist, CountdownTimer congelado, 4 conquistas de desafio inalcancaveis,

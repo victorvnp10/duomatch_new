@@ -11,10 +11,11 @@ Numeração `B2-xx` para não colidir com os bugs #1–#45 do plano original.
 
 ## Status atual (atualizado na continuidade da segunda auditoria)
 
-> A maioria dos itens deste plano JÁ foi corrigida no código atual. ÚNICAS
-> pendências: **B2-32** (LinkingPage não atômico — refactor de batch para
-> transação) e **B2-33** (meta de desafios conta criação — requer decisão de
-> produto).
+> A maioria dos itens deste plano JÁ foi corrigida no código atual. ÚNICA
+> pendência de código: **B2-32** (LinkingPage não atômico) — JÁ CORRIGIDO
+> neste lote (código reservado/consumido por transação, guard anti-split-brain
+> e rollback compensatório do seed). Resta apenas **B2-33** (meta de desafios
+> conta criação — requer decisão de produto).
 >
 > Itens **CORRIGIDOS nesta continuação** (lote de robustez + baixos):
 > B2-13 (memos `.length` no MainView), B2-16 (último ponto UTC —
@@ -29,7 +30,11 @@ Numeração `B2-xx` para não colidir com os bugs #1–#45 do plano original.
 > read-modify-write), B2-28 (owner determinístico por menor uid + `ownerId`
 > persistido no 1º registro), B2-29 (`clampCycleLength` em [15,60] no domínio
 > + gap mínimo de 15 dias entre registros) — e B2-48 (notificação de wishlist
-> por itens não vistos, não por timestamp único).
+> por itens não vistos, não por timestamp único) — e **B2-32** (vinculação
+> atômica no LinkingPage: convite reservado via transação que aborta em
+> colisão + regeneração; casal/users/consumo do convite num único
+> `runTransaction`; guard "conta já vinculada"; rollback compensatório se o
+> seed de atividades falhar).
 
 ---
 
@@ -489,18 +494,19 @@ servidor.
 
 ---
 
-### B2-32 LinkingPage: colisão de código sequestra convite + fluxo não atômico
-**Arquivo:** `src/presentation/components/LinkingPage.js:51-57, 91-122`
+### B2-32 ✓ LinkingPage: colisão de código sequestra convite + fluxo não atômico
+**Arquivo:** `src/presentation/components/LinkingPage.js`
 **Impacto:** (a) `setDoc` do código sem checar existência → colisão sobrescreve convite
 ativo de outro usuário; (b) fluxo em 3 etapas (addDoc casal → batch users → batch
 atividades) sem transação/rollback → falha parcial deixa casal órfão ou usuários
 vinculados sem seeds; (c) sem checagem "usuário já possui casal" → convite esquecido
 arranca usuário já vinculado (split-brain).
 
-**Correcao:** (a) usar `createDoc`/transação que falha se código existe (regenerar em
-colisão); (b) agrupar users+casal numa transação e atividades em batch posterior com
-rollback compensatório; (c) recusar resgate se `currentUser.partnerId` já está setado.
-**Risco:** MEDIO — refactor do fluxo de vinculação.
+**Correcao:** (a) `reserveInviteCode` com transação que aborta (`CODE_COLLISION`) se o
+código existe + laço regenera; (b) FASE 1 em único `runTransaction` (casal + vínculo dos
+2 users + delete do convite) e FASE 2 (seed) com rollback compensatório; (c) guard
+`userData.partnerId` antes de qualquer escrita.
+**Risco:** MEDIO — refactor do fluxo de vinculação. **CORRIGIDO** (build validado).
 
 ---
 
@@ -580,7 +586,7 @@ toast com a mensagem.
 | 9 | B2-22, B2-23, B2-24, B2-25, B2-54 | Família sugestões | 3h | Matches sem corrupção |
 | 10 | B2-12, B2-35, B2-46 | Economia (validação + erros) | 1h | Anti-explore |
 | 11 | B2-17, B2-18 | Streak/display coerentes com scorer | 2h | Confiança no placar |
-| 12 | B2-19, B2-26 a B2-32, B2-34 | Médios diversos | 4-5h | Robustez geral |
+| 12 | B2-19, B2-26 a B2-32, B2-34 | Médios diversos | 4-5h | Robustez geral (✓ concluído) |
 | 13 | B2-33 | Decisão de produto + fix | 30min | Justa meta de desafios |
 | 14 | B2-36 a B2-55 | Baixos / limpeza | 3-4h | Polimento |
 

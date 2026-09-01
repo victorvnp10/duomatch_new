@@ -5,14 +5,11 @@ import {
   auth,
   db,
   doc,
-  setDoc,
-  getDoc,
   collection,
-  addDoc,
   updateDoc,
-  deleteDoc,
   serverTimestamp,
   writeBatch,
+  runTransaction,
 } from "../../infrastructure/firebase";
 
 function LinkingPage({ user, userData, onSkip, onBack }) {
@@ -55,17 +52,43 @@ function LinkingPage({ user, userData, onSkip, onBack }) {
     return err;
   };
 
+  const generateRandomCode = () =>
+    Math.random().toString(36).substring(2, 8).toUpperCase();
+
+  // B2-32a: reserva o código de forma ATÔMICA. Antes era `setDoc` sem
+  // checagem — numa colisão (rara) o código de um usuário sobrescrevia o
+  // convite ATIVO de outro. Agora: transação que aborta se o código já
+  // existir (nada é escrito) e o laço regenera com outro código. Sem
+  // janela de corrida entre "verificar" e "reservar".
+  const reserveInviteCode = async (creatorId, creatorNickname) => {
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const code = generateRandomCode();
+      try {
+        await runTransaction(db, async (transaction) => {
+          const inviteRef = doc(db, inviteCodesPath, code);
+          const snap = await transaction.get(inviteRef);
+          if (snap.exists()) throw new Error("CODE_COLLISION");
+          transaction.set(inviteRef, {
+            creatorId,
+            creatorNickname,
+            createdAt: serverTimestamp(),
+          });
+        });
+        return code;
+      } catch (err) {
+        // Colisão com convite ativo → tenta outro código.
+        if (err?.message === "CODE_COLLISION") continue;
+        throw err;
+      }
+    }
+    throw new Error("Não foi possível gerar um código livre.");
+  };
+
   const generateCode = async () => {
-    // ... (o resto da função permanece igual)
     setLoading(true);
     setError("");
-    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
     try {
-      await setDoc(doc(db, inviteCodesPath, code), {
-        creatorId: user.uid,
-        creatorNickname: userData.nickname,
-        createdAt: serverTimestamp(),
-      });
+      const code = await reserveInviteCode(user.uid, userData.nickname);
       setGeneratedCode(code);
     } catch (err) {
       setError("Não foi possível gerar o código. Tente novamente.");
@@ -76,7 +99,6 @@ function LinkingPage({ user, userData, onSkip, onBack }) {
   };
 
   const handleLinkAccount = async (e) => {
-    // ... (o resto da função permanece igual)
     e.preventDefault();
     setLoading(true);
     setError("");
@@ -86,48 +108,58 @@ function LinkingPage({ user, userData, onSkip, onBack }) {
       return;
     }
 
+    // B2-32c: split-brain — alguém que JÁ está vinculado tentando resgatar
+    // um convite antigo/esquecido arrancaria a conta do casal atual para
+    // criar/entrar num casal novo. Recusar antes de qualquer escrita.
+    if (userData.partnerId) {
+      setError(
+        "Sua conta já está vinculada a um casal. Use o perfil para gerenciar a vinculação."
+      );
+      setLoading(false);
+      return;
+    }
+
     try {
       const inviteRef = doc(db, inviteCodesPath, inviteCode);
-      const inviteSnap = await getDoc(inviteRef);
 
-      if (!inviteSnap.exists()) {
-        throw validationError("Código de convite inválido ou expirado.");
-      }
+      // B2-32b FASE 1: casal + vínculo dos dois usuários + consumo do
+      // convite numa ÚNICA transação. Antes eram 3 etapas separadas
+      // (getDoc → addDoc do casal → batch de users), e uma falha no meio
+      // deixava um casal órfão ou usuários vinculados sem seeds. Agora,
+      // ou tudo acontece, ou nada.
+      const { coupleId, partnerId } = await runTransaction(db, async (transaction) => {
+        const inviteSnap = await transaction.get(inviteRef);
+        if (!inviteSnap.exists()) {
+          throw validationError("Código de convite inválido ou expirado.");
+        }
+        const inviteData = inviteSnap.data();
+        if (inviteData.creatorId === user.uid) {
+          throw validationError("Você não pode usar seu próprio código.");
+        }
 
-      const inviteData = inviteSnap.data();
-      if (inviteData.creatorId === user.uid) {
-        throw validationError("Você não pode usar seu próprio código.");
-      }
+        const coupleRef = doc(collection(db, duomatchesPath));
+        transaction.set(coupleRef, {
+          members: [user.uid, inviteData.creatorId],
+          memberNicknames: {
+            [user.uid]: userData.nickname,
+            [inviteData.creatorId]: inviteData.creatorNickname,
+          },
+          createdAt: serverTimestamp(),
+          confirmationTime: "22:00",
+        });
 
-      const coupleRef = await addDoc(collection(db, duomatchesPath), {
-        members: [user.uid, inviteData.creatorId],
-        memberNicknames: {
-          [user.uid]: userData.nickname,
-          [inviteData.creatorId]: inviteData.creatorNickname,
-        },
-        createdAt: serverTimestamp(),
-        confirmationTime: "22:00",
+        transaction.update(doc(db, usersPath, user.uid), {
+          partnerId: inviteData.creatorId,
+          coupleId: coupleRef.id,
+        });
+        transaction.update(doc(db, usersPath, inviteData.creatorId), {
+          partnerId: user.uid,
+          coupleId: coupleRef.id,
+        });
+        transaction.delete(inviteRef);
+
+        return { coupleId: coupleRef.id, partnerId: inviteData.creatorId };
       });
-
-      const coupleId = coupleRef.id;
-
-      const batch = writeBatch(db);
-
-      const userRef = doc(db, usersPath, user.uid);
-      batch.update(userRef, {
-        partnerId: inviteData.creatorId,
-        coupleId: coupleId,
-      });
-
-      const partnerRef = doc(db, usersPath, inviteData.creatorId);
-      batch.update(partnerRef, {
-        partnerId: user.uid,
-        coupleId: coupleId,
-      });
-
-      batch.delete(inviteRef);
-
-      await batch.commit();
 
       const activitiesBatch = writeBatch(db);
       const activitiesPath = `duomatches/${coupleId}/activities`;
@@ -230,7 +262,31 @@ function LinkingPage({ user, userData, onSkip, onBack }) {
           selections: {},
         });
       });
-      await activitiesBatch.commit();
+      // B2-32b FASE 2: seeds padrão num batch separado (best effort). Se
+      // falhar, rollback compensatório remove o casal recém-criado e
+      // desvincula os dois usuários — nada de "vinculados sem atividades".
+      try {
+        await activitiesBatch.commit();
+      } catch (seedError) {
+        console.error("Erro ao criar atividades iniciais:", seedError);
+        try {
+          const cleanup = writeBatch(db);
+          cleanup.delete(doc(db, duomatchesPath, coupleId));
+          cleanup.update(doc(db, usersPath, user.uid), {
+            partnerId: null,
+            coupleId: null,
+          });
+          cleanup.update(doc(db, usersPath, partnerId), {
+            partnerId: null,
+            coupleId: null,
+          });
+          await cleanup.commit();
+        } catch (cleanupError) {
+          console.error("Erro no rollback compensatório do vínculo:", cleanupError);
+        }
+        setError("Erro ao vincular contas. Tente novamente.");
+        return;
+      }
 
       // 5. Finaliza com sucesso
       setLinkingSuccess(true);
