@@ -51,27 +51,51 @@ function registerValidSW(swUrl, config) {
   navigator.serviceWorker
     .register(swUrl)
     .then((registration) => {
+      // Atualização ativa: checa imediatamente neste load e sempre que o app
+      // voltar ao foco. Sem isso, um PWA instalado só checava na próxima
+      // navegação e podia ficar dias servindo a versão antiga em cache.
+      registration.update();
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") registration.update();
+      });
+
+      // Recarrega quando o SW novo efetivamente assume o controle. A forma
+      // anterior (reload direto no onUpdate) corria contra a ativação do
+      // `skipWaiting` e podia carregar o bundle antigo de novo.
+      let refreshing = false;
+      navigator.serviceWorker.addEventListener("controllerchange", () => {
+        if (refreshing) return;
+        refreshing = true;
+        window.location.reload();
+      });
+
       registration.onupdatefound = () => {
         const installingWorker = registration.installing;
         if (installingWorker == null) return;
 
-        installingWorker.onstatechange = () => {
-          if (installingWorker.state === "installed") {
-            if (navigator.serviceWorker.controller) {
-              console.log(
-                "Novo conteúdo disponível. Ele será usado quando todas as abas desta página forem fechadas."
-              );
-              if (config && config.onUpdate) {
-                config.onUpdate(registration);
-              }
-            } else {
-              console.log("Conteúdo armazenado em cache para uso offline.");
-              if (config && config.onSuccess) {
-                config.onSuccess(registration);
-              }
+        installingWorker.addEventListener("statechange", () => {
+          if (installingWorker.state !== "installed") return;
+
+          if (!navigator.serviceWorker.controller) {
+            // Primeira instalação (nenhuma versão antiga no controle).
+            console.log("Conteúdo armazenado em cache para uso offline.");
+            if (config && config.onSuccess) {
+              config.onSuccess(registration);
             }
+            return;
           }
-        };
+
+          // Há uma versão antiga controlando a página: a nova ficou "waiting".
+          // Ativa imediatamente — o listener de `controllerchange` acima recarrega.
+          console.log("Nova versão disponível. Ativando e recarregando...");
+          if (config && config.onUpdate) {
+            config.onUpdate(registration);
+          }
+          const waitingWorker = registration.waiting || installingWorker;
+          if (waitingWorker && waitingWorker.state === "installed") {
+            waitingWorker.postMessage({ type: "SKIP_WAITING" });
+          }
+        });
       };
     })
     .catch((error) => {

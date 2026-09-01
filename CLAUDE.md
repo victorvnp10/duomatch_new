@@ -594,6 +594,9 @@ Rodadas e Perfil so acessiveis pelo header do MainView.
 ## 10. PWA
 
 - Service worker Workbox: precache de assets, cache-first para imagens, stale-while-revalidate para fontes.
+  **Atualização automática**: `serviceWorkerRegistration.js` chama `registration.update()` no load e no
+  `visibilitychange` para `visible`; nova versão ativa via `SKIP_WAITING` e recarrega pelo `controllerchange`
+  — um PWA instalado nunca fica preso na versão antiga em cache (evita bugs que só existem no bundle antigo).
   **Unico SW**: os handlers de push do FCM (`onBackgroundMessage` + `notificationclick`) ficam no MESMO
   `src/service-worker.js` — dois SW disputando o escopo `/` se anulariam. A config do Firebase chega no
   SW via query no URL de registro (`service-worker.js?fb=<JSON>`), injetada por `serviceWorkerRegistration.js`.

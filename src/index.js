@@ -18,11 +18,12 @@ root.render(
 // em src/infrastructure/firebase/index.js).
 serviceWorkerRegistration.register({
   onUpdate: (registration) => {
-    // Nova versão do app já baixada: ativa imediatamente e recarrega,
-    // para o casal nunca ficar preso numa versão desatualizada.
-    if (registration.waiting) {
-      registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+    // Nova versão do app já baixada: ativa imediatamente. O reload em si é
+    // feito pelo serviceWorkerRegistration.js ao detectar o `controllerchange`
+    // (garante que o bundle novo já esteja no controle antes de recarregar).
+    const waitingWorker = registration.waiting || registration.installing;
+    if (waitingWorker && waitingWorker.state === 'installed') {
+      waitingWorker.postMessage({ type: 'SKIP_WAITING' });
     }
-    window.location.reload();
   },
 });
