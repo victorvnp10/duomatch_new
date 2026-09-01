@@ -108,7 +108,16 @@ async function sendPushToUser(uid, { title, body, targetView, eventId }) {
   }
 }
 
-/** O parceiro marcou uma atividade e espera a confirmação do outro. */
+/**
+ * O parceiro confirmou uma atividade existente (doc de `activities/`) e o
+ * outro ainda não confirmou. Antes o trigger exigia seleção dos DOIS membros
+ * e nunca disparava no caso real (marcar grava `status: "confirmed"` só do
+ * autor). Agora detecta a TRANSIÇÃO (quem ficou "confirmed" neste update) e
+ * notifica o outro membro.
+ *
+ * O eventId é o MESMO da Central no cliente (`partner-activity-{id}`) para
+ * o dedup do `showSystemNotification` não exibir duas vezes o mesmo alerta.
+ */
 exports.notifyPartnerMarkedActivity = onDocumentUpdated(
   {
     document: "duomatches/{coupleId}/activities/{activityId}",
@@ -121,28 +130,103 @@ exports.notifyPartnerMarkedActivity = onDocumentUpdated(
     // Desafios são tratados no trigger de criação.
     if (String(after.type || "").startsWith("desafio")) return;
 
-    const selections = after.selections || {};
-    const members = Object.keys(selections);
-    if (members.length < 2) return;
+    const newSelections = after.selections || {};
+    const oldSelections = before.selections || {};
 
-    for (const uid of members) {
-      const partnerId = members.find((m) => m !== uid);
-      const partnerStatus = selections[partnerId]?.status;
-      const myStatus = selections[uid]?.status;
-      if (partnerStatus !== "confirmed" || myStatus === "confirmed") continue;
+    // Quem passou a ficar "confirmed" NESTE update (transição) — sem isso,
+    // qualquer update no doc (chat, leitura, pontos) reedita o alerta.
+    const newlyConfirmed = Object.keys(newSelections).filter(
+      (uid) =>
+        newSelections[uid]?.status === "confirmed" &&
+        oldSelections[uid]?.status !== "confirmed"
+    );
+    if (newlyConfirmed.length === 0) return;
 
-      // Só notifica na TRANSIÇÃO (partner acabou de confirmar), senão cada
-      // update do item (viu/leu/pontos) dispararia de novo.
-      const wasConfirmedAlready =
-        before.selections?.[partnerId]?.status === "confirmed";
-      if (wasConfirmedAlready) continue;
+    const coupleSnap = await db
+      .doc(`duomatches/${event.params.coupleId}`)
+      .get();
+    if (!coupleSnap.exists) return;
+    const members = coupleSnap.data().members || [];
 
-      await sendPushToUser(uid, {
-        title: "Seu par marcou uma atividade!",
+    for (const confirmedUid of newlyConfirmed) {
+      const recipient = members.find((m) => m !== confirmedUid);
+      if (!recipient) continue;
+      // Só notifica "esperando sua confirmação" se o outro ainda não
+      // confirmou (mesmo critério da Central no cliente).
+      if (newSelections[recipient]?.status === "confirmed") continue;
+
+      await sendPushToUser(recipient, {
+        title: "Seu par já marcou uma atividade!",
         body: `"${after.name || "Atividade"}" está esperando sua confirmação.`,
         targetView: "main",
-        eventId: `activity-${event.params.activityId}-${uid}`,
+        eventId: `partner-activity-${event.params.activityId}`,
       });
+    }
+  }
+);
+
+/**
+ * O parceiro marcou uma SUGESTÃO (pré-match) — o doc gravado é
+ * `dailySuggestions/{date}` ou `hotSuggestions/{date}`, NÃO `activities/`.
+ * Sem este trigger, "par marcou atividade" nunca virava push (o app também
+ * não notificava isso em foreground). Detecta a transição para o status
+ * "selected" e notifica o outro membro que ainda não marcou a mesma sugestão.
+ */
+exports.notifyPartnerSelectedSuggestion = onDocumentUpdated(
+  {
+    document: "duomatches/{coupleId}/{suggestionsKind}/{date}",
+    region: FIRESTORE_REGION,
+  },
+  async (event) => {
+    const { suggestionsKind, date } = event.params;
+    if (
+      suggestionsKind !== "dailySuggestions" &&
+      suggestionsKind !== "hotSuggestions"
+    )
+      return;
+
+    const before = event.data.before.data();
+    const after = event.data.after.data();
+    if (!after || !before) return;
+
+    const afterSugs = after.suggestions || {};
+    const beforeSugs = before.suggestions || {};
+
+    const coupleSnap = await db
+      .doc(`duomatches/${event.params.coupleId}`)
+      .get();
+    if (!coupleSnap.exists) return;
+    const members = coupleSnap.data().members || [];
+
+    for (const key of Object.keys(afterSugs)) {
+      const current = afterSugs[key];
+      if (!current || current.matched) continue;
+      const prev = beforeSugs[key];
+
+      const newSelections = current.selections || {};
+      const oldSelections = prev?.selections || {};
+
+      // Transição: alguém passou a "selected" NESTE update.
+      const newlySelected = Object.keys(newSelections).filter(
+        (uid) =>
+          newSelections[uid] === "selected" &&
+          oldSelections[uid] !== "selected"
+      );
+      if (newlySelected.length === 0) continue;
+
+      for (const selectedUid of newlySelected) {
+        const recipient = members.find((m) => m !== selectedUid);
+        if (!recipient) continue;
+        // Se os dois marcaram = match (vira atividade real; sem alerta).
+        if (newSelections[recipient] === "selected") continue;
+
+        await sendPushToUser(recipient, {
+          title: "Seu par já marcou uma atividade!",
+          body: `"${current.name || "Atividade"}" está esperando sua confirmação.`,
+          targetView: "main",
+          eventId: `partner-suggestion-${date}-${key}`,
+        });
+      }
     }
   }
 );
@@ -177,7 +261,7 @@ exports.notifyPartnerCreatedChallenge = onDocumentCreated(
       title: "Seu par lançou um desafio!",
       body: `"${data.name || "Desafio"}" está esperando sua resposta.`,
       targetView: "main",
-      eventId: `challenge-${event.params.activityId}`,
+      eventId: `partner-challenge-${event.params.activityId}`,
     });
   }
 );

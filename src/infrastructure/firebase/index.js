@@ -40,6 +40,7 @@ import {
   getMessaging,
   getToken,
   isSupported as isMessagingSupported,
+  onMessage,
 } from "firebase/messaging";
 
 const app = initializeApp(firebaseConfig);
@@ -95,6 +96,7 @@ export {
   db,
   getToken,
   isMessagingSupported,
+  onMessage,
   signOut,
   signInWithRedirect,
   getRedirectResult,

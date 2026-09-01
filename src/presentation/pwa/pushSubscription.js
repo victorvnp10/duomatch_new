@@ -20,10 +20,34 @@ import {
   getFirebaseMessaging,
   getToken,
   isMessagingSupported,
+  onMessage,
 } from "../../infrastructure/firebase";
-import { getNotificationPermission } from "./systemNotifications";
+import {
+  getNotificationPermission,
+  showSystemNotification,
+} from "./systemNotifications";
 
 const DEVICE_KEY = "duomatch_push_device";
+
+// Handler de FOREGROUND (app aberto): com a página viva, o FCM entrega a
+// mensagem ao onMessage (o service worker só exibe com o app fechado). Sem
+// isso, "par marcou atividade" não gerava ALERTA quando o app estava aberto.
+let foregroundHandlerReady = false;
+const registerForegroundPush = () => {
+  if (foregroundHandlerReady) return;
+  foregroundHandlerReady = true;
+  try {
+    onMessage(getFirebaseMessaging(), (payload) => {
+      const { notification, data = {} } = payload;
+      showSystemNotification(data.eventId || `push-${Date.now()}`, {
+        title: notification?.title || "DuoMatch",
+        body: notification?.body || "",
+      });
+    });
+  } catch (error) {
+    console.warn("[push] Falha ao registrar handler de foreground:", error);
+  }
+};
 
 const getOrCreateDeviceId = () => {
   try {
@@ -83,6 +107,10 @@ export async function ensurePushSubscription({ userId }) {
       },
       { merge: true }
     );
+
+    // Alerta em primeiro plano (app aberto recebe onMessage, não o SW).
+    registerForegroundPush();
+
     return token;
   } catch (err) {
     // Sem contexto seguro, SW não pronto, VAPID inválido etc. — push é
