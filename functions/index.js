@@ -66,10 +66,14 @@ async function sendPushToUser(uid, { title, body, targetView, eventId }) {
     console.error("[push] Falha ao ler pushTokens de", uid, err);
     return;
   }
-  if (!snap.exists) return;
+  if (!snap.exists) {
+    console.log(`[push] ${uid} SEM doc em pushTokens — cliente nunca registrou`);
+    return;
+  }
 
   const data = snap.data();
   const tokens = Object.values(data.tokens || {}).filter(Boolean);
+  console.log(`[push] ${uid}: ${tokens.length} token(s)`);
   if (tokens.length === 0) return;
 
   const payload = {
@@ -83,6 +87,12 @@ async function sendPushToUser(uid, { title, body, targetView, eventId }) {
 
   const results = await messaging.sendEach(
     tokens.map((token) => ({ ...payload, token }))
+  );
+  console.log(
+    "[push] resultado:",
+    results.responses.map((r) =>
+      r.success ? "ok" : `ERR ${r.error?.code || r.error}`
+    ).join(",")
   );
 
   // Limpa tokens mortos (device desinstalado/perm. revogada).
@@ -155,6 +165,9 @@ exports.notifyPartnerMarkedActivity = onDocumentUpdated(
       // confirmou (mesmo critério da Central no cliente).
       if (newSelections[recipient]?.status === "confirmed") continue;
 
+      console.log(
+        `[push] ${confirmedUid} confirmou atividade (${event.params.activityId}) -> notificar ${recipient}`
+      );
       await sendPushToUser(recipient, {
         title: "Seu par já marcou uma atividade!",
         body: `"${after.name || "Atividade"}" está esperando sua confirmação.`,
@@ -220,6 +233,9 @@ exports.notifyPartnerSelectedSuggestion = onDocumentUpdated(
         // Se os dois marcaram = match (vira atividade real; sem alerta).
         if (newSelections[recipient] === "selected") continue;
 
+        console.log(
+          `[push] ${selectedUid} marcou sugestão (${event.params.date}/${key}) -> notificar ${recipient}`
+        );
         await sendPushToUser(recipient, {
           title: "Seu par já marcou uma atividade!",
           body: `"${current.name || "Atividade"}" está esperando sua confirmação.`,
