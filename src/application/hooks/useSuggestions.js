@@ -217,10 +217,12 @@ export const useSuggestions = (userData, _handleAddActivity, suggestionType) => 
             newStatus === "selected" &&
             freshSuggestion.selections?.[userData.partnerId] === "selected"
           ) {
-            // Limpar seleções e marcar como matched
+            // Marcar como matched. NÃO zerar o mapa `selections` inteiro:
+            // isso sobrepõe o path `selections.{uid}` gravado acima na mesma
+            // escrita (paths de update sobrepostos são rejeitados pelo
+            // Firestore, abortando a transação). A UI filtra matched.
             transaction.update(suggestionsRef, {
               [`suggestions.${suggestionId}.matched`]: true,
-              [`suggestions.${suggestionId}.selections`]: {},
             });
 
             const confirmedSelections = {
