@@ -11,11 +11,10 @@ Numeração `B2-xx` para não colidir com os bugs #1–#45 do plano original.
 
 ## Status atual (atualizado na continuidade da segunda auditoria)
 
-> A maioria dos itens deste plano JÁ foi corrigida no código atual. ÚNICA
-> pendência de código: **B2-32** (LinkingPage não atômico) — JÁ CORRIGIDO
-> neste lote (código reservado/consumido por transação, guard anti-split-brain
-> e rollback compensatório do seed). Resta apenas **B2-33** (meta de desafios
-> conta criação — requer decisão de produto).
+> Todos os itens deste plano JÁ estão corrigidos no código atual (ver "Status
+> atual" completo nesta seção). Última pendência fechada: **B2-33** (meta de
+> desafios — decisão de produto confirmada: crédito ao PROPOSITOR, mas
+> exigindo `challengeState === "completed"`). Nenhuma pendência restante.
 >
 > Itens **CORRIGIDOS nesta continuação** (lote de robustez + baixos):
 > B2-13 (memos `.length` no MainView), B2-16 (último ponto UTC —
@@ -34,7 +33,9 @@ Numeração `B2-xx` para não colidir com os bugs #1–#45 do plano original.
 > atômica no LinkingPage: convite reservado via transação que aborta em
 > colisão + regeneração; casal/users/consumo do convite num único
 > `runTransaction`; guard "conta já vinculada"; rollback compensatório se o
-> seed de atividades falhar).
+> seed de atividades falhar) — e **B2-33** (meta cíclica de desafios passou a
+> exigir conclusão: crédito ao propositor apenas com `challengeState ===
+> "completed"`, alinhando "desafios propostos devem ser feitos" à pontuação).
 
 ---
 
@@ -510,15 +511,22 @@ código existe + laço regenera; (b) FASE 1 em único `runTransaction` (casal + 
 
 ---
 
-### B2-33 Meta de desafios conta CRIAÇÃO (recusados incluem), não conclusão
-**Arquivo:** `src/domain/services/RoundRulesEvaluator.js:58-68`
+### B2-33 ✓ Meta de desafios conta CRIAÇÃO (recusados incluem), não conclusão
+**Arquivo:** `src/domain/services/RoundRulesEvaluator.js` (renomeada para
+`countChallengesCompletedInRound`) + `MainView.js`
 **Impacto:** A cria 5 desafios, B recusa todos → A cumpre a meta, B leva −penalty mesmo
 tendo completado os desafios de A. Contradiz a semântica do resto do sistema ("desafio
-vale para quem completa"). Possível decisão de produto — CONFIRMAR antes de mudar.
+vale para quem completa"). Requer decisão de produto.
 
-**Correcao (se confirmado):** contar `challengeState === "completed"` atribuído ao
-usuário avaliado (quem completou), não `createdBy`.
-**Risco:** BAIXO — função pura; requer decisão de produto.
+**Decisão de produto (CONFIRMADA):** na regra cíclica cada usuário defina suas PRÓPRIAS
+marcas ("atividades marcadas e desafios propostos devem ser feitos no período"), então o
+crédito da META é do propositor — mas só vale se o desafio foi CONCLUÍDO
+(`challengeState === "completed"`). Mera criação (recusado/em aberto) não cumpre.
+A conclusão em si segue dando pontos para quem completa (regra de conclusão, independente).
+
+**Correcao:** contar desafios com `createdBy === userId && challengeState === "completed"`
+criados dentro da rodada; MainView usa o mesmo critério para o painel.
+**Risco:** BAIXO — função pura. **CORRIGIDO** (build validado).
 
 ---
 
@@ -587,7 +595,7 @@ toast com a mensagem.
 | 10 | B2-12, B2-35, B2-46 | Economia (validação + erros) | 1h | Anti-explore |
 | 11 | B2-17, B2-18 | Streak/display coerentes com scorer | 2h | Confiança no placar |
 | 12 | B2-19, B2-26 a B2-32, B2-34 | Médios diversos | 4-5h | Robustez geral (✓ concluído) |
-| 13 | B2-33 | Decisão de produto + fix | 30min | Justa meta de desafios |
+| 13 | B2-33 | Decisão de produto + fix | 30min | Justa meta de desafios (✓ concluído) |
 | 14 | B2-36 a B2-55 | Baixos / limpeza | 3-4h | Polimento |
 
 **Total estimado: ~25-32 horas**
@@ -599,7 +607,8 @@ toast com a mensagem.
 - **Fase 1 inteira** afeta integridade de dados ou features centrais — prioridade máxima.
 - **Famílias de correção** (resolver juntas): transações (B2-02/03/11/50), UTC (B2-16),
   sugestões (B2-22/23/24/25/54), conquistas (B2-05/13), unlink (B2-10/20/21).
-- B2-33 depende de decisão de produto (semântica da meta de desafios).
+- B2-33 (meta de desafios) foi decidido por produto: crédito ao PROPOSITOR, exigindo
+  `challengeState === "completed"` (ver seção B2-33).
 - B2-16 resolve de quebra parte de B2-08 e B2-19 (raiz comum: data UTC/local).
 - Nenhum leak de `onSnapshot` foi encontrado nos hooks (todos retornam unsubscribe) —
   diferente da primeira auditoria, esse classe de bug está limpa.

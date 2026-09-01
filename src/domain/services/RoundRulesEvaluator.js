@@ -74,11 +74,25 @@ export const countConfirmedActivitiesInRound = (allActivities, userId, activeRou
   }).length;
 };
 
-/** Conta quantos desafios um usuário criou dentro da rodada atual. */
-export const countChallengesCreatedInRound = (allActivities, userId, activeRound) => {
+/**
+ * Conta quantos desafios PROPOSTOS pelo usuário foram CONCLUÍDOS dentro da
+ * rodada atual. B2-33: a meta cíclica ("desafios propostos devem ser feitos
+ * no período") só vale quando o desafio acontece de verdade. Antes contava
+ * mera CRIAÇÃO — criar N desafios que o parceiro recusa (ou deixa em aberto)
+ * cumpria a marca sem nada ter sido feito, contradizendo "desafio vale para
+ * quem conclui". Agora: crédito da META é de quem PROPÔS (as marcas são de
+ * cada usuário sobre os próprios desafios propostos), mas apenas se o
+ * desafio foi concluído (`challengeState === "completed"`). A conclusão em
+ * si continua valendo pontos para quem completa (useActivities).
+ *
+ * EXPORTADA também para a UI (MainView): o painel de progresso precisa
+ * exibir EXATAMENTE o mesmo critério que o avaliador usa para pontuar.
+ */
+export const countChallengesCompletedInRound = (allActivities, userId, activeRound) => {
   return allActivities.filter((activity) => {
     if (!activity.type?.startsWith("desafio")) return false;
     if (activity.createdBy !== userId) return false;
+    if (activity.challengeState !== "completed") return false;
 
     const activityDate = activityCreationDate(activity, activeRound.startDate);
     return (
@@ -166,7 +180,7 @@ export const evaluateCyclicalRules = ({
     todayStr,
     userId,
     partnerId,
-    countFn: (uid) => countChallengesCreatedInRound(allActivities, uid, activeRound),
+    countFn: (uid) => countChallengesCompletedInRound(allActivities, uid, activeRound),
   });
   if (challengesResult) {
     if (challengesResult.scoreDeltas) {

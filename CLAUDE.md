@@ -333,6 +333,10 @@ Codigo de convite de 6 caracteres. `creatorId`, `creatorNickname`, `createdAt`. 
   (Antes era diferencial/competitiva — so aplicava quando um cumpria e o outro nao;
   corrigido para incentivar uso individual.)
 - Avaliacao so roda quando o periodo (em dias) desde a ultima checagem >= `rule.days`.
+- **Meta de desafios = desafios PROPOSTOS pelo usuario que foram CONCLUIDOS**
+  (`createdBy === userId && challengeState === "completed"`). Criar desafio que o
+  parceiro recusa/nao conclui NAO cumpre a meta (B2-33). Metas de atividades =
+  atividades confirmadas (sem `resolution === "not_completed"`).
 - **Dois sistemas de pontuacao SOMAM no `scores` da rodada**: (1) regra ciclica acima;
   (2) conclusao — atividade feita em casal (ambos concluiram) = ambos ganham
   `activity.points`; desafio recebido cumprido = quem cumpriu ganha `challenge.points`
@@ -432,11 +436,12 @@ Rodadas e Perfil so acessiveis pelo header do MainView.
 ## 8. Bugs (45 originais → 43 corrigidos, 2 cancelados) + 4 de travamento/cascata
 
 > **Segunda auditoria concluída**: novos bugs numerados `B2-01` a `B2-55` documentados em
-> `BUG_FIX_PLAN_2.md` (todos corrigidos — ver "Status atual" no topo do plano).
-> Única pendência: `B2-33` (meta de desafios conta criação — decisão de produto).
-> Último item de código entregue: `B2-32` (vinculação atômica no LinkingPage —
-> convite reservado/consumido por transação, guard "conta já vinculada" e rollback
-> compensatório do seed).
+> `BUG_FIX_PLAN_2.md` (todos corrigidos — ver "Status atual" no topo do plano). Nenhuma
+> pendência restante.
+> Último item entregue: `B2-33` (meta cíclica de desafios exige conclusão — crédito ao
+> propositor com `challengeState === "completed"`). Antes dele, `B2-32` (vinculação
+> atômica no LinkingPage — convite reservado/consumido por transação, guard "conta já
+> vinculada" e rollback compensatório do seed).
 > Destaques já corrigidos: regressao do fix #1 (`streakUtils.js`), penalidade ciclica
 > aplicada 2x (`useRoundRules.js`), pontos duplicados na resolucao de desafio e na
 > confirmacao de wishlist, CountdownTimer congelado, 4 conquistas de desafio inalcancaveis,

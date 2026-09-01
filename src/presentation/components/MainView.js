@@ -25,7 +25,7 @@ import { isActivityForToday, getTodayDateString, getDateString } from "../../sha
 import { updateStreak } from "../../shared/utils/streakUtils";
 import {
   countConfirmedActivitiesInRound,
-  countChallengesCreatedInRound,
+  countChallengesCompletedInRound,
 } from "../../domain/services/RoundRulesEvaluator";
 import CountdownTimer from "./CountdownTimer";
 import { useAchievements } from "../../application/hooks/useAchievements";
@@ -308,13 +308,13 @@ export default function MainView(props) {
     }
 
     if (challengesRule) {
-      // Mesmo critério do avaliador (desafios criados por cada pessoa)
-      const myChallengesCount = countChallengesCreatedInRound(
+      // Mesmo critério do avaliador (desafios propostos por cada pessoa e concluídos)
+      const myChallengesCount = countChallengesCompletedInRound(
         allActivities,
         user.uid,
         activeRound
       );
-      const partnerChallengesCount = countChallengesCreatedInRound(
+      const partnerChallengesCount = countChallengesCompletedInRound(
         allActivities,
         userData.partnerId,
         activeRound
