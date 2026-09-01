@@ -4,8 +4,11 @@ import {
   db,
   setNewUserData,
   googleProvider,
+  GoogleAuthProvider,
   signInWithRedirect,
   getRedirectResult,
+  fetchSignInMethodsForEmail,
+  linkWithCredential,
 } from "../../infrastructure/firebase";
 import {
   createUserWithEmailAndPassword,
@@ -22,11 +25,51 @@ function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [confirmEmail, setConfirmEmail] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  // Login unificado: quando o Google encontra uma conta de e-mail/senha com
+  // o mesmo e-mail (`auth/account-exists-with-different-credential`), guarda
+  // aqui o e-mail + credential do Google até o usuário digitar a senha para
+  // vincular os dois providers na MESMA conta (sem duplicar UID).
+  const [linkRequest, setLinkRequest] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setLoading(true);
+
+    // Fluxo de VINCULAÇÃO Google ⇄ e-mail/senha. O `linkRequest` só existe
+    // quando o redirect do Google voltou com account-exists. O componente
+    // pode desmontar logo após o `signInWithEmailAndPassword` (o
+    // onAuthStateChanged navega sozinho) — por isso o link roda na mesma
+    // promise, sem depender de re-render.
+    if (linkRequest) {
+      try {
+        const userCredential = await signInWithEmailAndPassword(
+          auth,
+          linkRequest.email,
+          password
+        );
+        await linkWithCredential(userCredential.user, linkRequest.credential);
+      } catch (err) {
+        if (
+          err.code === "auth/invalid-credential" ||
+          err.code === "auth/invalid-login-credentials" ||
+          err.code === "auth/user-not-found" ||
+          err.code === "auth/wrong-password"
+        ) {
+          setError("E-mail ou senha inválidos.");
+        } else if (err.code === "auth/too-many-requests") {
+          setError(
+            "Muitas tentativas. Aguarde alguns minutos antes de tentar novamente."
+          );
+        } else {
+          setError("Não foi possível vincular a conta. Tente novamente.");
+          console.error("Erro ao vincular Google + e-mail:", err);
+        }
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
 
     try {
       if (isLogin) {
@@ -73,14 +116,41 @@ function AuthPage() {
       }
     } catch (err) {
       if (err.code === "auth/email-already-in-use") {
-        setError("Este e-mail já está em uso. Tente fazer login.");
+        // Login unificado: quem já tem conta criada pelo Google não pode
+        // ganhar uma segunda conta só porque escolheu "Registrar" com o
+        // mesmo e-mail. Descobrir o provider do e-mail para orientar.
+        try {
+          const methods = await fetchSignInMethodsForEmail(auth, email);
+          const isGoogleOnly =
+            methods.length === 1 && methods.includes("google.com");
+          setError(
+            isGoogleOnly
+              ? "Esta conta já existe com o Google. Use \"Continuar com o Google\" para entrar."
+              : "Este e-mail já está em uso. Tente fazer login."
+          );
+        } catch {
+          setError("Este e-mail já está em uso. Tente fazer login.");
+        }
       } else if (
         err.code === "auth/invalid-credential" ||
         err.code === "auth/invalid-login-credentials" ||
         err.code === "auth/user-not-found" ||
         err.code === "auth/wrong-password"
       ) {
-        setError("E-mail ou senha inválidos.");
+        // Login unificado: e-mail existe só no Google? Nada de senha que
+        // valida — orientar o login pelo Google em vez de parecer erro.
+        try {
+          const methods = await fetchSignInMethodsForEmail(auth, email);
+          const isGoogleOnly =
+            methods.length === 1 && methods.includes("google.com");
+          setError(
+            isGoogleOnly
+              ? "Esta conta foi criada com o Google. Clique em \"Continuar com o Google\" para entrar."
+              : "E-mail ou senha inválidos."
+          );
+        } catch {
+          setError("E-mail ou senha inválidos.");
+        }
       } else if (err.code === "auth/invalid-email") {
         setError("E-mail inválido.");
       } else if (err.code === "auth/too-many-requests") {
@@ -148,6 +218,21 @@ function AuthPage() {
       })
       .catch((err) => {
         if (cancelled) return;
+        // Login unificado: já existe conta de e-mail/senha com o mesmo e-mail.
+        // O Firebase se recusa a criar um segundo usuário e devolve a
+        // credential do Google suspensa — pedimos a senha e vinculamos o
+        // Google à conta existente (mesmo UID, dois providers).
+        if (err.code === "auth/account-exists-with-different-credential") {
+          const email = err.customData?.email;
+          const credential = GoogleAuthProvider.credentialFromError(err);
+          if (email && credential) {
+            setLinkRequest({ email, credential });
+            setError(
+              `Já existe uma conta com este e-mail (${email}). Digite a senha dessa conta para vinculá-la ao Google.`
+            );
+            return;
+          }
+        }
         console.error("Erro ao processar login do Google:", err);
       });
     return () => {
@@ -233,16 +318,26 @@ function AuthPage() {
           </button>
         </div>
 
+        {linkRequest && (
+          <div className="bg-yellow-900/30 border border-yellow-600/40 text-yellow-200 text-sm p-3 rounded-lg">
+            Já existe uma conta com o e-mail {linkRequest.email}. Digite a
+            senha dessa conta para{" "}
+            <span className="font-semibold">vincular</span> o Google a ela —
+            assim você continua a mesma conta por qualquer um dos dois caminhos.
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <input
             type="email"
                 placeholder="E-mail"
-                value={email}
+                value={linkRequest ? linkRequest.email : email}
                 onChange={(e) => setEmail(e.target.value)}
                 className={inputBaseClasses}
                 required
+                disabled={!!linkRequest}
               />
-              {!isLogin && (
+              {!isLogin && !linkRequest && (
                 <input
                   type="email"
                   placeholder="Confirme o e-mail"
@@ -260,7 +355,7 @@ function AuthPage() {
                 className={inputBaseClasses}
                 required
               />
-              {!isLogin && (
+              {!isLogin && !linkRequest && (
                 <input
                   type="password"
                   placeholder="Confirme a senha"
@@ -280,6 +375,8 @@ function AuthPage() {
               >
                 {loading ? (
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-900"></div>
+                ) : linkRequest ? (
+                  "Vincular e entrar"
                 ) : isLogin ? (
                   "Entrar"
                 ) : (

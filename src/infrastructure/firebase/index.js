@@ -5,6 +5,8 @@ import {
   signInWithRedirect,
   getRedirectResult,
   GoogleAuthProvider,
+  fetchSignInMethodsForEmail,
+  linkWithCredential,
 } from "firebase/auth";
 import {
   initializeFirestore,
@@ -93,6 +95,7 @@ export const getFirebaseMessaging = () => {
 export {
   auth,
   googleProvider,
+  GoogleAuthProvider,
   db,
   getToken,
   isMessagingSupported,
@@ -100,6 +103,8 @@ export {
   signOut,
   signInWithRedirect,
   getRedirectResult,
+  fetchSignInMethodsForEmail,
+  linkWithCredential,
   Timestamp,
   serverTimestamp,
   doc,

@@ -43,6 +43,22 @@ npm test               # react-scripts test (Jest) — não há testes escritos
 | Presentation | `src/presentation/components/AuthPage.js`, `CompleteProfileView.js` |
 | Roteamento | `src/App.js` (waterfall condicional por estado do perfil) |
 
+**Login unificado (Google + e-mail/senha → mesma conta):** o Google é um
+provider separado do e-mail/senha no Firebase — a "mesma conta" só existe se
+os dois providers forem vinculados ao MESMO `uid`. Regras em `AuthPage.js`:
+- **`auth/account-exists-with-different-credential`** (login Google quando já
+  há conta e-mail/senha com o mesmo e-mail): guarda `{email, credential}` em
+  `linkRequest`, pede a senha e executa `signInWithEmailAndPassword` +
+  `linkWithCredential` (mesmo UID, dois providers). O componente pode desmontar
+  após o sign-in (o `onAuthStateChanged` navega sozinho); o link roda na mesma
+  promise do handler.
+- **`auth/email-already-in-use`** no cadastro: consulta
+  `fetchSignInMethodsForEmail`; se o e-mail existe só no Google (`["google.com"]`),
+  orienta a usar "Continuar com o Google" em vez de criar uma segunda conta.
+- **Login e-mail/senha com e-mail só-Google**: `fetchSignInMethodsForEmail`
+  retorna `["google.com"]` → orienta o login pelo Google em vez de mostrar
+  "senha inválida".
+
 ### Vincular casal
 | Camada | Arquivo |
 |---|---|
