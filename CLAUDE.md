@@ -60,10 +60,17 @@ npm test               # react-scripts test (Jest) — não há testes escritos
 | Application | — (violacao: logica toda na presentation) |
 | Presentation | `src/presentation/components/DailyChallenge.js` (~700 linhas, 3 writes Firestore diretos) |
 
+### Catalogo de conteudo (atividades + desafios)
+| Camada | Arquivo |
+|---|---|
+| Shared (seed) | `src/shared/contentCatalog.js` (~73k, 173 atividades + 97 desafios) |
+| Infrastructure | `src/infrastructure/firebase/repositories/ContentRepository.js` (le do Firestore + seed idempotente) |
+| Consumido por | `useSuggestions.js` (sugestoes do dia/hot), `DailyChallenge.js` (desafio semanal) |
+
 ### Sugestoes diarias / hot
 | Camada | Arquivo |
 |---|---|
-| Application | `src/application/hooks/useSuggestions.js` (755 linhas, pool hard-coded) |
+| Application | `src/application/hooks/useSuggestions.js` (pool vem do catalogo no Firestore, anti-repeticao via `recentActivityIds`) |
 | Consumido por | `DuoMatchApp.js` → `MainView` / `HotZone` |
 
 ### Regra de pontuacao ciclica
@@ -141,7 +148,7 @@ npm test               # react-scripts test (Jest) — não há testes escritos
 ### Infraestrutura Firebase
 | Camada | Arquivo |
 |---|---|
-| Infrastructure | `src/infrastructure/firebase/config.js` (43 linhas), `src/infrastructure/firebase/index.js` (84 linhas) |
+| Infrastructure | `src/infrastructure/firebase/config.js` (43 linhas), `src/infrastructure/firebase/index.js` (84 linhas), `src/infrastructure/firebase/repositories/ContentRepository.js` |
 
 ### Utilitarios compartilhados
 | Camada | Arquivo |
@@ -186,8 +193,9 @@ src/
   - `DailyChallenge.js`: 3 updateDoc diretos + increment() sem transaction
 - `shared/` nao deveria importar `domain/` — **VIOLADO por `shared/utils.js`** (importa `Periodicity.js`)
 
-**Camada de repositorio** (`infrastructure/firebase/repositories/`) ainda nao existe.
-Hooks chamam Firestore diretamente. Ver ARCHITECTURE.md para o padrao a seguir.
+**Camada de repositorio** (`infrastructure/firebase/repositories/`) existe apenas para
+conteudo: `ContentRepository.js` (le catalogos globais do Firestore + seed idempotente).
+Os demais hooks ainda chamam Firestore diretamente. Ver ARCHITECTURE.md para o padrao a seguir.
 
 ---
 
@@ -225,6 +233,8 @@ Documento central do casal. Criado em `LinkingPage.js`. Deletado em `useCouple.j
 | `messageCount` | number | `useChat.js:handlePostComment` — conquista "communicator" |
 | `achievements` | string[] | `useAchievements.js` (`arrayUnion`) |
 | `streak` / `lastStreakUpdate` / `lastActivity` | number / string / Timestamp | `streakUtils.js:updateStreak` (ver bug #13) |
+| `recentActivityIds` | string[] | `useSuggestions.js` (`arrayUnion`) — anti-repeticao de sugestoes do dia/hot |
+| `recentChallengeIds` | string[] | `DailyChallenge.js` (`arrayUnion`) — anti-repeticao do desafio semanal |
 | `lastWishlistUpdate` | `{itemName, addedBy, timestamp}` | `useWishlist.js` |
 | `cycleTracking` | `{ownerId, periods: [{startDate, periodLength}], cycleLengthOverride}` | `useMenstrualCycle.js` |
 | `dailyChallengeCompletions` | number? | **NUNCA incrementado** — sempre 0 (ver bug #2) |
@@ -270,12 +280,23 @@ Lista de desejos. `status`: `"active" → "gifted" → "confirmed"`.
 Campos: `name`, `points`, `createdBy`, `createdAt`, `status`, `giftedBy?`, `link?`, `description?`.
 
 ### `duomatches/{coupleId}/dailySuggestions/{YYYY-MM-DD}` e `.../hotSuggestions/{YYYY-MM-DD}`
-Doc unico por dia, gerado sob demanda por `useSuggestions.js`. Pool hard-coded (~90 itens).
+Doc unico por dia, gerado sob demanda por `useSuggestions.js`. Pool vem do catalogo
+global (`contentActivities`), com anti-repeticao via `recentActivityIds`.
 Campo `suggestions`: `{sug_0..sug_4: {..., selections: {[uid]: "selected"|null}, matched}}`.
 
 ### `duomatches/{coupleId}/weeklyChallenge/{weekKey}` (NAO DOCUMENTADO em versoes anteriores)
 Desafio semanal — escrito diretamente por `DailyChallenge.js`. Campos nao formalizados.
 `weekKey` = identificador da semana. Conteudo inclui estado do desafio por usuario.
+Desafio escolhido do catalogo global `contentChallenges`, com anti-repeticao via
+`recentChallengeIds`.
+
+### `contentActivities/{id}` e `contentChallenges/{id}` (colecoes raiz — catalogo global)
+Fonte de verdade do conteudo (sugestoes do dia/hot e desafio semanal). Populadas
+automaticamente (seed idempotente) a partir de `src/shared/contentCatalog.js`
+(173 atividades + 97 desafios) pela primeira vez que o `ContentRepository` le.
+Depois disso, leituras vem do Firestore — pode-se ampliar/editar no banco sem rebuild.
+- `contentActivities`: `{id, name, category, points, description, flavor: "normal"|"hot", active}`
+- `contentChallenges`: `{id, title, description, points, type, active}`
 
 ### `inviteCodes/{code}` (colecao raiz)
 Codigo de convite de 6 caracteres. `creatorId`, `creatorNickname`, `createdAt`. Deletado ao consumir.
@@ -311,8 +332,10 @@ Unlock por条件oes puras em `domain/entities/Achievement.js`:
 `communicator`, `big_spender`, `hot_streak`, `wish_granter`.
 
 ### Sugestoes
-- Pool hard-coded de ~60 hot + ~10 normais.
-- 5 sugestoes geradas por dia (aleatorio).
+- Catalogo vem do banco (`contentActivities`, 173 itens: 72 normal + 101 hot), seed
+  automatico a partir de `src/shared/contentCatalog.js`.
+- 5 sugestoes geradas por dia (aleatorio), com anti-repeticao de itens recentes
+  (historico `recentActivityIds` no doc do casal).
 - Match = ambos selecionam a mesma sugestao → vira atividade real automaticamente.
 
 ### Ciclo menstrual

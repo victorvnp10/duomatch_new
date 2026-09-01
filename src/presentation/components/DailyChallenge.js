@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { doc, updateDoc, runTransaction, increment } from 'firebase/firestore';
+import { doc, updateDoc, runTransaction, increment, arrayUnion } from 'firebase/firestore';
 import { db } from '../../infrastructure/firebase';
+import { getChallengeCatalog } from '../../infrastructure/firebase/repositories/ContentRepository';
 import { ChallengeIcon, TrophyIcon } from './Icons';
 import { getTodayDateString, getDateString } from '../../shared/utils';
 
@@ -44,378 +45,41 @@ export const DailyChallenge = ({ userData, coupleData, rounds, onAcceptChallenge
   const [weeklyProgress, setWeeklyProgress] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [localChallengeData, setLocalChallengeData] = useState(null);
+  const [challengeCatalog, setChallengeCatalog] = useState(null);
 
-  // Lista expandida de desafios semanais
-  const weeklyChallenges = [
-    {
-      id: "week-msg-5",
-      title: "5 mensagens carinhosas",
-      description: "Troquem pelo menos 5 mensagens especiais de carinho durante a semana",
-      points: 10,
-      type: "communication"
-    },
-    {
-      id: "week-date-night",
-      title: "1 encontro especial",
-      description: "Organizem pelo menos 1 momento romântico juntos durante a semana",
-      points: 15,
-      type: "romance"
-    },
-    {
-      id: "week-surprise",
-      title: "Uma surpresa carinhosa",
-      description: "Cada um deve fazer pelo menos 1 pequena surpresa para o outro",
-      points: 12,
-      type: "surprise"
-    },
-    {
-      id: "week-activities",
-      title: "3 atividades juntos",
-      description: "Realizem pelo menos 3 atividades do app juntos durante a semana",
-      points: 18,
-      type: "activities"
-    },
-    {
-      id: "week-appreciation",
-      title: "3 dias de gratidão",
-      description: "Em 3 dias da semana, digam uma coisa que amam no parceiro",
-      points: 10,
-      type: "appreciation"
-    },
-    {
-      id: "week-photos",
-      title: "3 fotos da semana",
-      description: "Tirem pelo menos 3 fotos juntos durante a semana",
-      points: 8,
-      type: "memory"
-    },
-    {
-      id: "week-planning",
-      title: "Planos para próxima semana",
-      description: "Sentem juntos e planejem algo especial para a próxima semana",
-      points: 12,
-      type: "planning"
-    },
-    {
-      id: "week-cooking",
-      title: "Cozinhar juntos 1 vez",
-      description: "Preparem pelo menos 1 refeição juntos durante a semana",
-      points: 15,
-      type: "together"
-    },
-    {
-      id: "week-compliments",
-      title: "2 elogios sinceros",
-      description: "Façam pelo menos 2 elogios genuínos um para o outro durante a semana",
-      points: 8,
-      type: "appreciation"
-    },
-    {
-      id: "week-quality-time",
-      title: "30 minutos sem celular",
-      description: "Passem pelo menos 30 minutos juntos sem usar o celular",
-      points: 10,
-      type: "connection"
-    },
-    {
-      id: "week-touch",
-      title: "Mais carinho físico",
-      description: "Aumentem o carinho físico: abraços, beijos e carícias ao longo da semana",
-      points: 12,
-      type: "physical"
-    },
-    {
-      id: "week-laugh",
-      title: "Momentos de risada",
-      description: "Assistam algo engraçado ou contem piadas para se divertirem juntos",
-      points: 8,
-      type: "fun"
-    },
-    {
-      id: "week-walk",
-      title: "1 caminhada juntos",
-      description: "Façam pelo menos 1 caminhada ou passeio ao ar livre durante a semana",
-      points: 10,
-      type: "outdoor"
-    },
-    {
-      id: "week-movie",
-      title: "Assistir algo juntos",
-      description: "Escolham um filme, série ou vídeo para assistirem juntos",
-      points: 8,
-      type: "entertainment"
-    },
-    {
-      id: "week-music",
-      title: "Playlist do casal",
-      description: "Criem uma playlist com 5 músicas que representam vocês",
-      points: 10,
-      type: "music"
-    },
-    {
-      id: "week-massage",
-      title: "Massagem relaxante",
-      description: "Façam uma massagem relaxante um no outro durante a semana",
-      points: 15,
-      type: "physical"
-    },
-    {
-      id: "week-morning",
-      title: "Café da manhã especial",
-      description: "Preparem um café da manhã especial juntos em um dia da semana",
-      points: 12,
-      type: "together"
-    },
-    {
-      id: "week-dreams",
-      title: "Conversa sobre sonhos",
-      description: "Conversem sobre seus sonhos e planos futuros como casal",
-      points: 15,
-      type: "connection"
-    },
-    {
-      id: "week-game",
-      title: "Jogo para dois",
-      description: "Joguem um jogo de tabuleiro, cartas ou videogame juntos",
-      points: 10,
-      type: "fun"
-    },
-    {
-      id: "week-dance",
-      title: "Dança em casa",
-      description: "Dancem juntos na sala de casa, mesmo que por 5 minutos",
-      points: 8,
-      type: "fun"
-    },
-    {
-      id: "week-memory",
-      title: "Memória especial",
-      description: "Compartilhem uma memória especial de quando se conheceram",
-      points: 10,
-      type: "memory"
-    },
-    {
-      id: "week-learning",
-      title: "Aprender algo novo",
-      description: "Aprendam algo novo juntos: receita, habilidade ou hobby",
-      points: 15,
-      type: "growth"
-    },
-    {
-      id: "week-gratitude",
-      title: "Lista de gratidão",
-      description: "Façam uma lista de 3 coisas pelas quais são gratos no relacionamento",
-      points: 12,
-      type: "appreciation"
-    },
-    {
-      id: "week-adventure",
-      title: "Mini aventura",
-      description: "Façam uma pequena aventura: novo restaurante, lugar ou atividade",
-      points: 18,
-      type: "adventure"
-    },
-    {
-      id: "week-phone-free",
-      title: "Jantar sem celular",
-      description: "Tenham pelo menos 1 refeição juntos sem usar o celular",
-      points: 10,
-      type: "connection"
-    },
-    {
-      id: "week-surprise-note",
-      title: "Bilhetinho carinhoso",
-      description: "Deixem pelo menos 1 bilhetinho carinhoso para o outro encontrar",
-      points: 8,
-      type: "surprise"
-    },
-    {
-      id: "week-workout",
-      title: "Exercício juntos",
-      description: "Façam algum exercício físico juntos: caminhada, dança, alongamento",
-      points: 12,
-      type: "health"
-    },
-    {
-      id: "week-stargazing",
-      title: "Observar as estrelas",
-      description: "Passem alguns minutos observando o céu noturno juntos",
-      points: 10,
-      type: "romantic"
-    },
-    {
-      id: "week-breakfast-bed",
-      title: "Café na cama",
-      description: "Um prepare café da manhã na cama para o outro",
-      points: 15,
-      type: "surprise"
-    },
-    {
-      id: "week-pet-names",
-      title: "Novos apelidos carinhosos",
-      description: "Criem novos apelidos carinhosos um para o outro",
-      points: 8,
-      type: "fun"
-    },
-    {
-      id: "week-plan-weekend",
-      title: "Planejar fim de semana",
-      description: "Planejem juntos como querem passar o próximo fim de semana",
-      points: 10,
-      type: "planning"
-    },
-    {
-      id: "week-meditation",
-      title: "5 minutos de relaxamento",
-      description: "Façam 5 minutos de respiração profunda ou meditação juntos",
-      points: 10,
-      type: "wellness"
-    },
-    {
-      id: "week-video-call",
-      title: "Chamada de vídeo especial",
-      description: "Se estiverem distantes, façam uma chamada de vídeo romântica",
-      points: 12,
-      type: "communication"
-    },
-    {
-      id: "week-handwritten",
-      title: "Carta manuscrita",
-      description: "Escrevam uma pequena carta de próprio punho um para o outro",
-      points: 15,
-      type: "romantic"
-    },
-    {
-      id: "week-favorite-things",
-      title: "Coisas favoritas",
-      description: "Compartilhem 3 coisas favoritas de cada um que o outro ainda não sabe",
-      points: 10,
-      type: "connection"
-    },
-    {
-      id: "week-sunset",
-      title: "Assistir pôr do sol",
-      description: "Assistam ao pôr do sol juntos, mesmo que seja da janela",
-      points: 8,
-      type: "romantic"
-    },
-    {
-      id: "week-compliment-public",
-      title: "Elogio público",
-      description: "Façam um elogio público um ao outro nas redes sociais",
-      points: 12,
-      type: "appreciation"
-    },
-    {
-      id: "week-bucket-list",
-      title: "Lista de desejos",
-      description: "Criem uma lista de 5 coisas que querem fazer juntos este ano",
-      points: 15,
-      type: "planning"
-    },
-    {
-      id: "week-random-kiss",
-      title: "Beijo surpresa",
-      description: "Deem pelo menos 3 beijos surpresa um no outro durante a semana",
-      points: 8,
-      type: "physical"
-    },
-    {
-      id: "week-photo-album",
-      title: "Álbum de memórias",
-      description: "Olhem fotos antigas juntos e relembrem momentos especiais",
-      points: 12,
-      type: "memory"
-    },
-    {
-      id: "week-future-talk",
-      title: "Conversa sobre o futuro",
-      description: "Conversem sobre onde se veem como casal daqui a 5 anos",
-      points: 18,
-      type: "connection"
-    },
-    {
-      id: "week-silly-dance",
-      title: "Dança boba",
-      description: "Façam uma dança boba e engraçada juntos para se divertirem",
-      points: 8,
-      type: "fun"
-    },
-    {
-      id: "week-love-language",
-      title: "Linguagem do amor",
-      description: "Descubram e pratiquem a linguagem do amor preferida do parceiro",
-      points: 15,
-      type: "connection"
-    },
-    {
-      id: "week-no-tv",
-      title: "Noite sem TV",
-      description: "Passem uma noite juntos sem assistir TV, só conversando",
-      points: 12,
-      type: "connection"
-    },
-    {
-      id: "week-favorite-meal",
-      title: "Refeição favorita",
-      description: "Preparem a refeição favorita um do outro durante a semana",
-      points: 15,
-      type: "together"
-    },
-    {
-      id: "week-vision-board",
-      title: "Quadro de sonhos",
-      description: "Criem um quadro visual com seus sonhos e objetivos como casal",
-      points: 20,
-      type: "planning"
-    },
-    {
-      id: "week-thank-you",
-      title: "3 agradecimentos",
-      description: "Agradeçam especificamente por 3 coisas que o parceiro fez na semana",
-      points: 10,
-      type: "appreciation"
-    },
-    {
-      id: "week-childhood",
-      title: "Histórias da infância",
-      description: "Compartilhem uma história engraçada ou marcante da infância",
-      points: 12,
-      type: "connection"
-    },
-    {
-      id: "week-goals",
-      title: "Metas pessoais",
-      description: "Conversem sobre suas metas pessoais e como podem se apoiar",
-      points: 15,
-      type: "growth"
-    },
-    {
-      id: "week-creative",
-      title: "Projeto criativo",
-      description: "Façam algo criativo juntos: desenho, artesanato, decoração",
-      points: 18,
-      type: "creative"
-    },
-    {
-      id: "week-local-explore",
-      title: "Explorar o bairro",
-      description: "Explorem algo novo no seu bairro ou cidade natal",
-      points: 15,
-      type: "adventure"
-    }
-  ];
+  // Carrega o catálogo global de desafios do Firestore (com seed automático).
+  useEffect(() => {
+    let active = true;
+    getChallengeCatalog()
+      .then((cat) => {
+        if (active) setChallengeCatalog(cat);
+      })
+      .catch(() => {
+        if (active) setChallengeCatalog([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // Função para obter o desafio da semana
   const getWeeklyChallenge = useMemo(() => {
+    if (!challengeCatalog || !challengeCatalog.length) return null;
     const startOfWeek = getStartOfWeek(new Date());
 
     // Usar a data da segunda-feira para gerar um índice consistente
     const weekSeed = startOfWeek.getTime();
-    const challengeIndex = Math.floor(weekSeed / (1000 * 60 * 60 * 24 * 7)) % weeklyChallenges.length;
 
-    return weeklyChallenges[challengeIndex];
-  }, []);
+    // Anti-repetição: prioriza desafios que não apareceram recentemente.
+    // Se todos foram usados recentemente, cai no pool completo.
+    const recent = new Set(coupleData?.recentChallengeIds || []);
+    const available = challengeCatalog.filter((c) => !recent.has(c.id));
+    const pool = available.length ? available : challengeCatalog;
+
+    const challengeIndex = Math.floor(weekSeed / (1000 * 60 * 60 * 24 * 7)) % pool.length;
+
+    return pool[challengeIndex];
+  }, [challengeCatalog, coupleData?.recentChallengeIds]);
 
   // Calcular progresso da semana
   const calculateWeeklyProgress = useMemo(() => {
@@ -481,6 +145,7 @@ export const DailyChallenge = ({ userData, coupleData, rounds, onAcceptChallenge
   }, [coupleData, userData, calculateWeeklyProgress.startOfWeek, localChallengeData]);
 
   const handleAcceptWeeklyChallenge = async () => {
+    if (!getWeeklyChallenge) return;
     if (!userData?.uid || isLoading) return;
     if (!userData?.coupleId) {
       alert('Vincule seu parceiro(a) para aceitar desafios de verdade — no modo de demonstração isso é só ilustrativo. 💕');
@@ -515,7 +180,10 @@ export const DailyChallenge = ({ userData, coupleData, rounds, onAcceptChallenge
       };
 
       await updateDoc(coupleRef, {
-        [`weeklyChallenge.${weekKey}`]: challengeData
+        [`weeklyChallenge.${weekKey}`]: challengeData,
+        // Anti-repetição: registra o desafio aceito para não repetir nas
+        // próximas semanas (campos recentChallengeIds no doc do casal).
+        recentChallengeIds: arrayUnion(getWeeklyChallenge.id)
       });
 
       // Atualizar estado local para resposta imediata na UI

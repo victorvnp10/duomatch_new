@@ -34,6 +34,8 @@ src/
     firebase/                 ambiente, inicialização.
       config.js
       index.js
+      repositories/
+        ContentRepository.js # Catálogo global (atividades/desafios) no Firestore
 
   presentation/             # Componentes React (UI) e camada de PWA.
     components/
@@ -184,6 +186,26 @@ tela de Perfil):
   escrito na própria tela (`DisclaimerNote`), tanto para quem registra
   quanto para quem recebe o insight.
 
+## Catálogo de conteúdo no Firestore (novo)
+
+Para que sugestões do dia/hot e o desafio semanal tenham um portfólio
+variado e editável, o conteúdo saiu do código e foi para o banco:
+
+- **`shared/contentCatalog.js`** — módulo de seed com 173 atividades
+  (72 normais + 101 hot) e 97 desafios.
+- **`infrastructure/firebase/repositories/ContentRepository.js`** — nova
+  camada de repositório: faz o seed idempotente nas coleções raiz
+  (`contentActivities`/`contentChallenges`) quando vazias, lê o catálogo
+  com cache de sessão e expõe helpers puros de anti-repetição
+  (`pickVaried`/`pushRecent`).
+- **`useSuggestions.js` e `DailyChallenge.js`** agora consomem o catálogo
+  do Firestore e gravam o histórico de itens usados no doc do casal
+  (`recentActivityIds`/`recentChallengeIds`), evitando repetição diária.
+
+Isso também inaugura o padrão de **camada de repositório** previsto no
+"próximo passo" abaixo (o arquivo de repositório de conteúdo é o primeiro
+de uma série).
+
 ## O que fica como próximo passo
 
 Esta refatoração priorizou o maior risco/valor: os bugs de conquistas e
@@ -192,9 +214,10 @@ lógica de negócio dentro de componente). Ainda ficaram na camada de
 aplicação, sem uma camada de repositório dedicada, os seguintes hooks
 (funcionam corretamente, mas ainda chamam o Firestore diretamente em vez
 de passar por uma interface de repositório): `useActivities.js`,
-`useWishlist.js`, `useRewards.js`, `useChat.js`, `useSuggestions.js`. O
+`useWishlist.js`, `useRewards.js`, `useChat.js`. O
 próximo passo natural, seguindo o mesmo padrão usado em
-`useRoundRules.js`, é extrair um `infrastructure/firebase/repositories/`
+`useRoundRules.js` e no `ContentRepository`, é extrair um
+`infrastructure/firebase/repositories/`
 por agregado (`ActivityRepository`, `WishlistRepository`,
 `RewardRepository`) sempre que uma dessas áreas precisar de mudança —
 sem necessidade de reescrever tudo de uma vez.
