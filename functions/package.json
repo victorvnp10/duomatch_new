@@ -4,7 +4,7 @@
   "private": true,
   "description": "Cloud Functions do DuoMatch — emitem Web Push (FCM) para notificações 'com app fechado' (atividade do par, desafio do par, lembrete diário).",
   "engines": {
-    "node": "20"
+    "node": "22"
   },
   "main": "index.js",
   "scripts": {

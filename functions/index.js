@@ -9,7 +9,7 @@
  * e mesmo `targetView`, para que a experiência seja idêntica (clique navega
  * para `/?view=<target>`).
  *
- * DEPLOY (você, pelo Console/Cloud Shell):
+* DEPLOY (você, pelo Console/Cloud Shell):
  *   1. Firebase Console > Blaze (functions exige conta com billing, mesmo
  *      no tier gratuito) > ative Cloud Messaging para a Web (gera o par VAPID);
  *   2. A chave VAPID vai para o `.env` do app (REACT_APP_FIREBASE_VAPID_KEY);
@@ -19,11 +19,12 @@
  *        firebase login && firebase use conexaocasal-18136
  *        firebase deploy --only functions
  *
- * IMPORTANTE — região: a região dos triggers de Firestore DEVE ser a mesma
- * da localização do banco do projeto. O default aqui é "us-central1". Se o
- * seu Firestore estiver em outra região (ex.: southamerica-east1), troque a
- * variável FIRESTORE_REGION ANTES do deploy — um trigger de região errada
- * não dispara (ou falha no deploy).
+ * IMPORTANTE — região: a região dos triggers de Firestore TEM que ser a mesma
+ * da localização do banco. NESTE projeto o Firestore está em
+ * `southamerica-east1` (identificado pelo erro 403 do deploy: trigger apontava
+ * para outra região) — por isso FIRESTORE_REGION abaixo já vem assim. O
+ * `dailyReminder` (scheduler) fica separado em `us-central1` (qualquer região
+ * funciona para Pub/Sub; já foi criado lá e movê-lo só adicionaria churn).
  */
 const { onDocumentCreated, onDocumentUpdated } = require("firebase-functions/v2/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
@@ -35,8 +36,10 @@ initializeApp();
 const db = getFirestore();
 const messaging = getMessaging();
 
-// Veja o aviso de região no cabeçalho acima.
-const FIRESTORE_REGION = process.env.FIRESTORE_REGION || "us-central1";
+// Região do Firestore deste projeto (veja o aviso no cabeçalho acima).
+const FIRESTORE_REGION = process.env.FIRESTORE_REGION || "southamerica-east1";
+// Scheduler (lembrete diário) — Pub/Sub funciona em qualquer região.
+const SCHEDULER_REGION = "us-central1";
 const TIME_ZONE = "America/Sao_Paulo";
 
 /** Data local (SP) no formato YYYY-MM-DD — mesmo padrão do app. */
@@ -188,7 +191,7 @@ exports.dailyReminder = onSchedule(
   {
     schedule: "0 21 * * *",
     timeZone: TIME_ZONE,
-    region: FIRESTORE_REGION,
+    region: SCHEDULER_REGION,
   },
   async () => {
     const today = localDateStr();

@@ -145,13 +145,17 @@ npm test               # react-scripts test (Jest) — não há testes escritos
 > fechado** — o SW unico (Workbox + FCM) mostra a notificacao em background e o
 > emissor e server-side (`functions/`): gatilhos que espelham os criterios da
 > Central (par marcou atividade, par lancou desafio) + cron diario 21h SP
-> (lembrete). O CLIENTE está implementado e builda; as FUNCTIONS precisam de
-> deploy manual (Console/Cloud Shell — ver header do `functions/index.js`).
+> (lembrete). O CLIENTE está implementado e builda; as FUNCTIONS estão
+> **DEPLOYADAS** (Node 22, 2ª gen): `notifyPartnerMarkedActivity` +
+> `notifyPartnerCreatedChallenge` em **southamerica-east1** (região do banco) e
+> `dailyReminder` (scheduler) em `us-central1` — cleanup policy do Artifact
+> Registry configurada. Redeploy: `npx firebase-tools deploy --only functions`
+> (ver header do `functions/index.js`).
 > Sem `REACT_APP_FIREBASE_VAPID_KEY` no `.env` o push e no-op silencioso.
 > Clicar na notificacao foca/navega (`?view=<target>`); badge usa
 > `navigator.setAppBadge` (requer HTTPS + PWA instalado).
 > **Importante:** a região dos triggers de Firestore precisa ser a mesma da
-> localização do banco (`FIRESTORE_REGION`, default `us-central1`).
+> localização do banco (neste projeto: `southamerica-east1`).
 
 ### Tour / onboarding
 | Camada | Arquivo |
