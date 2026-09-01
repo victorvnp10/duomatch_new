@@ -18,11 +18,12 @@ import {
  * Fonte de verdade em produção: coleções raiz do Firestore
  * (`contentActivities` / `contentChallenges`). Como o app é um PWA sem
  * backend, este repositório é responsável por "plantar" (seed) o catálogo
- * uma única vez a partir do módulo `shared/contentCatalog.js` quando as
- * coleções estão vazias; a partir daí, as leituras vêm do Firestore, o que
- * permite ampliar/editar o conteúdo no banco sem precisar de novo build.
+ * a partir do módulo `shared/contentCatalog.js`; a leitura em produção vem
+ * do Firestore, o que permite editar o conteúdo no banco sem novo build.
  *
- * - Seed idempotente: só grava se a coleção estiver vazia.
+ * - Seed por upsert: grava apenas os itens cujo `id` ainda não existe,
+ *   então ampliar `contentCatalog.js` planta o novo conteúdo na próxima
+ *   inicialização (idempotente e incremental).
  * - Cache em memória por sessão (o catálogo global muda raramente).
  * - Helpers puros de variedade/anti-repetição são exportados para uso da
  *   camada de aplicação (useSuggestions / DailyChallenge).
@@ -46,18 +47,26 @@ export const pickVaried = (pool, count, recentIds = []) => {
 
 // ---------- CATÁLOGO DE ATIVIDADES ----------
 
-/** Garante que `contentActivities` esteja populada (seed idempotente). */
-export const ensureActivityCatalog = async () => {
-  const col = collection(db, "contentActivities");
-  const existing = await getDocs(col);
-  if (!existing.empty) return;
+// Grava no banco apenas os itens ainda ausentes (upsert por id),
+// em lotes de ate 400 para respeitar o limite de 500 escritas do writeBatch.
+const plantMissing = async (collectionName, items) => {
+  const col = collection(db, collectionName);
+  const snap = await getDocs(col);
+  const existingIds = new Set(snap.docs.map((d) => d.id));
+  const missing = items.filter((it) => !existingIds.has(it.id));
+  if (!missing.length) return;
 
-  const batch = writeBatch(db);
-  for (const item of ACTIVITY_CATALOG) {
-    batch.set(doc(col, item.id), item);
+  for (let i = 0; i < missing.length; i += 400) {
+    const batch = writeBatch(db);
+    missing.slice(i, i + 400).forEach((item) => {
+      batch.set(doc(col, item.id), item);
+    });
+    await batch.commit();
   }
-  await batch.commit();
 };
+
+export const ensureActivityCatalog = () =>
+  plantMissing("contentActivities", ACTIVITY_CATALOG);
 
 /** Retorna o catálogo de atividades ativo (com cache de sessão). */
 export const getActivityCatalog = async () => {
@@ -78,18 +87,8 @@ export const clearActivityCatalogCache = () => {
 
 // ---------- CATÁLOGO DE DESAFIOS ----------
 
-/** Garante que `contentChallenges` esteja populada (seed idempotente). */
-export const ensureChallengeCatalog = async () => {
-  const col = collection(db, "contentChallenges");
-  const existing = await getDocs(col);
-  if (!existing.empty) return;
-
-  const batch = writeBatch(db);
-  for (const item of CHALLENGE_CATALOG) {
-    batch.set(doc(col, item.id), item);
-  }
-  await batch.commit();
-};
+export const ensureChallengeCatalog = () =>
+  plantMissing("contentChallenges", CHALLENGE_CATALOG);
 
 /** Retorna o catálogo de desafios ativo (com cache de sessão). */
 export const getChallengeCatalog = async () => {

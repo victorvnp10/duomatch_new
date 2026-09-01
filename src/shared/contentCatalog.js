@@ -1,10 +1,11 @@
 // Catalogo central de conteudo (atividades e desafios).
 // FONTE DE SEED: este modulo e usado para popular as colecoes raiz do
-// Firestore (contentActivities / contentChallenges) quando estao vazias.
-// Depois disso, o app LE do banco (ver infrastructure/firebase/repositories/
-// ContentRepository.js) e este arquivo so precisa mudar para ampliar o
-// portfolio (basta adicionar itens e fazer o re-seed). Para re-plantar,
-// basta rodar npm run build apos o app limpar/reescrever as colecoes.
+// Firestore (contentActivities / contentChallenges). O repositorio (ver
+// infrastructure/firebase/repositories/ContentRepository.js) faz "upsert":
+// grava no banco os itens que ainda nao existem (por id) e o app LE do banco.
+// Para ampliar o portfolio, basta adicionar itens aqui e fazer o deploy —
+// o novo conteudo e plantado automaticamente na proxima inicializacao.
+
 
 export const ACTIVITY_CATALOG = [
   {
@@ -1563,6 +1564,1356 @@ export const ACTIVITY_CATALOG = [
     "description": "Façam uma massagem demorada nos pés um do outro como aquecimento.",
     "flavor": "hot",
     "active": true
+  },
+  {
+    "id": "act-normal-m6-jogo-da-verdade-romantico",
+    "name": "Jogo da verdade romântico",
+    "category": "Hobbies & Outros",
+    "points": 15,
+    "description": "Façam perguntas íntimas e carinhosas um ao outro por 10 minutos, sem julgamentos, para se conhecerem ainda mais fundo.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-quebra-cabeca-a-dois",
+    "name": "Quebra-cabeça a dois",
+    "category": "Hobbies & Outros",
+    "points": 20,
+    "description": "Montem juntos um quebra-cabeça de pelo menos 200 peças, revezando quem encaixa cada parte e comemorando juntos no final.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-pintura-compartilhada",
+    "name": "Pintura a dois",
+    "category": "Hobbies & Outros",
+    "points": 18,
+    "description": "Dividam uma tela ou folha grande e pintem juntos, cada um contribuindo com uma parte, sem combinar o resultado antes.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-danca-livre-na-sala",
+    "name": "Dança livre na sala",
+    "category": "Hobbies & Outros",
+    "points": 10,
+    "description": "Escolham uma música animada e dancem livremente na sala por 5 minutos, sem coreografia, só se divertindo juntos.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-ensaio-fotografico-tematico",
+    "name": "Ensaio fotográfico temático em casa",
+    "category": "Hobbies & Outros",
+    "points": 15,
+    "description": "Escolham um tema divertido e façam um mini ensaio de fotos em casa, usando roupas e objetos que já têm.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-playlist-nossa-historia",
+    "name": "Playlist 'nossa história'",
+    "category": "Hobbies & Outros",
+    "points": 12,
+    "description": "Montem juntos uma playlist com músicas que marcaram momentos importantes do relacionamento de vocês.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-jogo-de-tabuleiro-classico",
+    "name": "Noite de jogo de tabuleiro",
+    "category": "Hobbies & Outros",
+    "points": 10,
+    "description": "Escolham um jogo de tabuleiro clássico e joguem juntos por pelo menos 30 minutos, sem celular por perto.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-origami-a-dois",
+    "name": "Origami a dois",
+    "category": "Hobbies & Outros",
+    "points": 8,
+    "description": "Aprendam a dobrar uma figura de origami juntos, seguindo um tutorial, e troquem as criações como lembrança.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-caca-ao-tesouro-em-casa",
+    "name": "Caça ao tesouro em casa",
+    "category": "Hobbies & Outros",
+    "points": 20,
+    "description": "Um de vocês esconde pequenos bilhetes com pistas pela casa, e o outro precisa segui-las até encontrar uma surpresa.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-cartas-de-agradecimento",
+    "name": "Cartas de agradecimento mútuo",
+    "category": "Hobbies & Outros",
+    "points": 15,
+    "description": "Escrevam uma carta curta agradecendo coisas específicas que o outro fez recentemente, e leiam em voz alta juntos.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-meditacao-guiada-em-dupla",
+    "name": "Meditação guiada em dupla",
+    "category": "Hobbies & Outros",
+    "points": 12,
+    "description": "Sentem-se lado a lado e sigam uma meditação guiada de 10 minutos, focando em respirar no mesmo ritmo.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-desenhar-um-ao-outro",
+    "name": "Desenhar um ao outro",
+    "category": "Hobbies & Outros",
+    "points": 10,
+    "description": "Peguem papel e lápis e desenhem o rosto um do outro em 5 minutos, depois riam juntos do resultado.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-album-de-memorias-digital",
+    "name": "Álbum de memórias digital",
+    "category": "Hobbies & Outros",
+    "points": 15,
+    "description": "Selecionem juntos 20 fotos favoritas do relacionamento e organizem em um álbum digital com legendas carinhosas.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-jogo-eu-nunca",
+    "name": "Jogo 'eu nunca' do casal",
+    "category": "Hobbies & Outros",
+    "points": 12,
+    "description": "Joguem uma versão romântica do 'eu nunca', revelando curiosidades e histórias que ainda não contaram um ao outro.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-massagem-relaxante-revezada",
+    "name": "Massagem relaxante revezada",
+    "category": "Hobbies & Outros",
+    "points": 18,
+    "description": "Façam uma massagem de 10 minutos nos ombros um do outro, revezando quem recebe primeiro.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-organizar-gaveta-recordacoes",
+    "name": "Organizar a gaveta de recordações",
+    "category": "Hobbies & Outros",
+    "points": 10,
+    "description": "Separem 20 minutos para organizar juntos objetos e lembranças guardadas, relembrando a história por trás de cada um.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-aprender-truque-de-magica",
+    "name": "Aprender um truque de mágica juntos",
+    "category": "Hobbies & Outros",
+    "points": 15,
+    "description": "Assistam a um tutorial e aprendam um truque de mágica simples para apresentar um ao outro.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-carta-para-o-futuro-casal",
+    "name": "Carta para o futuro casal",
+    "category": "Hobbies & Outros",
+    "points": 20,
+    "description": "Escrevam juntos uma carta para serem abertos daqui a um ano, com sonhos e planos para o relacionamento.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-jogo-de-tabuleiro-inventado",
+    "name": "Inventar um jogo de tabuleiro",
+    "category": "Hobbies & Outros",
+    "points": 22,
+    "description": "Criem juntos as regras de um jogo de tabuleiro simples usando papel e objetos que tiverem em casa.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-sessao-de-ioga-a-dois",
+    "name": "Sessão de ioga a dois",
+    "category": "Hobbies & Outros",
+    "points": 15,
+    "description": "Sigam um vídeo de ioga para casais por 15 minutos, ajudando um ao outro nas posições.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-video-engracado-juntos",
+    "name": "Criar um vídeo engraçado juntos",
+    "category": "Hobbies & Outros",
+    "points": 12,
+    "description": "Gravem um vídeo curto e divertido juntos, como uma cena inventada ou dublagem de música, só para rir depois.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-mapa-de-sonhos",
+    "name": "Mapa de sonhos do casal",
+    "category": "Hobbies & Outros",
+    "points": 20,
+    "description": "Recortem imagens e palavras de revistas ou impressos e montem juntos um quadro com os sonhos que querem realizar.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-jogo-perguntas-sobre-futuro",
+    "name": "Jogo de perguntas sobre o futuro",
+    "category": "Hobbies & Outros",
+    "points": 15,
+    "description": "Façam perguntas um ao outro sobre onde se veem daqui a 5 anos e comparem as respostas.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-aprender-palavras-outro-idioma",
+    "name": "Aprender 5 palavras em outro idioma",
+    "category": "Hobbies & Outros",
+    "points": 10,
+    "description": "Escolham um idioma novo e aprendam juntos 5 palavras ou expressões, praticando a pronúncia um com o outro.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-teste-personalidade-comparar",
+    "name": "Teste de personalidade a dois",
+    "category": "Hobbies & Outros",
+    "points": 10,
+    "description": "Façam o mesmo teste de personalidade online separadamente e depois comparem e conversem sobre os resultados.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-criar-apelidos-carinhosos",
+    "name": "Criar apelidos carinhosos novos",
+    "category": "Hobbies & Outros",
+    "points": 8,
+    "description": "Pensem juntos em pelo menos 3 apelidos carinhosos novos para usarem um com o outro.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-videogame-cooperativo",
+    "name": "Sessão de videogame cooperativo",
+    "category": "Hobbies & Outros",
+    "points": 15,
+    "description": "Joguem juntos um jogo cooperativo por pelo menos 30 minutos, trabalhando em equipe para vencer os desafios.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-lista-motivos-para-amar",
+    "name": "Lista de 10 motivos para amar o outro",
+    "category": "Hobbies & Outros",
+    "points": 18,
+    "description": "Escrevam separadamente uma lista com 10 motivos pelos quais amam o outro e troquem as listas ao final.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-reorganizar-comodo-juntos",
+    "name": "Reorganizar um cômodo juntos",
+    "category": "Hobbies & Outros",
+    "points": 15,
+    "description": "Escolham um cômodo da casa e reorganizem juntos a decoração ou arrumação, deixando o espaço com a cara de vocês.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-origami-coracao",
+    "name": "Origami de coração",
+    "category": "Hobbies & Outros",
+    "points": 8,
+    "description": "Dobrem juntos um coração de papel seguindo um tutorial simples e escrevam uma mensagem dentro dele.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-capsula-do-tempo",
+    "name": "Criar uma cápsula do tempo",
+    "category": "Hobbies & Outros",
+    "points": 22,
+    "description": "Guardem juntos objetos e uma carta em uma caixa, combinando uma data futura para abrir e relembrar.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-mimica-romantica",
+    "name": "Jogo de mímica romântica",
+    "category": "Hobbies & Outros",
+    "points": 12,
+    "description": "Façam mímicas de momentos marcantes do relacionamento para o outro adivinhar.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-assistir-por-do-sol",
+    "name": "Assistir ao pôr do sol juntos",
+    "category": "Hobbies & Outros",
+    "points": 10,
+    "description": "Parem o que estão fazendo e observem juntos o pôr do sol pela janela ou varanda, sem celular.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-historia-inventada-alternando",
+    "name": "Criar uma história alternando frases",
+    "category": "Hobbies & Outros",
+    "points": 15,
+    "description": "Inventem uma história juntos, cada um contribuindo com uma frase por vez, até chegar a um final engraçado.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-verdade-ou-desafio-leve",
+    "name": "Jogo 'verdade ou desafio' leve",
+    "category": "Hobbies & Outros",
+    "points": 14,
+    "description": "Joguem uma rodada de verdade ou desafio com perguntas e tarefas leves e divertidas, sem constrangimento.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-cozinhar-receita-nova",
+    "name": "Cozinhar uma receita nova juntos",
+    "category": "Comida & Bebida",
+    "points": 18,
+    "description": "Escolham uma receita que nenhum dos dois já fez e preparem juntos, dividindo as tarefas na cozinha.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-prova-as-cegas",
+    "name": "Prova às cegas de sabores",
+    "category": "Comida & Bebida",
+    "points": 12,
+    "description": "Um de vocês venda os olhos do outro e ofereça pequenas porções de alimentos diferentes para adivinhar.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-fazer-sobremesa-juntos",
+    "name": "Fazer sobremesa juntos",
+    "category": "Comida & Bebida",
+    "points": 15,
+    "description": "Escolham uma sobremesa simples e preparem juntos, terminando com uma degustação especial.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-noite-pizza-caseira",
+    "name": "Noite de pizza caseira",
+    "category": "Comida & Bebida",
+    "points": 18,
+    "description": "Preparem a massa e escolham os recheios juntos para uma pizza 100% feita por vocês.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-harmonizacao-vinho-queijos",
+    "name": "Harmonização de vinho e queijos",
+    "category": "Comida & Bebida",
+    "points": 20,
+    "description": "Montem uma tábua simples de queijos e escolham uma bebida para harmonizar, conversando sobre os sabores.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-cafe-da-manha-na-cama",
+    "name": "Café da manhã na cama",
+    "category": "Comida & Bebida",
+    "points": 15,
+    "description": "Um de vocês prepara e serve o café da manhã na cama para o outro, como uma surpresa carinhosa.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-piquenique-na-sala",
+    "name": "Piquenique na sala",
+    "category": "Comida & Bebida",
+    "points": 12,
+    "description": "Montem um piquenique com manta e petiscos dentro de casa, mudando a rotina das refeições.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-drink-autoral-a-dois",
+    "name": "Criar um drink autoral a dois",
+    "category": "Comida & Bebida",
+    "points": 15,
+    "description": "Misturem ingredientes que têm em casa e criem juntos uma bebida (com ou sem álcool) só de vocês.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-pao-caseiro-juntos",
+    "name": "Fazer pão caseiro juntos",
+    "category": "Comida & Bebida",
+    "points": 20,
+    "description": "Preparem uma receita simples de pão caseiro, revezando quem sova a massa e quem cuida do forno.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-noite-comida-etnica",
+    "name": "Noite de comida étnica",
+    "category": "Comida & Bebida",
+    "points": 18,
+    "description": "Escolham um país e preparem juntos um prato típico dele, pesquisando a receita antes.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-desafio-decorar-bolo",
+    "name": "Desafio de decorar um bolo",
+    "category": "Comida & Bebida",
+    "points": 20,
+    "description": "Comprem ou façam um bolo simples e decorem juntos, cada um com um lado, comparando o resultado no final.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-jantar-luz-de-velas",
+    "name": "Jantar à luz de velas",
+    "category": "Comida & Bebida",
+    "points": 18,
+    "description": "Preparem um jantar simples e montem a mesa com velas para criar um clima especial, só para os dois.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-receita-familia-nova",
+    "name": "Criar uma receita de família nova",
+    "category": "Comida & Bebida",
+    "points": 22,
+    "description": "Combinem ingredientes que os dois gostam e criem juntos uma receita que pode virar tradição de vocês.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-chocolate-quente-especial",
+    "name": "Fazer chocolate quente especial",
+    "category": "Comida & Bebida",
+    "points": 10,
+    "description": "Preparem juntos um chocolate quente com um toque especial (canela, chantilly, especiarias) e tomem conversando.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-provar-tres-queijos",
+    "name": "Provar 3 queijos diferentes",
+    "category": "Comida & Bebida",
+    "points": 12,
+    "description": "Comprem 3 tipos de queijo diferentes e façam uma degustação, elegendo o favorito de cada um.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-cozinhar-sem-receita",
+    "name": "Cozinhar sem receita",
+    "category": "Comida & Bebida",
+    "points": 18,
+    "description": "Usem apenas o que tiverem na geladeira para criar um prato juntos, sem seguir nenhuma receita pronta.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-smoothie-personalizado",
+    "name": "Smoothie personalizado um para o outro",
+    "category": "Comida & Bebida",
+    "points": 10,
+    "description": "Cada um prepara um smoothie pensando no gosto do outro, e trocam para experimentar.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-recriar-prato-primeiro-encontro",
+    "name": "Recriar o prato do primeiro encontro",
+    "category": "Comida & Bebida",
+    "points": 20,
+    "description": "Lembrem o que comeram no primeiro encontro e tentem recriar o prato juntos em casa.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-noite-fondue-caseiro",
+    "name": "Noite de fondue caseiro",
+    "category": "Comida & Bebida",
+    "points": 20,
+    "description": "Preparem um fondue de queijo ou chocolate e aproveitem a noite compartilhando os mergulhos.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-marmita-saudavel-semana",
+    "name": "Preparar marmitas saudáveis da semana",
+    "category": "Comida & Bebida",
+    "points": 15,
+    "description": "Cozinhem juntos as refeições saudáveis para os próximos dias, dividindo em marmitas.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-testar-tempero-novo",
+    "name": "Testar um tempero novo",
+    "category": "Comida & Bebida",
+    "points": 8,
+    "description": "Escolham um tempero que nunca usaram e adicionem a um prato simples do dia a dia.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-tabua-de-frios",
+    "name": "Montar uma tábua de frios",
+    "category": "Comida & Bebida",
+    "points": 15,
+    "description": "Selecionem frios, pães e acompanhamentos para montar juntos uma tábua para compartilhar.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-pipoca-gourmet",
+    "name": "Fazer pipoca gourmet",
+    "category": "Comida & Bebida",
+    "points": 8,
+    "description": "Preparem uma pipoca com um tempero diferente (queijo, doce de leite, páprica) para acompanhar um filme.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-cha-especial-conversar",
+    "name": "Preparar chá especial e conversar",
+    "category": "Comida & Bebida",
+    "points": 8,
+    "description": "Façam um chá diferente do habitual e sentem-se juntos para conversar sobre como foi o dia.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-menu-surpresa-um-para-outro",
+    "name": "Criar um menu surpresa",
+    "category": "Comida & Bebida",
+    "points": 18,
+    "description": "Cada um prepara secretamente um prato ou lanche surpresa para o outro, sem revelar antes.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-suco-natural-diferente",
+    "name": "Fazer um suco natural diferente",
+    "category": "Comida & Bebida",
+    "points": 8,
+    "description": "Combinem frutas que normalmente não usam juntas e criem um suco novo para experimentar.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-prato-da-infancia",
+    "name": "Cozinhar um prato da infância",
+    "category": "Comida & Bebida",
+    "points": 18,
+    "description": "Cada um ensina ao outro a fazer um prato que lembra a própria infância.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-receitas-de-app-culinaria",
+    "name": "Testar receita de app de culinária",
+    "category": "Comida & Bebida",
+    "points": 15,
+    "description": "Escolham uma receita popular em um aplicativo de culinária e preparem juntos, seguindo o passo a passo.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-brinde-especial-relacionamento",
+    "name": "Fazer um brinde especial",
+    "category": "Comida & Bebida",
+    "points": 10,
+    "description": "Preparem uma bebida simples e façam um brinde falando o que mais valorizam no relacionamento.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-ritual-cafe-da-tarde",
+    "name": "Criar um ritual de café da tarde",
+    "category": "Comida & Bebida",
+    "points": 12,
+    "description": "Reservem um horário fixo para tomarem café da tarde juntos, sem celular, conversando sobre o dia.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-planejar-viagem-dos-sonhos",
+    "name": "Planejar a viagem dos sonhos",
+    "category": "Viagens & Passeios",
+    "points": 15,
+    "description": "Escolham um destino dos sonhos e pesquisem juntos roteiro, passeios e comidas típicas, mesmo sem comprar nada ainda.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-passeio-bairro-novo",
+    "name": "Passeio a pé por um bairro novo",
+    "category": "Viagens & Passeios",
+    "points": 15,
+    "description": "Escolham um bairro que nunca exploraram na cidade e caminhem juntos descobrindo ruas e lugares novos.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-visitar-parque-local",
+    "name": "Visitar um parque local",
+    "category": "Viagens & Passeios",
+    "points": 10,
+    "description": "Vão juntos a um parque próximo e caminhem, conversando ou apenas aproveitando o ambiente.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-explorar-feira-mercado",
+    "name": "Explorar uma feira ou mercado",
+    "category": "Viagens & Passeios",
+    "points": 12,
+    "description": "Visitem juntos uma feira ou mercado da cidade e experimentem algo que nunca provaram.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-por-do-sol-mirante",
+    "name": "Pôr do sol em um mirante",
+    "category": "Viagens & Passeios",
+    "points": 15,
+    "description": "Encontrem um ponto alto ou mirante na cidade e assistam juntos ao pôr do sol.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-trilha-leve-juntos",
+    "name": "Fazer uma trilha leve",
+    "category": "Viagens & Passeios",
+    "points": 20,
+    "description": "Escolham uma trilha curta e leve na região e façam juntos, aproveitando a natureza.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-visitar-museu-exposicao",
+    "name": "Visitar um museu ou exposição",
+    "category": "Viagens & Passeios",
+    "points": 15,
+    "description": "Escolham um museu ou exposição na cidade e visitem juntos, comentando o que mais gostaram.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-passeio-de-bicicleta",
+    "name": "Passeio de bicicleta juntos",
+    "category": "Viagens & Passeios",
+    "points": 15,
+    "description": "Peguem as bicicletas (ou alugem) e façam um passeio juntos por um trajeto novo.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-cafeteria-nova-cidade",
+    "name": "Descobrir uma cafeteria nova",
+    "category": "Viagens & Passeios",
+    "points": 10,
+    "description": "Pesquisem uma cafeteria bem avaliada que nunca foram e vão experimentar juntos.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-turista-na-propria-cidade",
+    "name": "Roteiro de turista na própria cidade",
+    "category": "Viagens & Passeios",
+    "points": 18,
+    "description": "Montem um mini roteiro visitando pontos turísticos da própria cidade como se fossem turistas.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-visitar-livraria",
+    "name": "Visitar uma livraria juntos",
+    "category": "Viagens & Passeios",
+    "points": 10,
+    "description": "Vão a uma livraria e escolham juntos um livro para lerem a dois.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-passeio-noturno-luzes",
+    "name": "Passeio noturno pelas luzes da cidade",
+    "category": "Viagens & Passeios",
+    "points": 12,
+    "description": "Saiam à noite para caminhar e observar as luzes e movimento da cidade juntos.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-explorar-praca-historica",
+    "name": "Explorar uma praça histórica",
+    "category": "Viagens & Passeios",
+    "points": 10,
+    "description": "Visitem uma praça ou ponto histórico da cidade e pesquisem juntos sobre a origem do lugar.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-piquenique-ao-ar-livre",
+    "name": "Piquenique ao ar livre",
+    "category": "Viagens & Passeios",
+    "points": 15,
+    "description": "Montem uma cesta com lanches e façam um piquenique em um parque ou área verde.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-feira-de-artesanato",
+    "name": "Visitar uma feira de artesanato",
+    "category": "Viagens & Passeios",
+    "points": 10,
+    "description": "Vão juntos a uma feira de artesanato e escolham uma lembrança para levar para casa.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-passeio-carro-sem-destino",
+    "name": "Passeio de carro sem destino certo",
+    "category": "Viagens & Passeios",
+    "points": 15,
+    "description": "Peguem o carro e saiam para rodar sem destino definido, deixando a curiosidade guiar o caminho.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-restaurante-novo-bairro",
+    "name": "Descobrir um restaurante novo",
+    "category": "Viagens & Passeios",
+    "points": 15,
+    "description": "Escolham um restaurante que nunca foram no bairro e experimentem juntos algo do cardápio.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-nascer-do-sol-juntos",
+    "name": "Assistir ao nascer do sol",
+    "category": "Viagens & Passeios",
+    "points": 18,
+    "description": "Acordem cedo e assistam juntos ao nascer do sol, aproveitando o início do dia a dois.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-passeio-barco-lago",
+    "name": "Passeio de barco ou lago",
+    "category": "Viagens & Passeios",
+    "points": 22,
+    "description": "Se houver um lago ou rio na região, façam um passeio de barco ou caminhem pela beira dele.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-vinicola-cervejaria-local",
+    "name": "Visitar uma vinícola ou cervejaria local",
+    "category": "Viagens & Passeios",
+    "points": 20,
+    "description": "Pesquisem uma vinícola ou cervejaria na região e façam uma visita ou degustação juntos.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-trilha-urbana-grafites",
+    "name": "Trilha urbana de grafites",
+    "category": "Viagens & Passeios",
+    "points": 12,
+    "description": "Caminhem por uma região conhecida por grafites e murais, fotografando os que mais gostarem.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-jardim-botanico",
+    "name": "Passeio a um jardim botânico",
+    "category": "Viagens & Passeios",
+    "points": 15,
+    "description": "Visitem um jardim botânico ou parque com plantas e façam uma caminhada tranquila juntos.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-roteiro-food-trucks",
+    "name": "Roteiro gastronômico de food trucks",
+    "category": "Viagens & Passeios",
+    "points": 15,
+    "description": "Procurem um evento ou ponto com food trucks e experimentem pratos diferentes juntos.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-visitar-cidade-vizinha",
+    "name": "Visitar uma cidade vizinha por um dia",
+    "category": "Viagens & Passeios",
+    "points": 25,
+    "description": "Escolham uma cidade próxima que nunca visitaram e façam um bate-volta de um dia juntos.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-show-evento-cultural",
+    "name": "Assistir a um show ou evento cultural",
+    "category": "Viagens & Passeios",
+    "points": 20,
+    "description": "Procurem um show, peça ou evento cultural acontecendo na região e vão juntos.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-maratona-decada-do-casal",
+    "name": "Maratona de filmes da década de vocês",
+    "category": "Filmes & Séries",
+    "points": 15,
+    "description": "Escolham filmes lançados na década em que nasceram e façam uma maratona juntos.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-filme-nenhum-viu",
+    "name": "Assistir a um filme que nenhum viu",
+    "category": "Filmes & Séries",
+    "points": 10,
+    "description": "Escolham juntos um filme que nenhum dos dois assistiu e comentem as impressões depois.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-recriar-cena-filme",
+    "name": "Recriar uma cena de filme favorito",
+    "category": "Filmes & Séries",
+    "points": 18,
+    "description": "Escolham uma cena marcante de um filme que os dois amam e tentem recriá-la em casa.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-cinema-em-casa-tematico",
+    "name": "Cinema em casa temático",
+    "category": "Filmes & Séries",
+    "points": 15,
+    "description": "Escolham um tema (terror, comédia, romance) e montem uma sessão de cinema em casa com pipoca e luz apagada.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-documentario-debater",
+    "name": "Assistir a um documentário e debater",
+    "category": "Filmes & Séries",
+    "points": 12,
+    "description": "Escolham um documentário sobre um tema que interesse os dois e conversem sobre ele depois.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-filme-por-sorteio",
+    "name": "Escolher um filme por sorteio",
+    "category": "Filmes & Séries",
+    "points": 8,
+    "description": "Escrevam nomes de filmes em papéis, sorteiem um e assistam juntos, seja qual for o resultado.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-serie-favorita-infancia",
+    "name": "Assistir à série favorita da infância",
+    "category": "Filmes & Séries",
+    "points": 12,
+    "description": "Um de vocês escolhe uma série que marcou a própria infância para o outro conhecer.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-top-5-filmes-cada-um",
+    "name": "Criar uma lista de 'top 5 filmes'",
+    "category": "Filmes & Séries",
+    "points": 10,
+    "description": "Cada um monta sua lista dos 5 filmes favoritos e comparem as escolhas, explicando os motivos.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-filme-outro-idioma",
+    "name": "Assistir a um filme em outro idioma",
+    "category": "Filmes & Séries",
+    "points": 15,
+    "description": "Escolham um filme em um idioma diferente do português, com legenda, e assistam juntos.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-noite-curtas-metragens",
+    "name": "Noite de curtas-metragens",
+    "category": "Filmes & Séries",
+    "points": 10,
+    "description": "Selecionem alguns curtas-metragens disponíveis online e assistam juntos em uma noite tranquila.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-playlist-colaborativa",
+    "name": "Criar uma playlist colaborativa",
+    "category": "Música",
+    "points": 10,
+    "description": "Cada um adiciona 5 músicas à mesma playlist e ouçam juntos o resultado.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-ensinar-musica-favorita",
+    "name": "Ensinar uma música favorita ao outro",
+    "category": "Música",
+    "points": 8,
+    "description": "Toquem ou cantem uma música que é especial para vocês e expliquem por que ela importa.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-karaoke-caseiro",
+    "name": "Fazer um karaokê caseiro",
+    "category": "Música",
+    "points": 15,
+    "description": "Escolham músicas favoritas e façam um karaokê em casa, sem se preocupar em cantar bem.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-descobrir-banda-nova",
+    "name": "Descobrir uma banda ou artista novo",
+    "category": "Música",
+    "points": 10,
+    "description": "Pesquisem um artista ou banda que nenhum conhece e ouçam o álbum completo juntos.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-trilha-primeiro-encontro",
+    "name": "Recriar a trilha sonora do primeiro encontro",
+    "category": "Música",
+    "points": 15,
+    "description": "Relembrem quais músicas tocavam ou marcaram o primeiro encontro de vocês e ouçam juntos.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-letra-musica-outro-idioma",
+    "name": "Aprender letra de música em outro idioma",
+    "category": "Música",
+    "points": 12,
+    "description": "Escolham uma música em outro idioma e aprendam juntos a cantar pelo menos o refrão.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-dancar-musica-relacionamento",
+    "name": "Dançar a música do relacionamento",
+    "category": "Música",
+    "points": 10,
+    "description": "Escolham a música que representa o relacionamento de vocês e dancem juntos, mesmo sem jeito.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-compor-musica-paradia",
+    "name": "Compor uma paródia juntos",
+    "category": "Música",
+    "points": 18,
+    "description": "Peguem uma música conhecida e criem juntos uma letra nova e engraçada sobre o relacionamento.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-show-ao-vivo",
+    "name": "Assistir a um show ao vivo",
+    "category": "Música",
+    "points": 20,
+    "description": "Procurem uma live, show local ou apresentação e assistam juntos, presencialmente ou online.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-normal-m6-playlist-data-especial",
+    "name": "Criar playlist para data especial futura",
+    "category": "Música",
+    "points": 10,
+    "description": "Montem juntos uma playlist pensando em uma data especial que ainda vai acontecer no relacionamento.",
+    "flavor": "normal",
+    "active": true
+  },
+  {
+    "id": "act-hot-m6-massagem-surpresa-oleo",
+    "name": "Massagem surpresa com óleo aromático",
+    "category": "Hot",
+    "points": 22,
+    "description": "Preparem o ambiente com música baixa e façam uma massagem surpresa um no outro usando óleo aromático.",
+    "flavor": "hot",
+    "active": true
+  },
+  {
+    "id": "act-hot-m6-striptease-humor-leve",
+    "name": "Striptease de humor",
+    "category": "Hot",
+    "points": 18,
+    "description": "Façam uma dança de striptease engraçada e sem pressão, só para se divertirem e provocarem um ao outro.",
+    "flavor": "hot",
+    "active": true
+  },
+  {
+    "id": "act-hot-m6-perguntas-picantes",
+    "name": "Jogo de perguntas picantes",
+    "category": "Hot",
+    "points": 15,
+    "description": "Façam perguntas ousadas e picantes um ao outro, respondendo com sinceridade e sem julgamento.",
+    "flavor": "hot",
+    "active": true
+  },
+  {
+    "id": "act-hot-m6-danca-sensual-a-dois",
+    "name": "Dança sensual a dois",
+    "category": "Hot",
+    "points": 20,
+    "description": "Escolham uma música de clima sensual e dancem coladinhos, deixando o momento fluir naturalmente.",
+    "flavor": "hot",
+    "active": true
+  },
+  {
+    "id": "act-hot-m6-banho-banheira-compartilhado",
+    "name": "Banho compartilhado",
+    "category": "Hot",
+    "points": 25,
+    "description": "Preparem um banho relaxante para os dois, com velas e música baixa, aproveitando o momento juntos.",
+    "flavor": "hot",
+    "active": true
+  },
+  {
+    "id": "act-hot-m6-tabuleiro-sorte-picante",
+    "name": "Jogo de tabuleiro picante",
+    "category": "Hot",
+    "points": 20,
+    "description": "Criem um jogo simples com cartas de desafios sensuais e joguem juntos, revezando quem tira a carta.",
+    "flavor": "hot",
+    "active": true
+  },
+  {
+    "id": "act-hot-m6-sussurros-elogios",
+    "name": "Sussurros ao ouvido",
+    "category": "Hot",
+    "points": 15,
+    "description": "Revezem sussurrando elogios sensuais um no ouvido do outro por alguns minutos.",
+    "flavor": "hot",
+    "active": true
+  },
+  {
+    "id": "act-hot-m6-vendar-adivinhar-toques",
+    "name": "Vendar os olhos e adivinhar toques",
+    "category": "Hot",
+    "points": 22,
+    "description": "Um de vocês veda os olhos enquanto o outro faz toques diferentes, e a missão é adivinhar cada um.",
+    "flavor": "hot",
+    "active": true
+  },
+  {
+    "id": "act-hot-m6-noite-lingerie-surpresa",
+    "name": "Noite de roupa especial surpresa",
+    "category": "Hot",
+    "points": 25,
+    "description": "Preparem uma surpresa usando uma roupa ou lingerie especial escolhida para agradar o parceiro(a).",
+    "flavor": "hot",
+    "active": true
+  },
+  {
+    "id": "act-hot-m6-beijo-cronometrado",
+    "name": "Beijo cronometrado de 60 segundos",
+    "category": "Hot",
+    "points": 12,
+    "description": "Cronometrem um beijo de pelo menos 60 segundos, sem pressa, focando só nesse momento.",
+    "flavor": "hot",
+    "active": true
+  },
+  {
+    "id": "act-hot-m6-cartas-desafios-sensuais",
+    "name": "Jogo de cartas com desafios sensuais",
+    "category": "Hot",
+    "points": 20,
+    "description": "Criem cartas com pequenos desafios sensuais e sorteiem uma por vez para cumprir na hora.",
+    "flavor": "hot",
+    "active": true
+  },
+  {
+    "id": "act-hot-m6-massagem-pes-provocante",
+    "name": "Massagem nos pés relaxante e provocante",
+    "category": "Hot",
+    "points": 15,
+    "description": "Façam uma massagem revezada nos pés um do outro, com calma e atenção total no parceiro(a).",
+    "flavor": "hot",
+    "active": true
+  },
+  {
+    "id": "act-hot-m6-danca-seducao-improvisada",
+    "name": "Dança sedutora improvisada",
+    "category": "Hot",
+    "points": 18,
+    "description": "Escolham uma música e criem uma coreografia sedutora na hora, sem ensaio, só se soltando.",
+    "flavor": "hot",
+    "active": true
+  },
+  {
+    "id": "act-hot-m6-verdade-consequencia-picante",
+    "name": "Jogo 'verdade ou consequência' picante",
+    "category": "Hot",
+    "points": 20,
+    "description": "Joguem uma rodada de verdade ou consequência com perguntas e desafios mais ousados.",
+    "flavor": "hot",
+    "active": true
+  },
+  {
+    "id": "act-hot-m6-bilhete-sedutor-escondido",
+    "name": "Bilhete sedutor escondido",
+    "category": "Hot",
+    "points": 12,
+    "description": "Escrevam um bilhete sedutor e escondam em um lugar que o parceiro(a) vá encontrar durante o dia.",
+    "flavor": "hot",
+    "active": true
+  },
+  {
+    "id": "act-hot-m6-ensaio-sensual-privado",
+    "name": "Ensaio fotográfico sensual privado",
+    "category": "Hot",
+    "points": 22,
+    "description": "Façam um mini ensaio de fotos sensuais só para vocês, guardado em um local privado e seguro.",
+    "flavor": "hot",
+    "active": true
+  },
+  {
+    "id": "act-hot-m6-jogo-gelo-provocacao",
+    "name": "Provocação com cubos de gelo",
+    "category": "Hot",
+    "points": 20,
+    "description": "Usem cubos de gelo para provocar suavemente um ao outro, brincando com a sensação de frio.",
+    "flavor": "hot",
+    "active": true
+  },
+  {
+    "id": "act-hot-m6-mensagens-picantes-dia",
+    "name": "Trocar mensagens picantes durante o dia",
+    "category": "Hot",
+    "points": 15,
+    "description": "Enviem mensagens picantes um para o outro ao longo do dia, criando expectativa para a noite.",
+    "flavor": "hot",
+    "active": true
+  },
+  {
+    "id": "act-hot-m6-playlist-clima-noite",
+    "name": "Criar uma playlist 'clima' para a noite",
+    "category": "Hot",
+    "points": 10,
+    "description": "Montem juntos uma playlist com músicas de clima intimista para curtirem a noite.",
+    "flavor": "hot",
+    "active": true
+  },
+  {
+    "id": "act-hot-m6-jantar-velas-dress-code",
+    "name": "Jantar com dress code sensual",
+    "category": "Hot",
+    "points": 25,
+    "description": "Organizem um jantar à luz de velas combinando previamente um dress code sensual para a ocasião.",
+    "flavor": "hot",
+    "active": true
+  },
+  {
+    "id": "act-hot-m6-tabuleiro-temperatura",
+    "name": "Jogo de tabuleiro 'temperatura'",
+    "category": "Hot",
+    "points": 22,
+    "description": "Criem um jogo com desafios que aumentam de intensidade a cada rodada, como uma escala de temperatura.",
+    "flavor": "hot",
+    "active": true
+  },
+  {
+    "id": "act-hot-m6-caricias-sem-pressa",
+    "name": "Sessão de carícias sem pressa",
+    "category": "Hot",
+    "points": 20,
+    "description": "Reservem um tempo só para carícias, sem celular e sem pressa, focando totalmente um no outro.",
+    "flavor": "hot",
+    "active": true
+  },
+  {
+    "id": "act-hot-m6-perguntas-fantasias-leves",
+    "name": "Jogo de perguntas sobre fantasias",
+    "category": "Hot",
+    "points": 18,
+    "description": "Conversem abertamente sobre fantasias leves um do outro, sem julgamento e com respeito mútuo.",
+    "flavor": "hot",
+    "active": true
+  },
+  {
+    "id": "act-hot-m6-striptease-comico-musica",
+    "name": "Striptease cômico com música escolhida",
+    "category": "Hot",
+    "points": 18,
+    "description": "Escolham juntos uma música engraçada e façam um striptease bem humorado, só para se divertir.",
+    "flavor": "hot",
+    "active": true
+  },
+  {
+    "id": "act-hot-m6-massagem-velas-aromaticas",
+    "name": "Massagem com velas aromáticas de baixa temperatura",
+    "category": "Hot",
+    "points": 25,
+    "description": "Usem velas próprias para massagem (baixa temperatura) e façam uma massagem relaxante e sensual.",
+    "flavor": "hot",
+    "active": true
+  },
+  {
+    "id": "act-hot-m6-toque-cego-tecidos",
+    "name": "Jogo 'toque às cegas' com tecidos",
+    "category": "Hot",
+    "points": 18,
+    "description": "Vendem os olhos e usem tecidos diferentes (seda, algodão, pelúcia) para o parceiro(a) sentir e reagir.",
+    "flavor": "hot",
+    "active": true
+  },
+  {
+    "id": "act-hot-m6-ritual-noturno-so-dois",
+    "name": "Criar um ritual noturno só dos dois",
+    "category": "Hot",
+    "points": 15,
+    "description": "Definam um pequeno ritual (massagem, banho, conversa) para fazerem juntos antes de dormir.",
+    "flavor": "hot",
+    "active": true
+  },
+  {
+    "id": "act-hot-m6-cartas-desejos-secretos",
+    "name": "Jogo de cartas 'desejos secretos'",
+    "category": "Hot",
+    "points": 20,
+    "description": "Escrevam desejos secretos em cartas separadas e troquem, tentando realizar um deles ainda essa semana.",
+    "flavor": "hot",
+    "active": true
+  },
+  {
+    "id": "act-hot-m6-provocacao-pena-plumas",
+    "name": "Provocação com pena ou pluma",
+    "category": "Hot",
+    "points": 18,
+    "description": "Usem uma pena ou pluma macia para provocar suavemente a pele um do outro.",
+    "flavor": "hot",
+    "active": true
+  },
+  {
+    "id": "act-hot-m6-spa-a-dois-em-casa",
+    "name": "Noite de spa a dois em casa",
+    "category": "Hot",
+    "points": 25,
+    "description": "Montem uma experiência de spa em casa com máscaras, óleos e massagem revezada entre os dois.",
+    "flavor": "hot",
+    "active": true
+  },
+  {
+    "id": "act-hot-m6-sussurros-fantasias-leves",
+    "name": "Sussurros de fantasias leves",
+    "category": "Hot",
+    "points": 15,
+    "description": "Sussurrem um para o outro pequenas fantasias ou desejos, criando intimidade e cumplicidade.",
+    "flavor": "hot",
+    "active": true
+  },
+  {
+    "id": "act-hot-m6-danca-lenta-abracados-escuro",
+    "name": "Dança lenta abraçados no escuro",
+    "category": "Hot",
+    "points": 15,
+    "description": "Apaguem as luzes, coloquem uma música lenta e dancem abraçados, sentindo o momento juntos.",
+    "flavor": "hot",
+    "active": true
+  },
+  {
+    "id": "act-hot-m6-seduzir-tres-palavras",
+    "name": "Jogo 'seduzir em 3 palavras'",
+    "category": "Hot",
+    "points": 12,
+    "description": "Cada um tenta seduzir o outro usando apenas 3 palavras por vez, revezando as rodadas.",
+    "flavor": "hot",
+    "active": true
+  },
+  {
+    "id": "act-hot-m6-fotos-preto-branco-sensuais",
+    "name": "Sessão de fotos em preto e branco sensuais",
+    "category": "Hot",
+    "points": 22,
+    "description": "Façam fotos em preto e branco com um clima mais sensual, guardadas apenas para os dois.",
+    "flavor": "hot",
+    "active": true
+  },
+  {
+    "id": "act-hot-m6-tabuleiro-ousadia-romantica",
+    "name": "Jogo de tabuleiro 'ousadia romântica'",
+    "category": "Hot",
+    "points": 20,
+    "description": "Criem um tabuleiro simples com casas de desafios ousados e joguem juntos até o fim.",
+    "flavor": "hot",
+    "active": true
+  },
+  {
+    "id": "act-hot-m6-massagem-troca-papeis",
+    "name": "Massagem com troca de papéis",
+    "category": "Hot",
+    "points": 20,
+    "description": "Um de vocês assume o comando da massagem por 10 minutos, depois trocam os papéis.",
+    "flavor": "hot",
+    "active": true
+  },
+  {
+    "id": "act-hot-m6-recriar-clima-filme-romantico",
+    "name": "Recriar o clima de uma cena romântica",
+    "category": "Hot",
+    "points": 18,
+    "description": "Escolham uma cena de filme romântico que gostam e recriem o clima dela em casa.",
+    "flavor": "hot",
+    "active": true
+  },
+  {
+    "id": "act-hot-m6-seduza-me-regras-na-hora",
+    "name": "Jogo 'seduza-me' com regras inventadas",
+    "category": "Hot",
+    "points": 18,
+    "description": "Criem regras de sedução na hora, um desafiando o outro a cumprir pequenas provocações.",
+    "flavor": "hot",
+    "active": true
+  },
+  {
+    "id": "act-hot-m6-noite-sem-roupa-dormir-so-carinho",
+    "name": "Noite sem roupa de dormir, só carinho",
+    "category": "Hot",
+    "points": 20,
+    "description": "Durmam pele com pele, sem roupa de dormir, focando apenas no carinho e na proximidade.",
+    "flavor": "hot",
+    "active": true
+  },
+  {
+    "id": "act-hot-m6-adivinhar-toques-favoritos",
+    "name": "Jogo de adivinhação de toques favoritos",
+    "category": "Hot",
+    "points": 18,
+    "description": "Um de vocês veda os olhos enquanto o outro experimenta toques diferentes até acertar o favorito.",
+    "flavor": "hot",
+    "active": true
   }
 ];
 
@@ -2341,6 +3692,486 @@ export const CHALLENGE_CATALOG = [
     "description": "O parceiro que vencer a disputa da semana escolhe o próximo date",
     "points": 15,
     "type": "surprise",
+    "active": true
+  },
+  {
+    "id": "week-m6-tres-conversas-profundas",
+    "title": "3 conversas profundas",
+    "description": "Tenham pelo menos 3 conversas profundas sem celular por perto durante a semana",
+    "points": 12,
+    "type": "connection",
+    "active": true
+  },
+  {
+    "id": "week-m6-check-in-diario",
+    "title": "Check-in diário",
+    "description": "Reservem 10 minutos por dia para perguntar como o outro está se sentindo",
+    "points": 10,
+    "type": "connection",
+    "active": true
+  },
+  {
+    "id": "week-m6-sem-distracoes-refeicao",
+    "title": "Refeição sem distrações",
+    "description": "Façam uma refeição juntos sem celular pelo menos 3 vezes na semana",
+    "points": 10,
+    "type": "connection",
+    "active": true
+  },
+  {
+    "id": "week-m6-tres-risadas-garantidas",
+    "title": "3 risadas garantidas",
+    "description": "Façam pelo menos 3 coisas juntos que os façam rir de verdade durante a semana",
+    "points": 10,
+    "type": "fun",
+    "active": true
+  },
+  {
+    "id": "week-m6-brincadeira-do-dia",
+    "title": "Brincadeira inventada",
+    "description": "Inventem uma brincadeira nova e repitam em pelo menos 3 dias diferentes",
+    "points": 12,
+    "type": "fun",
+    "active": true
+  },
+  {
+    "id": "week-m6-meme-do-dia",
+    "title": "Meme do dia",
+    "description": "Enviem um meme ou piada engraçada um para o outro todos os dias da semana",
+    "points": 8,
+    "type": "fun",
+    "active": true
+  },
+  {
+    "id": "week-m6-surpresa-romantica",
+    "title": "Surpresa romântica",
+    "description": "Preparem pelo menos uma surpresa romântica um para o outro durante a semana",
+    "points": 15,
+    "type": "romance",
+    "active": true
+  },
+  {
+    "id": "week-m6-bilhetes-de-amor",
+    "title": "3 bilhetes de amor",
+    "description": "Deixem 3 bilhetes carinhosos escondidos pela casa durante a semana",
+    "points": 10,
+    "type": "romance",
+    "active": true
+  },
+  {
+    "id": "week-m6-noite-romantica",
+    "title": "Noite romântica",
+    "description": "Organizem uma noite especial só dos dois, sem distrações, durante a semana",
+    "points": 15,
+    "type": "romance",
+    "active": true
+  },
+  {
+    "id": "week-m6-gratidao-diaria",
+    "title": "Gratidão diária",
+    "description": "Digam um motivo de gratidão pelo outro todos os dias da semana",
+    "points": 10,
+    "type": "appreciation",
+    "active": true
+  },
+  {
+    "id": "week-m6-elogio-sincero",
+    "title": "5 elogios sinceros",
+    "description": "Façam pelo menos 5 elogios verdadeiros um ao outro durante a semana",
+    "points": 8,
+    "type": "appreciation",
+    "active": true
+  },
+  {
+    "id": "week-m6-carta-reconhecimento",
+    "title": "Carta de reconhecimento",
+    "description": "Escrevam uma carta reconhecendo o esforço do parceiro(a) nessa semana",
+    "points": 12,
+    "type": "appreciation",
+    "active": true
+  },
+  {
+    "id": "week-m6-tarefa-em-dupla",
+    "title": "Tarefa em dupla",
+    "description": "Façam uma tarefa doméstica juntos pelo menos 2 vezes na semana",
+    "points": 10,
+    "type": "together",
+    "active": true
+  },
+  {
+    "id": "week-m6-cafe-manha-junto",
+    "title": "Café da manhã junto",
+    "description": "Tomem café da manhã juntos pelo menos 4 dias na semana",
+    "points": 10,
+    "type": "together",
+    "active": true
+  },
+  {
+    "id": "week-m6-hora-sagrada",
+    "title": "Hora sagrada",
+    "description": "Reservem 30 minutos por dia só para ficarem juntos, sem interrupções",
+    "points": 12,
+    "type": "together",
+    "active": true
+  },
+  {
+    "id": "week-m6-planejar-mes",
+    "title": "Planejar o mês",
+    "description": "Planejem juntos pelo menos um compromisso ou passeio para o próximo mês",
+    "points": 12,
+    "type": "planning",
+    "active": true
+  },
+  {
+    "id": "week-m6-metas-do-casal",
+    "title": "Metas do casal",
+    "description": "Definam 2 metas para o relacionamento nos próximos 3 meses",
+    "points": 15,
+    "type": "planning",
+    "active": true
+  },
+  {
+    "id": "week-m6-orcamento-a-dois",
+    "title": "Orçamento a dois",
+    "description": "Revisem juntos as finanças do mês e planejem um objetivo comum",
+    "points": 12,
+    "type": "planning",
+    "active": true
+  },
+  {
+    "id": "week-m6-surpresa-da-semana",
+    "title": "Surpresa da semana",
+    "description": "Preparem pelo menos uma surpresa (pequena ou grande) um para o outro",
+    "points": 12,
+    "type": "surprise",
+    "active": true
+  },
+  {
+    "id": "week-m6-presente-inesperado",
+    "title": "Presente inesperado",
+    "description": "Deem um presente simples e inesperado um ao outro durante a semana",
+    "points": 10,
+    "type": "surprise",
+    "active": true
+  },
+  {
+    "id": "week-m6-convite-surpresa",
+    "title": "Convite surpresa",
+    "description": "Convidem o parceiro(a) para uma atividade sem avisar antes",
+    "points": 10,
+    "type": "surprise",
+    "active": true
+  },
+  {
+    "id": "week-m6-relembrar-comeco",
+    "title": "Relembrar o começo",
+    "description": "Conversem sobre como se conheceram e relembrem detalhes esquecidos",
+    "points": 10,
+    "type": "memory",
+    "active": true
+  },
+  {
+    "id": "week-m6-album-da-semana",
+    "title": "Álbum da semana",
+    "description": "Organizem fotos antigas do casal em um álbum ou pasta durante a semana",
+    "points": 12,
+    "type": "memory",
+    "active": true
+  },
+  {
+    "id": "week-m6-diario-de-casal",
+    "title": "Diário de casal",
+    "description": "Escrevam juntos 3 memórias felizes do relacionamento",
+    "points": 10,
+    "type": "memory",
+    "active": true
+  },
+  {
+    "id": "week-m6-hidratacao-em-dupla",
+    "title": "Hidratação em dupla",
+    "description": "Incentivem um ao outro a beber mais água durante a semana",
+    "points": 6,
+    "type": "health",
+    "active": true
+  },
+  {
+    "id": "week-m6-sono-em-dia",
+    "title": "Sono em dia",
+    "description": "Ajudem um ao outro a dormir cedo pelo menos 4 noites na semana",
+    "points": 8,
+    "type": "health",
+    "active": true
+  },
+  {
+    "id": "week-m6-refeicao-saudavel",
+    "title": "Refeição saudável",
+    "description": "Preparem juntos pelo menos 3 refeições saudáveis durante a semana",
+    "points": 10,
+    "type": "health",
+    "active": true
+  },
+  {
+    "id": "week-m6-playlist-da-semana",
+    "title": "Playlist da semana",
+    "description": "Criem juntos uma playlist nova com pelo menos 10 músicas",
+    "points": 8,
+    "type": "music",
+    "active": true
+  },
+  {
+    "id": "week-m6-show-em-casa",
+    "title": "Show em casa",
+    "description": "Façam uma apresentação musical (cantando ou dançando) um para o outro",
+    "points": 10,
+    "type": "music",
+    "active": true
+  },
+  {
+    "id": "week-m6-musica-do-dia",
+    "title": "Música do dia",
+    "description": "Enviem uma música que representa o sentimento do dia, todos os dias da semana",
+    "points": 8,
+    "type": "music",
+    "active": true
+  },
+  {
+    "id": "week-m6-conversa-sem-julgamento",
+    "title": "Conversa sem julgamento",
+    "description": "Conversem sobre um assunto difícil sem interromper um ao outro",
+    "points": 12,
+    "type": "communication",
+    "active": true
+  },
+  {
+    "id": "week-m6-elogio-diario-mensagem",
+    "title": "Elogio diário por mensagem",
+    "description": "Enviem uma mensagem carinhosa todos os dias da semana",
+    "points": 8,
+    "type": "communication",
+    "active": true
+  },
+  {
+    "id": "week-m6-feedback-gentil",
+    "title": "Feedback gentil",
+    "description": "Compartilhem um feedback construtivo e um elogio um para o outro",
+    "points": 10,
+    "type": "communication",
+    "active": true
+  },
+  {
+    "id": "week-m6-novo-lugar",
+    "title": "Novo lugar",
+    "description": "Visitem um lugar que nenhum dos dois conhece na cidade",
+    "points": 15,
+    "type": "adventure",
+    "active": true
+  },
+  {
+    "id": "week-m6-desafio-de-coragem",
+    "title": "Desafio de coragem",
+    "description": "Façam juntos algo que tira vocês da zona de conforto",
+    "points": 15,
+    "type": "adventure",
+    "active": true
+  },
+  {
+    "id": "week-m6-rota-alternativa",
+    "title": "Rota alternativa",
+    "description": "Façam um trajeto diferente do habitual e explorem o caminho juntos",
+    "points": 8,
+    "type": "adventure",
+    "active": true
+  },
+  {
+    "id": "week-m6-projeto-criativo",
+    "title": "Projeto criativo",
+    "description": "Criem juntos algo artístico (desenho, escrita, artesanato) durante a semana",
+    "points": 12,
+    "type": "creative",
+    "active": true
+  },
+  {
+    "id": "week-m6-historia-inventada",
+    "title": "História inventada",
+    "description": "Escrevam uma história curta alternando frases um do outro",
+    "points": 10,
+    "type": "creative",
+    "active": true
+  },
+  {
+    "id": "week-m6-reforma-criativa",
+    "title": "Reforma criativa",
+    "description": "Decorem ou personalizem um espaço da casa juntos durante a semana",
+    "points": 15,
+    "type": "creative",
+    "active": true
+  },
+  {
+    "id": "week-m6-ar-livre-3x",
+    "title": "Ar livre 3x",
+    "description": "Façam pelo menos 3 atividades ao ar livre juntos durante a semana",
+    "points": 12,
+    "type": "outdoor",
+    "active": true
+  },
+  {
+    "id": "week-m6-trilha-ou-caminhada",
+    "title": "Trilha ou caminhada",
+    "description": "Façam uma caminhada ou trilha juntos pelo menos uma vez na semana",
+    "points": 12,
+    "type": "outdoor",
+    "active": true
+  },
+  {
+    "id": "week-m6-piquenique-ao-ar-livre",
+    "title": "Piquenique ao ar livre",
+    "description": "Organizem um piquenique em um parque ou praça durante a semana",
+    "points": 12,
+    "type": "outdoor",
+    "active": true
+  },
+  {
+    "id": "week-m6-semana-sem-brigas",
+    "title": "Semana sem brigas",
+    "description": "Pratiquem paciência e evitem discussões desnecessárias durante a semana",
+    "points": 14,
+    "type": "wellness",
+    "active": true
+  },
+  {
+    "id": "week-m6-momento-de-respirar",
+    "title": "Momento de respirar",
+    "description": "Façam uma pausa de respiração ou meditação juntos 3 vezes na semana",
+    "points": 10,
+    "type": "wellness",
+    "active": true
+  },
+  {
+    "id": "week-m6-cuidado-mutuo",
+    "title": "Cuidado mútuo",
+    "description": "Façam algo que cuide do bem-estar físico ou emocional do outro durante a semana",
+    "points": 12,
+    "type": "wellness",
+    "active": true
+  },
+  {
+    "id": "week-m6-aprender-juntos",
+    "title": "Aprender juntos",
+    "description": "Aprendam uma habilidade nova juntos durante a semana",
+    "points": 12,
+    "type": "growth",
+    "active": true
+  },
+  {
+    "id": "week-m6-livro-a-dois",
+    "title": "Livro a dois",
+    "description": "Leiam um capítulo de livro juntos e conversem sobre ele",
+    "points": 10,
+    "type": "growth",
+    "active": true
+  },
+  {
+    "id": "week-m6-reflexao-do-casal",
+    "title": "Reflexão do casal",
+    "description": "Conversem sobre o que querem melhorar como casal",
+    "points": 10,
+    "type": "growth",
+    "active": true
+  },
+  {
+    "id": "week-m6-tres-atividades-novas",
+    "title": "3 atividades novas",
+    "description": "Experimentem pelo menos 3 atividades que nunca fizeram juntos",
+    "points": 15,
+    "type": "activities",
+    "active": true
+  },
+  {
+    "id": "week-m6-jogo-em-dupla",
+    "title": "Jogo em dupla",
+    "description": "Joguem um jogo (de tabuleiro, cartas ou vídeo game) juntos durante a semana",
+    "points": 8,
+    "type": "activities",
+    "active": true
+  },
+  {
+    "id": "week-m6-hobby-compartilhado",
+    "title": "Hobby compartilhado",
+    "description": "Dediquem tempo a um hobby que os dois gostem durante a semana",
+    "points": 10,
+    "type": "activities",
+    "active": true
+  },
+  {
+    "id": "week-m6-maratona-cultural",
+    "title": "Maratona cultural",
+    "description": "Assistam a pelo menos 2 filmes ou séries diferentes juntos durante a semana",
+    "points": 10,
+    "type": "entertainment",
+    "active": true
+  },
+  {
+    "id": "week-m6-show-ou-evento",
+    "title": "Show ou evento",
+    "description": "Assistam a um show, peça ou evento cultural juntos (presencial ou online)",
+    "points": 15,
+    "type": "entertainment",
+    "active": true
+  },
+  {
+    "id": "week-m6-noite-de-jogos",
+    "title": "Noite de jogos",
+    "description": "Organizem uma noite de jogos com regras criadas por vocês",
+    "points": 10,
+    "type": "entertainment",
+    "active": true
+  },
+  {
+    "id": "week-m6-abraco-diario",
+    "title": "Abraço diário",
+    "description": "Deem pelo menos um abraço demorado todos os dias da semana",
+    "points": 8,
+    "type": "physical",
+    "active": true
+  },
+  {
+    "id": "week-m6-exercicio-a-dois",
+    "title": "Exercício a dois",
+    "description": "Façam uma atividade física juntos pelo menos 2 vezes na semana",
+    "points": 12,
+    "type": "physical",
+    "active": true
+  },
+  {
+    "id": "week-m6-contato-sem-pressa",
+    "title": "Contato sem pressa",
+    "description": "Reservem um tempo para carinho físico sem pressa, sem celular, durante a semana",
+    "points": 12,
+    "type": "physical",
+    "active": true
+  },
+  {
+    "id": "week-m6-declaracao-da-semana",
+    "title": "Declaração da semana",
+    "description": "Façam uma declaração de amor sincera um para o outro durante a semana",
+    "points": 10,
+    "type": "romantic",
+    "active": true
+  },
+  {
+    "id": "week-m6-danca-a-dois",
+    "title": "Dança a dois",
+    "description": "Dancem juntos pelo menos uma música lenta durante a semana",
+    "points": 8,
+    "type": "romantic",
+    "active": true
+  },
+  {
+    "id": "week-m6-reviver-primeiro-encontro",
+    "title": "Reviver o primeiro encontro",
+    "description": "Recriem um detalhe especial do primeiro encontro de vocês durante a semana",
+    "points": 15,
+    "type": "romantic",
     "active": true
   }
 ];

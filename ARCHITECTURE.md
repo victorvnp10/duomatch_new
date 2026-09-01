@@ -191,13 +191,14 @@ tela de Perfil):
 Para que sugestões do dia/hot e o desafio semanal tenham um portfólio
 variado e editável, o conteúdo saiu do código e foi para o banco:
 
-- **`shared/contentCatalog.js`** — módulo de seed com 173 atividades
-  (72 normais + 101 hot) e 97 desafios.
+- **`shared/contentCatalog.js`** — módulo de seed com 323 atividades
+  (72 normais + 101 hot + 150 do lote m6) e 157 desafios.
 - **`infrastructure/firebase/repositories/ContentRepository.js`** — nova
-  camada de repositório: faz o seed idempotente nas coleções raiz
-  (`contentActivities`/`contentChallenges`) quando vazias, lê o catálogo
+  camada de repositório: faz o seed por **upsert** nas coleções raiz
+  (`contentActivities`/`contentChallenges`) — grava apenas os `id` ainda
+  ausentes, em lotes de até 400 — lê o catálogo
   com cache de sessão e expõe helpers puros de anti-repetição
-  (`pickVaried`/`pushRecent`).
+  (`pickVaried`).
 - **`useSuggestions.js` e `DailyChallenge.js`** agora consomem o catálogo
   do Firestore e gravam o histórico de itens usados no doc do casal
   (`recentActivityIds`/`recentChallengeIds`), evitando repetição diária.
