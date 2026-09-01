@@ -146,12 +146,18 @@ npm test               # react-scripts test (Jest) — não há testes escritos
 > emissor e server-side (`functions/`): gatilhos que espelham os criterios da
 > Central (par marcou atividade, par lancou desafio) + cron diario 21h SP
 > (lembrete). O CLIENTE está implementado e builda; as FUNCTIONS estão
-> **DEPLOYADAS** (Node 22, 2ª gen): `notifyPartnerMarkedActivity` +
-> `notifyPartnerCreatedChallenge` em **southamerica-east1** (região do banco) e
+> **DEPLOYADAS** (Node 22, 2ª gen): `notifyPartnerMarkedActivity` (activity
+> confirmada → alerta ao par), `notifyPartnerSelectedSuggestion` (sugestão
+> marcada → alerta ao par), `notifyPartnerCreatedChallenge` (desafio lançado
+> → alerta ao par) em **southamerica-east1** (região do banco) e
 > `dailyReminder` (scheduler) em `us-central1` — cleanup policy do Artifact
 > Registry configurada. Redeploy: `npx firebase-tools deploy --only functions`
 > (ver header do `functions/index.js`).
 > Sem `REACT_APP_FIREBASE_VAPID_KEY` no `.env` o push e no-op silencioso.
+> Com o app ABERTO, o alerta chega pelo `onMessage` (foreground handler em
+> `pushSubscription.js`) — o SW só exibe com o app fechado. `eventId`s dos
+> triggers batem com os ids da Central (`partner-activity-*`,
+> `partner-challenge-*`) para o dedup do `showSystemNotification` não duplicar.
 > Clicar na notificacao foca/navega (`?view=<target>`); badge usa
 > `navigator.setAppBadge` (requer HTTPS + PWA instalado).
 > **Importante:** a região dos triggers de Firestore precisa ser a mesma da
