@@ -1,5 +1,10 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { BellIcon } from "./Icons";
+import {
+  isSystemNotificationsSupported,
+  getNotificationPermission,
+  requestNotificationPermission,
+} from "../pwa/systemNotifications";
 
 const PANEL_WIDTH = 320;
 const VIEWPORT_MARGIN = 8;
@@ -7,8 +12,16 @@ const VIEWPORT_MARGIN = 8;
 export default function NotificationCenter({ notifications, count, setView }) {
   const [isOpen, setIsOpen] = useState(false);
   const [panelStyle, setPanelStyle] = useState(null);
+  const [permission, setPermission] = useState(() =>
+    getNotificationPermission()
+  );
   const containerRef = useRef(null);
   const buttonRef = useRef(null);
+  const notificationsSupported = isSystemNotificationsSupported();
+
+  const handleEnableNotifications = async () => {
+    setPermission(await requestNotificationPermission());
+  };
 
   // Calcula a posição do painel a partir da posição real do botão na tela
   // (não do container pai), e trava dentro da viewport com uma margem —
@@ -102,6 +115,27 @@ export default function NotificationCenter({ notifications, count, setView }) {
                   </div>
                 </button>
               ))
+            )}
+          </div>
+          <div className="p-3 border-t border-gray-700 bg-gray-900/60">
+            {notificationsSupported && permission === "default" && (
+              <button
+                onClick={handleEnableNotifications}
+                className="w-full text-center text-xs font-semibold text-yellow-400 hover:text-yellow-300 transition-colors"
+              >
+                🔔 Ativar notificações do sistema
+              </button>
+            )}
+            {notificationsSupported && permission === "granted" && (
+              <p className="text-center text-xs text-gray-400">
+                🔔 Notificações do sistema ativadas
+              </p>
+            )}
+            {notificationsSupported && permission === "denied" && (
+              <p className="text-center text-xs text-yellow-500/90">
+                Notificações bloqueadas no navegador — libere nas
+                configurações do site.
+              </p>
             )}
           </div>
         </div>

@@ -37,6 +37,8 @@ import EditWishlistItemModal from "./EditWishlistItemModal";
 import ChatModal from "./ChatModal";
 import BottomNavBar from "./BottomNavBar";
 import NotificationManager from "./NotificationManager";
+import PwaNotificationBridge from "../pwa/PwaNotificationBridge";
+import { useNotificationCenter } from "../../application/hooks/useNotificationCenter";
 import MatchNotification from "./MatchNotification";
 import AchievementAnimation from "./AchievementAnimation";
 import DeleteConfirmationModal from "./DeleteConfirmationModal";
@@ -126,6 +128,21 @@ export default function DuoMatchApp({ user, userData }) {
   );
   const { activeChatActivity: chatActivity, setActiveChatActivity: setChatActivity, ...chatHandlers } =
     useChat(user, userData, allActivities);
+
+  // Derivação única da Central de Notificações no nível do app: alimenta o
+  // bridge PWA (notificações do sistema + badge) mesmo fora da view "main".
+  // O lembrete "marque uma atividade hoje" fica só no sino (MainView) — não
+  // vira notificação do sistema para não incomodar.
+  const { notifications, count: notificationCount } = useNotificationCenter({
+    user,
+    userData,
+    allActivities,
+    mySelections,
+    partnerSelections,
+    matches,
+    rewards,
+    dailyActivities: [],
+  });
 
   const handleFinishOnboarding = () => {
     if (userData?.coupleId) {
@@ -392,6 +409,12 @@ export default function DuoMatchApp({ user, userData }) {
       />
 
       <NotificationManager {...propsForChildren} />
+      <PwaNotificationBridge
+        notifications={notifications}
+        count={notificationCount}
+        chatNotification={chatHandlers.chatNotification}
+        onNavigate={setView}
+      />
     </div>
   );
 }

@@ -125,8 +125,20 @@ npm test               # react-scripts test (Jest) — não há testes escritos
 ### Central de notificacoes
 | Camada | Arquivo |
 |---|---|
-| Application | `src/application/hooks/useNotificationCenter.js` (109 linhas, puro/sem side effects) |
-| Presentation | `src/presentation/components/NotificationCenter.js` (111 linhas), `NotificationManager.js` |
+| Application | `src/application/hooks/useNotificationCenter.js` (puro/sem side effects, usado no MainView e no DuoMatchApp) |
+| Presentation | `src/presentation/components/NotificationCenter.js` (sino + painel de pendencias + botao de permissao), `NotificationManager.js` (toasts efemeros) |
+
+### Notificacoes do sistema (PWA, sem backend)
+| Camada | Arquivo |
+|---|---|
+| Presentation (service) | `src/presentation/pwa/systemNotifications.js` (Notification API + dedup + App Badging) |
+| Presentation (hook) | `src/presentation/pwa/usePwaNotifications.js` (bridge foco/pendencia + retry + badge) |
+| Presentation (componente) | `src/presentation/pwa/PwaNotificationBridge.js` (sem UI), montado no `DuoMatchApp.js` |
+
+> **Escopo (decisao):** notificacoes disparam enquanto uma aba com o app esta
+> aberta (frente ou segundo plano PWA). Com app fechado ou offline, exige Web Push
+> (FCM + backend) — fora do escopo. Clicar na notificacao foca o app e navega
+> (`targetView`). Badge usa `navigator.setAppBadge` (requer HTTPS + PWA instalado).
 
 ### Tour / onboarding
 | Camada | Arquivo |
