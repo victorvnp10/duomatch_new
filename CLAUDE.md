@@ -63,7 +63,7 @@ npm test               # react-scripts test (Jest) — não há testes escritos
 ### Catalogo de conteudo (atividades + desafios)
 | Camada | Arquivo |
 |---|---|
-| Shared (seed) | `src/shared/contentCatalog.js` (~129k, 323 atividades + 157 desafios) |
+| Shared (seed) | `src/shared/contentCatalog.js` (~192k, 473 atividades + 217 desafios) |
 | Infrastructure | `src/infrastructure/firebase/repositories/ContentRepository.js` (le do Firestore + seed por upsert) |
 | Consumido por | `useSuggestions.js` (sugestoes do dia/hot), `DailyChallenge.js` (desafio semanal) |
 
@@ -293,8 +293,8 @@ Desafio escolhido do catalogo global `contentChallenges`, com anti-repeticao via
 ### `contentActivities/{id}` e `contentChallenges/{id}` (colecoes raiz — catalogo global)
 Fonte de verdade do conteudo (sugestoes do dia/hot e desafio semanal). Populadas
 automaticamente por **upsert** (grava so os `id` ausentes) a partir de
-`src/shared/contentCatalog.js` (323 atividades: 72 normal + 101 hot do seed
-original + 150 do lote m6; 157 desafios) quando o `ContentRepository` le.
+`src/shared/contentCatalog.js` (473 atividades: 72 normal + 101 hot do seed
+original + 150 do lote m6 + 150 do lote m7; 217 desafios) quando o `ContentRepository` le.
 Depois disso, leituras vem do Firestore — pode-se ampliar/editar no banco sem rebuild.
 - `contentActivities`: `{id, name, category, points, description, flavor: "normal"|"hot", active}`
 - `contentChallenges`: `{id, title, description, points, type, active}`
@@ -333,9 +333,9 @@ Unlock por条件oes puras em `domain/entities/Achievement.js`:
 `communicator`, `big_spender`, `hot_streak`, `wish_granter`.
 
 ### Sugestoes
-- Catalogo vem do banco (`contentActivities`, 323 itens: 72 normal + 101 hot do
-  seed original + 150 do lote m6), seed por upsert — ampliar `contentCatalog.js`
-  planta o novo conteudo na proxima inicializacao.
+- Catalogo vem do banco (`contentActivities`, 473 itens: 72 normal + 101 hot do
+  seed original + 150 do lote m6 + 150 do lote m7), seed por upsert — ampliar
+  `contentCatalog.js` planta o novo conteudo na proxima inicializacao.
 - 5 sugestoes geradas por dia (aleatorio), com anti-repeticao de itens recentes
   (historico `recentActivityIds` no doc do casal).
 - Match = ambos selecionam a mesma sugestao → vira atividade real automaticamente.

@@ -1,0 +1,1836 @@
+{
+  "contentActivities": [
+    {
+      "id": "act-normal-m7-carta-do-futuro-eu",
+      "name": "Carta do 'eu do futuro' a dois",
+      "category": "Hobbies & Outros",
+      "points": 18,
+      "description": "Escrevam juntos uma carta imaginando como serão daqui a 10 anos e guardem para ler depois.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-jogo-perguntas-curiosas",
+      "name": "Jogo de perguntas curiosas",
+      "category": "Hobbies & Outros",
+      "points": 12,
+      "description": "Façam 10 perguntas curiosas um ao outro que nunca perguntaram antes, por mais bobas que pareçam.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-aula-de-danca-online",
+      "name": "Aula de dança online a dois",
+      "category": "Hobbies & Outros",
+      "points": 18,
+      "description": "Sigam um tutorial de dança de casal no vídeo e tentem aprender os passos juntos, rindo dos erros.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-montar-mini-horta",
+      "name": "Montar uma mini horta juntos",
+      "category": "Hobbies & Outros",
+      "points": 20,
+      "description": "Plantem juntos ervas ou temperos em vasos pequenos e cuidem deles ao longo da semana.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-caixa-de-lembrancas-fisica",
+      "name": "Criar uma caixa de lembranças física",
+      "category": "Hobbies & Outros",
+      "points": 20,
+      "description": "Reúnam bilhetes, ingressos e pequenos objetos e guardem juntos em uma caixa de recordações do casal.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-desenho-as-cegas",
+      "name": "Desenho às cegas",
+      "category": "Hobbies & Outros",
+      "points": 10,
+      "description": "Um descreve um objeto e o outro tenta desenhá-lo sem ver, de olhos vendados ou sem olhar o papel.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-jogo-tabuleiro-perguntas-caseiro",
+      "name": "Criar jogo de perguntas caseiro",
+      "category": "Hobbies & Outros",
+      "points": 15,
+      "description": "Escrevam perguntas em pedaços de papel, coloquem em um pote e sorteiem uma por vez para responder.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-sessao-artesanato-simples",
+      "name": "Sessão de artesanato simples",
+      "category": "Hobbies & Outros",
+      "points": 15,
+      "description": "Escolham um artesanato fácil (vela, sabonete, bijuteria) e façam juntos seguindo um tutorial rápido.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-desafio-organizacao-armario",
+      "name": "Desafio de organizar o armário",
+      "category": "Hobbies & Outros",
+      "points": 18,
+      "description": "Separem 30 minutos para organizar juntos o armário ou closet, doando o que não usam mais.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-jogo-de-cartas-classico",
+      "name": "Noite de jogo de cartas",
+      "category": "Hobbies & Outros",
+      "points": 10,
+      "description": "Escolham um jogo de cartas clássico e disputem algumas rodadas juntos, valendo uma prenda simbólica.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-planejar-arvore-genealogica",
+      "name": "Planejar a árvore genealógica do casal",
+      "category": "Hobbies & Outros",
+      "points": 22,
+      "description": "Pesquisem juntos a história das famílias de cada um e montem uma pequena árvore genealógica combinada.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-jogo-perguntas-sobre-o-outro",
+      "name": "Quanto você me conhece?",
+      "category": "Hobbies & Outros",
+      "points": 12,
+      "description": "Façam perguntas sobre gostos e hábitos um do outro para testar o quanto realmente se conhecem.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-criar-podcast-caseiro",
+      "name": "Gravar um podcast caseiro",
+      "category": "Hobbies & Outros",
+      "points": 18,
+      "description": "Gravem um áudio de 5 minutos conversando sobre um tema qualquer, como se fosse um podcast só de vocês.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-montar-quebra-cabeca-3d",
+      "name": "Montar um quebra-cabeça 3D",
+      "category": "Hobbies & Outros",
+      "points": 22,
+      "description": "Escolham um quebra-cabeça 3D ou maquete simples e montem juntos, dividindo as etapas.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-jogo-imitacao-personagens",
+      "name": "Jogo de imitação de personagens",
+      "category": "Hobbies & Outros",
+      "points": 12,
+      "description": "Imitem personagens de filmes ou séries um para o outro adivinhar quem é.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-criar-regras-proprio-jogo",
+      "name": "Criar as regras de um jogo próprio",
+      "category": "Hobbies & Outros",
+      "points": 20,
+      "description": "Inventem um jogo novo, com regras próprias, usando objetos simples que tiverem em casa.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-sessao-tarot-divertida",
+      "name": "Sessão de tarot ou horóscopo por diversão",
+      "category": "Hobbies & Outros",
+      "points": 10,
+      "description": "Façam uma leitura de tarot ou horóscopo online juntos, só por diversão, e comentem os resultados.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-desafio-photobooth-caseiro",
+      "name": "Desafio de photobooth caseiro",
+      "category": "Hobbies & Outros",
+      "points": 15,
+      "description": "Montem um cantinho com adereços simples e tirem fotos divertidas juntos, como em uma cabine de fotos.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-caligrafia-mensagem-um-para-outro",
+      "name": "Caligrafia de uma mensagem especial",
+      "category": "Hobbies & Outros",
+      "points": 12,
+      "description": "Pratiquem caligrafia escrevendo uma mensagem especial um para o outro em um cartão.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-jogo-perguntas-decisao-rapida",
+      "name": "Jogo de decisão rápida",
+      "category": "Hobbies & Outros",
+      "points": 10,
+      "description": "Façam perguntas de 'isso ou aquilo' um para o outro, respondendo o mais rápido possível.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-reorganizar-fotos-celular",
+      "name": "Reorganizar as fotos do celular juntos",
+      "category": "Hobbies & Outros",
+      "points": 15,
+      "description": "Revejam as fotos do casal no celular, apaguem as repetidas e criem um álbum favorito juntos.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-desafio-sem-celular-uma-tarde",
+      "name": "Desafio de uma tarde sem celular",
+      "category": "Hobbies & Outros",
+      "points": 22,
+      "description": "Combinem passar uma tarde inteira sem usar o celular, dedicando o tempo só um ao outro.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-jogo-adivinhar-musica",
+      "name": "Jogo de adivinhar a música",
+      "category": "Hobbies & Outros",
+      "points": 10,
+      "description": "Toquem trechos curtos de músicas para o outro adivinhar o nome e o artista.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-criar-cronograma-sonhos",
+      "name": "Criar um cronograma de sonhos do casal",
+      "category": "Hobbies & Outros",
+      "points": 20,
+      "description": "Listem sonhos e coloquem prazos realistas para começarem a planejar como realizá-los juntos.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-desenhar-mapa-do-relacionamento",
+      "name": "Desenhar o 'mapa' do relacionamento",
+      "category": "Hobbies & Outros",
+      "points": 18,
+      "description": "Desenhem juntos uma linha do tempo ilustrada com os principais marcos do relacionamento.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-jogo-perguntas-e-respostas-engracadas",
+      "name": "Jogo de perguntas e respostas engraçadas",
+      "category": "Hobbies & Outros",
+      "points": 10,
+      "description": "Façam perguntas absurdas e engraçadas um ao outro, valendo pontos pela resposta mais criativa.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-sessao-de-alongamento",
+      "name": "Sessão de alongamento a dois",
+      "category": "Hobbies & Outros",
+      "points": 10,
+      "description": "Façam juntos uma sequência simples de alongamentos, ajudando um ao outro nos movimentos.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-criar-jogo-perguntas-app",
+      "name": "Criar um quiz sobre o relacionamento",
+      "category": "Hobbies & Outros",
+      "points": 15,
+      "description": "Montem um pequeno quiz com perguntas sobre datas e momentos importantes do casal e testem um ao outro.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-caca-objetos-escondidos",
+      "name": "Caça a objetos escondidos pela casa",
+      "category": "Hobbies & Outros",
+      "points": 15,
+      "description": "Um esconde 5 objetos pequenos pela casa e o outro precisa encontrá-los dentro de um tempo determinado.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-desafio-desenho-coletivo",
+      "name": "Desenho coletivo sem combinar",
+      "category": "Hobbies & Outros",
+      "points": 12,
+      "description": "Desenhem juntos na mesma folha sem combinar antes o que vai sair, revezando traços.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-jogo-perguntas-passado",
+      "name": "Perguntas sobre o passado de cada um",
+      "category": "Hobbies & Outros",
+      "points": 12,
+      "description": "Façam perguntas sobre a infância e adolescência um do outro para conhecerem histórias novas.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-assistir-tutorial-habilidade-nova",
+      "name": "Assistir a um tutorial de habilidade nova",
+      "category": "Hobbies & Outros",
+      "points": 15,
+      "description": "Escolham uma habilidade simples (nó de gravata, crochê, malabarismo) e aprendam juntos por vídeo.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-jogo-adedanha-casal",
+      "name": "Jogo de adedanha em dupla",
+      "category": "Hobbies & Outros",
+      "points": 10,
+      "description": "Joguem uma rodada de adedanha com temas relacionados ao relacionamento de vocês.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-criar-ritual-domingo",
+      "name": "Criar um ritual de domingo",
+      "category": "Hobbies & Outros",
+      "points": 15,
+      "description": "Definam juntos uma atividade fixa para fazerem todo domingo, criando uma tradição só de vocês.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-jogo-perguntas-hipoteses",
+      "name": "Jogo de hipóteses malucas",
+      "category": "Hobbies & Outros",
+      "points": 10,
+      "description": "Façam perguntas hipotéticas divertidas um ao outro, como 'o que você faria se...'.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-desafio-receita-so-tres-ingredientes",
+      "name": "Desafio da receita com 3 ingredientes",
+      "category": "Comida & Bebida",
+      "points": 15,
+      "description": "Escolham apenas 3 ingredientes da geladeira e criem juntos um prato com eles.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-noite-comida-de-boteco",
+      "name": "Noite de comida de boteco",
+      "category": "Comida & Bebida",
+      "points": 18,
+      "description": "Preparem petiscos de boteco em casa e criem um clima descontraído para a noite.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-degustacao-cafes-especiais",
+      "name": "Degustação de cafés especiais",
+      "category": "Comida & Bebida",
+      "points": 15,
+      "description": "Preparem cafés de origens ou métodos diferentes e comparem os sabores juntos.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-criar-receita-secreta-familia",
+      "name": "Criar uma receita secreta do casal",
+      "category": "Comida & Bebida",
+      "points": 20,
+      "description": "Inventem juntos uma receita que será o 'segredo' de vocês, para repetir em ocasiões especiais.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-mini-festival-street-food-caseiro",
+      "name": "Mini festival de street food caseiro",
+      "category": "Comida & Bebida",
+      "points": 22,
+      "description": "Preparem juntos 2 ou 3 pratos inspirados em comida de rua de diferentes países.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-desafio-decorar-cupcakes",
+      "name": "Desafio de decorar cupcakes",
+      "category": "Comida & Bebida",
+      "points": 18,
+      "description": "Assem ou comprem cupcakes simples e decorem cada um do seu jeito, comparando o resultado.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-cafe-da-tarde-tematico",
+      "name": "Café da tarde temático",
+      "category": "Comida & Bebida",
+      "points": 15,
+      "description": "Escolham um tema (retrô, tropical, natalino) e montem uma mesa de café da tarde combinando com ele.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-jantar-as-escuras",
+      "name": "Jantar às escuras",
+      "category": "Comida & Bebida",
+      "points": 20,
+      "description": "Façam um jantar simples com as luzes apagadas, guiando-se apenas pelo tato e paladar.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-prova-molhos-diferentes",
+      "name": "Prova de molhos diferentes",
+      "category": "Comida & Bebida",
+      "points": 10,
+      "description": "Preparem ou comprem 3 molhos diferentes e testem com o mesmo alimento base para comparar.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-receita-vegetariana-nova",
+      "name": "Testar uma receita vegetariana nova",
+      "category": "Comida & Bebida",
+      "points": 15,
+      "description": "Escolham uma receita vegetariana que nenhum já fez e preparem juntos.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-cafe-gelado-caseiro",
+      "name": "Fazer café gelado caseiro",
+      "category": "Comida & Bebida",
+      "points": 8,
+      "description": "Preparem juntos um café gelado com um toque especial (leite, canela, chocolate) para o fim de tarde.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-jantar-inspirado-viagem",
+      "name": "Jantar inspirado em uma viagem dos sonhos",
+      "category": "Comida & Bebida",
+      "points": 20,
+      "description": "Escolham o destino dos sonhos de vocês e preparem um prato típico de lá.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-cha-da-tarde-ingles",
+      "name": "Chá da tarde estilo inglês",
+      "category": "Comida & Bebida",
+      "points": 15,
+      "description": "Preparem uma mesa de chá com torradas, geleias e bolinhos, simulando um chá da tarde inglês.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-desafio-bolo-de-caneca",
+      "name": "Desafio do bolo de caneca",
+      "category": "Comida & Bebida",
+      "points": 10,
+      "description": "Façam um bolo de caneca no micro-ondas juntos e dividam no meio.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-prova-cervejas-artesanais",
+      "name": "Prova de cervejas artesanais (com moderação)",
+      "category": "Comida & Bebida",
+      "points": 15,
+      "description": "Experimentem 2 ou 3 cervejas artesanais diferentes e conversem sobre qual preferem.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-cozinhar-receita-avos",
+      "name": "Cozinhar uma receita dos avós",
+      "category": "Comida & Bebida",
+      "points": 20,
+      "description": "Peçam ou pesquisem uma receita antiga da família de um dos dois e preparem juntos.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-noite-taco-caseiro",
+      "name": "Noite de taco caseiro",
+      "category": "Comida & Bebida",
+      "points": 18,
+      "description": "Preparem tacos com recheios variados para cada um montar o seu jeito.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-suco-detox-manha",
+      "name": "Suco detox pela manhã",
+      "category": "Comida & Bebida",
+      "points": 8,
+      "description": "Preparem juntos um suco detox para começar o dia com mais energia.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-desafio-sanduiche-gourmet",
+      "name": "Desafio do sanduíche gourmet",
+      "category": "Comida & Bebida",
+      "points": 15,
+      "description": "Cada um monta um sanduíche criativo usando os ingredientes disponíveis e trocam para experimentar.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-jantar-picles-conservas",
+      "name": "Experimentar picles e conservas caseiras",
+      "category": "Comida & Bebida",
+      "points": 12,
+      "description": "Façam uma conserva simples (pepino, cebola) e experimentem juntos depois de um tempo de preparo.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-cafe-da-manha-tematico-viagem",
+      "name": "Café da manhã temático de viagem",
+      "category": "Comida & Bebida",
+      "points": 18,
+      "description": "Escolham um país e montem um café da manhã inspirado na culinária de lá.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-desafio-decoracao-de-mesa",
+      "name": "Desafio de decoração de mesa para o jantar",
+      "category": "Comida & Bebida",
+      "points": 15,
+      "description": "Decorem juntos a mesa do jantar de forma diferente do habitual, usando o que tiverem em casa.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-receita-doce-sem-forno",
+      "name": "Receita de doce sem forno",
+      "category": "Comida & Bebida",
+      "points": 12,
+      "description": "Preparem juntos uma sobremesa que não precisa de forno, como um brigadeiro ou pavê rápido.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-harmonizacao-chocolate-bebida",
+      "name": "Harmonização de chocolate e bebida",
+      "category": "Comida & Bebida",
+      "points": 15,
+      "description": "Experimentem diferentes tipos de chocolate combinados com café, chá ou vinho.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-prova-frutas-exoticas",
+      "name": "Prova de frutas exóticas ou pouco comuns",
+      "category": "Comida & Bebida",
+      "points": 10,
+      "description": "Comprem uma fruta que nenhum dos dois já experimentou e provem juntos.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-jantar-minimalista-elegante",
+      "name": "Jantar minimalista elegante",
+      "category": "Comida & Bebida",
+      "points": 18,
+      "description": "Preparem um jantar simples mas caprichado na apresentação, como em um restaurante.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-desafio-omelete-criativo",
+      "name": "Desafio do omelete criativo",
+      "category": "Comida & Bebida",
+      "points": 10,
+      "description": "Cada um cria um recheio diferente de omelete e trocam para experimentar o do outro.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-bebida-quente-inverno",
+      "name": "Criar uma bebida quente de inverno",
+      "category": "Comida & Bebida",
+      "points": 10,
+      "description": "Preparem uma bebida quente diferente (vinho quente, ponche, chá especiado) para os dias mais frios.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-desafio-lanche-da-tarde-saudavel",
+      "name": "Desafio do lanche da tarde saudável",
+      "category": "Comida & Bebida",
+      "points": 10,
+      "description": "Preparem juntos um lanche da tarde saudável e saboroso para os dois.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-jantar-com-musica-ao-vivo",
+      "name": "Jantar com playlist ao vivo",
+      "category": "Comida & Bebida",
+      "points": 15,
+      "description": "Um de vocês toca um instrumento ou canta enquanto jantam, criando um clima especial.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-passeio-de-onibus-turistico",
+      "name": "Passeio de ônibus turístico local",
+      "category": "Viagens & Passeios",
+      "points": 15,
+      "description": "Se a cidade tiver, peguem um ônibus turístico e conheçam pontos novos juntos.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-visitar-zoologico-aquario",
+      "name": "Visitar um zoológico ou aquário",
+      "category": "Viagens & Passeios",
+      "points": 18,
+      "description": "Façam um passeio a um zoológico ou aquário próximo e aproveitem o dia juntos.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-explorar-bairro-historico",
+      "name": "Explorar um bairro histórico",
+      "category": "Viagens & Passeios",
+      "points": 15,
+      "description": "Caminhem por um bairro histórico da cidade, observando a arquitetura e a história do lugar.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-passeio-orla-praia-lago",
+      "name": "Passeio pela orla ou beira de lago",
+      "category": "Viagens & Passeios",
+      "points": 15,
+      "description": "Caminhem juntos pela orla de uma praia ou lago, aproveitando a vista e o ar livre.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-visitar-planetario-observatorio",
+      "name": "Visitar um planetário ou observatório",
+      "category": "Viagens & Passeios",
+      "points": 20,
+      "description": "Procurem um planetário ou observatório na região e façam uma visita juntos.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-acampar-no-quintal",
+      "name": "Acampar no quintal ou varanda",
+      "category": "Viagens & Passeios",
+      "points": 20,
+      "description": "Montem uma barraca ou um espaço de acampamento improvisado em casa e passem a noite lá.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-passeio-parque-aventura",
+      "name": "Passeio a um parque de aventura",
+      "category": "Viagens & Passeios",
+      "points": 22,
+      "description": "Visitem um parque com tirolesa, arvorismo ou trilhas de aventura juntos.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-explorar-mercado-municipal",
+      "name": "Explorar um mercado municipal",
+      "category": "Viagens & Passeios",
+      "points": 15,
+      "description": "Visitem um mercado municipal e experimentem produtos ou comidas típicas do local.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-passeio-teleferico-mirante",
+      "name": "Passeio de teleférico ou mirante pago",
+      "category": "Viagens & Passeios",
+      "points": 22,
+      "description": "Se houver na região, façam um passeio de teleférico ou visitem um mirante pago juntos.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-roteiro-arquitetura-cidade",
+      "name": "Roteiro de arquitetura da cidade",
+      "category": "Viagens & Passeios",
+      "points": 15,
+      "description": "Façam um roteiro a pé observando prédios e construções interessantes da cidade.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-visitar-parque-nacional-reserva",
+      "name": "Visitar um parque nacional ou reserva próxima",
+      "category": "Viagens & Passeios",
+      "points": 25,
+      "description": "Pesquisem um parque nacional ou reserva ambiental na região e façam uma visita juntos.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-passeio-cachoeira-proxima",
+      "name": "Passeio a uma cachoeira próxima",
+      "category": "Viagens & Passeios",
+      "points": 25,
+      "description": "Encontrem uma cachoeira na região e façam um passeio de um dia até lá.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-explorar-centro-historico-cidade",
+      "name": "Explorar o centro histórico da cidade",
+      "category": "Viagens & Passeios",
+      "points": 15,
+      "description": "Visitem o centro histórico e conheçam prédios e monumentos importantes juntos.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-passeio-parque-tematico",
+      "name": "Passeio a um parque temático",
+      "category": "Viagens & Passeios",
+      "points": 25,
+      "description": "Se possível, visitem um parque temático na região para um dia de diversão juntos.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-visitar-fazenda-sitio",
+      "name": "Visitar uma fazenda ou sítio próximo",
+      "category": "Viagens & Passeios",
+      "points": 22,
+      "description": "Procurem uma fazenda ou sítio que receba visitantes e passem o dia lá.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-roteiro-fotografico-cidade",
+      "name": "Roteiro fotográfico pela cidade",
+      "category": "Viagens & Passeios",
+      "points": 15,
+      "description": "Escolham 5 pontos da cidade para fotografar juntos e criem um pequeno álbum do passeio.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-passeio-de-trem-historico",
+      "name": "Passeio de trem ou bondinho histórico",
+      "category": "Viagens & Passeios",
+      "points": 22,
+      "description": "Se disponível na região, façam um passeio de trem ou bondinho histórico juntos.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-visitar-feira-livre-domingo",
+      "name": "Visitar uma feira livre de domingo",
+      "category": "Viagens & Passeios",
+      "points": 12,
+      "description": "Vão a uma feira livre pela manhã e escolham frutas ou produtos frescos para levar para casa.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-explorar-parque-linear",
+      "name": "Explorar um parque linear ou ciclovia",
+      "category": "Viagens & Passeios",
+      "points": 15,
+      "description": "Caminhem ou pedalem por um parque linear ou ciclovia da cidade.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-passeio-igreja-catedral-historica",
+      "name": "Visitar uma igreja ou catedral histórica",
+      "category": "Viagens & Passeios",
+      "points": 12,
+      "description": "Visitem uma igreja ou catedral com valor histórico e conheçam sua arquitetura juntos.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-dia-de-camping-em-parque",
+      "name": "Dia de piquenique e camping leve em parque",
+      "category": "Viagens & Passeios",
+      "points": 20,
+      "description": "Passem o dia em um parque com jogos, comida e um clima de acampamento leve.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-passeio-shopping-diferente",
+      "name": "Passeio a um shopping ou centro cultural diferente",
+      "category": "Viagens & Passeios",
+      "points": 10,
+      "description": "Visitem um shopping ou centro cultural que não costumam frequentar.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-explorar-rota-gastronomica-regional",
+      "name": "Explorar uma rota gastronômica regional",
+      "category": "Viagens & Passeios",
+      "points": 20,
+      "description": "Pesquisem uma rota gastronômica da região e visitem 2 ou 3 lugares recomendados.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-visitar-parque-com-animais-resgatados",
+      "name": "Visitar um santuário ou parque de animais resgatados",
+      "category": "Viagens & Passeios",
+      "points": 18,
+      "description": "Procurem um santuário de animais próximo e visitem juntos, apoiando a causa.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-passeio-de-canoa-caiaque",
+      "name": "Passeio de canoa ou caiaque",
+      "category": "Viagens & Passeios",
+      "points": 25,
+      "description": "Se possível na região, aluguem uma canoa ou caiaque e façam um passeio juntos.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-assistir-classico-nunca-viram",
+      "name": "Assistir a um clássico que nenhum viu",
+      "category": "Filmes & Séries",
+      "points": 12,
+      "description": "Escolham um filme clássico famoso que nenhum dos dois assistiu ainda.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-maratona-trilogia-favorita",
+      "name": "Maratona de uma trilogia favorita",
+      "category": "Filmes & Séries",
+      "points": 18,
+      "description": "Escolham uma trilogia de filmes favorita e assistam aos 3 filmes ao longo da semana.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-assistir-filme-premiado",
+      "name": "Assistir a um filme premiado",
+      "category": "Filmes & Séries",
+      "points": 12,
+      "description": "Escolham um filme que ganhou um prêmio importante e assistam juntos.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-criar-ranking-filmes-genero",
+      "name": "Criar um ranking de filmes de um gênero",
+      "category": "Filmes & Séries",
+      "points": 10,
+      "description": "Escolham um gênero (terror, comédia, ficção) e façam juntos um ranking dos favoritos de cada um.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-assistir-serie-nova-episodio-piloto",
+      "name": "Assistir ao piloto de uma série nova",
+      "category": "Filmes & Séries",
+      "points": 10,
+      "description": "Escolham uma série que nunca viram e assistam ao primeiro episódio juntos para decidir se continuam.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-noite-filme-baseado-livro",
+      "name": "Noite de filme baseado em livro",
+      "category": "Filmes & Séries",
+      "points": 15,
+      "description": "Escolham um filme baseado em um livro e assistam, comparando depois com o que conhecem da história.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-assistir-curta-animacao",
+      "name": "Assistir a curtas de animação",
+      "category": "Filmes & Séries",
+      "points": 8,
+      "description": "Selecionem alguns curtas de animação disponíveis online e assistam juntos.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-criar-trailer-imaginario",
+      "name": "Criar um trailer imaginário da vida do casal",
+      "category": "Filmes & Séries",
+      "points": 18,
+      "description": "Narrem juntos como seria o trailer de um filme sobre a história de vocês.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-assistir-filme-decada-passada",
+      "name": "Assistir a um filme de outra década",
+      "category": "Filmes & Séries",
+      "points": 12,
+      "description": "Escolham um filme de uma década diferente da atual e comentem como ele envelheceu.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-votacao-filme-da-noite",
+      "name": "Votação para o filme da noite",
+      "category": "Filmes & Séries",
+      "points": 8,
+      "description": "Cada um sugere 2 filmes e decidam juntos, por sorteio ou consenso, qual assistir.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-criar-playlist-por-decada",
+      "name": "Criar playlist por década",
+      "category": "Música",
+      "points": 10,
+      "description": "Montem juntos uma playlist com músicas de uma década específica que os dois gostam.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-aprender-instrumento-simples",
+      "name": "Aprender a tocar um instrumento simples",
+      "category": "Música",
+      "points": 18,
+      "description": "Escolham um instrumento fácil (ukulele, gaita) e tentem aprender uma música simples juntos.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-dueto-caseiro",
+      "name": "Fazer um dueto caseiro",
+      "category": "Música",
+      "points": 15,
+      "description": "Escolham uma música para cantar em dueto, cada um em uma parte, gravando se quiserem.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-descobrir-musica-ano-nascimento",
+      "name": "Descobrir a música mais tocada no ano de nascimento",
+      "category": "Música",
+      "points": 10,
+      "description": "Pesquisem qual música foi mais tocada no ano em que cada um nasceu e ouçam juntos.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-criar-playlist-treino",
+      "name": "Criar uma playlist de treino ou disposição",
+      "category": "Música",
+      "points": 8,
+      "description": "Montem juntos uma playlist animada para usar em exercícios ou tarefas do dia a dia.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-assistir-documentario-musical",
+      "name": "Assistir a um documentário sobre uma banda ou artista",
+      "category": "Música",
+      "points": 15,
+      "description": "Escolham um documentário musical e assistam juntos, conhecendo a história por trás da música.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-jogo-adivinhar-decada-musica",
+      "name": "Jogo de adivinhar a década da música",
+      "category": "Música",
+      "points": 10,
+      "description": "Toquem trechos de músicas para o outro tentar adivinhar de qual década ela é.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-criar-hino-do-casal",
+      "name": "Criar o 'hino' oficial do casal",
+      "category": "Música",
+      "points": 12,
+      "description": "Escolham juntos uma música que vai representar oficialmente o relacionamento de vocês.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-aprender-coreografia-simples",
+      "name": "Aprender uma coreografia simples",
+      "category": "Música",
+      "points": 15,
+      "description": "Sigam um tutorial de dança e aprendam uma coreografia curta juntos.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-normal-m7-noite-musica-ao-vivo-online",
+      "name": "Assistir a uma apresentação musical ao vivo online",
+      "category": "Música",
+      "points": 12,
+      "description": "Procurem uma live musical acontecendo online e assistam juntos, como se estivessem no show.",
+      "flavor": "normal",
+      "active": true
+    },
+    {
+      "id": "act-hot-m7-jogo-cartas-verdade-ousada",
+      "name": "Jogo de cartas 'verdade ousada'",
+      "category": "Hot",
+      "points": 18,
+      "description": "Criem cartas com perguntas ousadas e sorteiem uma por vez para responder com sinceridade.",
+      "flavor": "hot",
+      "active": true
+    },
+    {
+      "id": "act-hot-m7-massagem-com-chocolate",
+      "name": "Massagem sensual com chocolate",
+      "category": "Hot",
+      "points": 25,
+      "description": "Usem chocolate líquido (própria para pele) para uma massagem diferente e saborosa entre os dois.",
+      "flavor": "hot",
+      "active": true
+    },
+    {
+      "id": "act-hot-m7-dancar-de-olhos-fechados",
+      "name": "Dançar de olhos fechados coladinhos",
+      "category": "Hot",
+      "points": 15,
+      "description": "Coloquem uma música lenta e dancem de olhos fechados, sentindo apenas o corpo do outro.",
+      "flavor": "hot",
+      "active": true
+    },
+    {
+      "id": "act-hot-m7-jogo-roleta-desejos",
+      "name": "Jogo da roleta dos desejos",
+      "category": "Hot",
+      "points": 20,
+      "description": "Criem uma roleta simples com desejos e sorteiem qual cumprir na noite.",
+      "flavor": "hot",
+      "active": true
+    },
+    {
+      "id": "act-hot-m7-provocacao-com-batom",
+      "name": "Provocação com batom",
+      "category": "Hot",
+      "points": 15,
+      "description": "Usem um batom para marcar pequenos beijos em partes escolhidas pelo parceiro(a).",
+      "flavor": "hot",
+      "active": true
+    },
+    {
+      "id": "act-hot-m7-noite-fantasia-personagem",
+      "name": "Noite de fantasia com personagem escolhido",
+      "category": "Hot",
+      "points": 25,
+      "description": "Escolham juntos um personagem ou tema para incorporar por uma noite, com roupas que já têm em casa.",
+      "flavor": "hot",
+      "active": true
+    },
+    {
+      "id": "act-hot-m7-massagem-relaxante-musica-baixa",
+      "name": "Massagem relaxante com música baixa e luz de vela",
+      "category": "Hot",
+      "points": 22,
+      "description": "Preparem o ambiente com luz de vela e música baixa para uma massagem longa e sem pressa.",
+      "flavor": "hot",
+      "active": true
+    },
+    {
+      "id": "act-hot-m7-jogo-perguntas-desejos-realizados",
+      "name": "Jogo de desejos já realizados e por realizar",
+      "category": "Hot",
+      "points": 15,
+      "description": "Conversem sobre desejos que já viveram juntos e quais ainda querem experimentar.",
+      "flavor": "hot",
+      "active": true
+    },
+    {
+      "id": "act-hot-m7-dança-cadeira-sensual",
+      "name": "Dança sensual com cadeira",
+      "category": "Hot",
+      "points": 20,
+      "description": "Usem uma cadeira como apoio para uma dança sensual, sem pressa, seguindo o ritmo da música.",
+      "flavor": "hot",
+      "active": true
+    },
+    {
+      "id": "act-hot-m7-bilhetes-espalhados-desejos",
+      "name": "Bilhetes espalhados com pequenos desejos",
+      "category": "Hot",
+      "points": 15,
+      "description": "Espalhem bilhetes pela casa com pequenos desejos para cumprirem ao longo do dia.",
+      "flavor": "hot",
+      "active": true
+    },
+    {
+      "id": "act-hot-m7-jogo-bloqueio-toque",
+      "name": "Jogo do 'bloqueio' - toque proibido",
+      "category": "Hot",
+      "points": 18,
+      "description": "Um define uma área do corpo 'proibida' e o outro tenta tocar em todo o resto, driblando a regra.",
+      "flavor": "hot",
+      "active": true
+    },
+    {
+      "id": "act-hot-m7-noite-photoshoot-casal-intimista",
+      "name": "Ensaio fotográfico intimista do casal",
+      "category": "Hot",
+      "points": 22,
+      "description": "Façam um ensaio de fotos mais íntimo e guardado apenas para os dois, em ambiente confortável.",
+      "flavor": "hot",
+      "active": true
+    },
+    {
+      "id": "act-hot-m7-jogo-perguntas-o-que-voce-faria",
+      "name": "Jogo 'o que você faria se...' picante",
+      "category": "Hot",
+      "points": 18,
+      "description": "Façam perguntas hipotéticas mais ousadas um ao outro, respondendo com sinceridade e humor.",
+      "flavor": "hot",
+      "active": true
+    },
+    {
+      "id": "act-hot-m7-massagem-com-plumas-e-gelo",
+      "name": "Massagem alternando plumas e gelo",
+      "category": "Hot",
+      "points": 22,
+      "description": "Alternem toques com plumas macias e cubos de gelo para brincar com sensações diferentes.",
+      "flavor": "hot",
+      "active": true
+    },
+    {
+      "id": "act-hot-m7-noite-so-toque-sem-palavras",
+      "name": "Noite de comunicação só por toque",
+      "category": "Hot",
+      "points": 20,
+      "description": "Passem um tempo se comunicando apenas por toques e olhares, sem falar nada.",
+      "flavor": "hot",
+      "active": true
+    },
+    {
+      "id": "act-hot-m7-jogo-strip-cartas",
+      "name": "Jogo de cartas com prenda de roupa",
+      "category": "Hot",
+      "points": 20,
+      "description": "Joguem um jogo de cartas simples e quem perder tira uma peça de roupa ou cumpre um desafio.",
+      "flavor": "hot",
+      "active": true
+    },
+    {
+      "id": "act-hot-m7-dança-sensual-vendada",
+      "name": "Dança sensual com um de olhos vendados",
+      "category": "Hot",
+      "points": 20,
+      "description": "Um dança de olhos vendados guiado apenas pelo toque e voz do outro.",
+      "flavor": "hot",
+      "active": true
+    },
+    {
+      "id": "act-hot-m7-carta-fantasia-anonima",
+      "name": "Escrever uma fantasia em carta anônima",
+      "category": "Hot",
+      "points": 15,
+      "description": "Escrevam uma fantasia em um papel sem assinar e troquem para o outro ler em voz alta.",
+      "flavor": "hot",
+      "active": true
+    },
+    {
+      "id": "act-hot-m7-banho-de-espuma-compartilhado",
+      "name": "Banho de espuma compartilhado",
+      "category": "Hot",
+      "points": 25,
+      "description": "Preparem um banho de espuma com velas e aproveitem um tempo relaxante juntos.",
+      "flavor": "hot",
+      "active": true
+    },
+    {
+      "id": "act-hot-m7-jogo-perguntas-limites-desejos",
+      "name": "Conversa sobre limites e desejos",
+      "category": "Hot",
+      "points": 15,
+      "description": "Conversem abertamente sobre o que gostam e o que não gostam, fortalecendo a confiança entre vocês.",
+      "flavor": "hot",
+      "active": true
+    },
+    {
+      "id": "act-hot-m7-massagem-oleo-quente",
+      "name": "Massagem com óleo morno",
+      "category": "Hot",
+      "points": 25,
+      "description": "Aqueçam levemente um óleo de massagem (temperatura segura) e façam uma massagem revezada.",
+      "flavor": "hot",
+      "active": true
+    },
+    {
+      "id": "act-hot-m7-jogo-perguntas-fantasias-realizar",
+      "name": "Escolher uma fantasia leve para realizar",
+      "category": "Hot",
+      "points": 22,
+      "description": "Conversem e escolham juntos uma fantasia leve e consensual para experimentar na semana.",
+      "flavor": "hot",
+      "active": true
+    },
+    {
+      "id": "act-hot-m7-noite-roupa-intima-escolhida-por-outro",
+      "name": "Escolher a roupa íntima do outro",
+      "category": "Hot",
+      "points": 20,
+      "description": "Cada um escolhe uma peça para o parceiro(a) usar na noite, como uma surpresa carinhosa.",
+      "flavor": "hot",
+      "active": true
+    },
+    {
+      "id": "act-hot-m7-jogo-perguntas-primeira-vez",
+      "name": "Conversa sobre primeiras vezes",
+      "category": "Hot",
+      "points": 12,
+      "description": "Conversem sobre primeiras experiências marcantes do relacionamento, com carinho e sem comparação.",
+      "flavor": "hot",
+      "active": true
+    },
+    {
+      "id": "act-hot-m7-provocacao-espelho",
+      "name": "Provocação em frente ao espelho",
+      "category": "Hot",
+      "points": 18,
+      "description": "Fiquem em frente ao espelho e façam elogios e provocações carinhosas um ao outro.",
+      "flavor": "hot",
+      "active": true
+    },
+    {
+      "id": "act-hot-m7-jogo-cartas-desafios-crescentes",
+      "name": "Jogo de cartas com desafios crescentes",
+      "category": "Hot",
+      "points": 22,
+      "description": "Criem cartas com desafios que aumentam de intensidade a cada rodada jogada.",
+      "flavor": "hot",
+      "active": true
+    },
+    {
+      "id": "act-hot-m7-massagem-so-nas-costas-demorada",
+      "name": "Massagem demorada apenas nas costas",
+      "category": "Hot",
+      "points": 18,
+      "description": "Dediquem 15 minutos só para massagear as costas um do outro, sem pressa.",
+      "flavor": "hot",
+      "active": true
+    },
+    {
+      "id": "act-hot-m7-noite-so-abraco-conversa-intima",
+      "name": "Noite de abraço e conversa íntima",
+      "category": "Hot",
+      "points": 15,
+      "description": "Fiquem abraçados conversando sobre sentimentos e desejos, sem celular, por pelo menos 20 minutos.",
+      "flavor": "hot",
+      "active": true
+    },
+    {
+      "id": "act-hot-m7-jogo-roleta-beijos",
+      "name": "Roleta dos beijos",
+      "category": "Hot",
+      "points": 15,
+      "description": "Criem uma roleta simples definindo onde o próximo beijo vai ser dado.",
+      "flavor": "hot",
+      "active": true
+    },
+    {
+      "id": "act-hot-m7-danca-lenta-luz-vela",
+      "name": "Dança lenta só à luz de velas",
+      "category": "Hot",
+      "points": 18,
+      "description": "Apaguem as luzes, acendam velas e dancem juntos ao som de uma música lenta.",
+      "flavor": "hot",
+      "active": true
+    },
+    {
+      "id": "act-hot-m7-jogo-perguntas-o-que-me-atrai",
+      "name": "Jogo 'o que me atrai em você'",
+      "category": "Hot",
+      "points": 12,
+      "description": "Digam um ao outro, em detalhes, o que mais atrai fisicamente e emocionalmente no parceiro(a).",
+      "flavor": "hot",
+      "active": true
+    },
+    {
+      "id": "act-hot-m7-provocacao-mensagem-durante-tarefa",
+      "name": "Provocação por mensagem durante uma tarefa",
+      "category": "Hot",
+      "points": 12,
+      "description": "Enviem uma mensagem provocante enquanto um dos dois está fazendo uma tarefa em outro cômodo.",
+      "flavor": "hot",
+      "active": true
+    },
+    {
+      "id": "act-hot-m7-noite-so-carinho-sem-pressa-final",
+      "name": "Noite dedicada só a carinho, sem pressa",
+      "category": "Hot",
+      "points": 22,
+      "description": "Reservem uma noite inteira para se dedicarem só ao carinho físico, sem pressa e sem metas.",
+      "flavor": "hot",
+      "active": true
+    },
+    {
+      "id": "act-hot-m7-jogo-cartas-elogios-corpo",
+      "name": "Jogo de elogios ao corpo do outro",
+      "category": "Hot",
+      "points": 15,
+      "description": "Façam uma rodada de elogios sinceros sobre o corpo e a presença física um do outro.",
+      "flavor": "hot",
+      "active": true
+    },
+    {
+      "id": "act-hot-m7-massagem-com-musica-escolhida-a-dois",
+      "name": "Massagem com playlist escolhida a dois",
+      "category": "Hot",
+      "points": 18,
+      "description": "Montem uma playlist para o momento e façam uma massagem revezada ao som dela.",
+      "flavor": "hot",
+      "active": true
+    },
+    {
+      "id": "act-hot-m7-jogo-perguntas-fantasia-favorita",
+      "name": "Compartilhar a fantasia favorita",
+      "category": "Hot",
+      "points": 18,
+      "description": "Compartilhem, com liberdade e sem julgamento, qual é a fantasia favorita de cada um.",
+      "flavor": "hot",
+      "active": true
+    },
+    {
+      "id": "act-hot-m7-noite-jantar-e-sobremesa-na-cama",
+      "name": "Jantar e sobremesa na cama",
+      "category": "Hot",
+      "points": 20,
+      "description": "Levem o jantar e a sobremesa para a cama e aproveitem uma noite mais íntima e preguiçosa.",
+      "flavor": "hot",
+      "active": true
+    },
+    {
+      "id": "act-hot-m7-provocacao-troca-perfume",
+      "name": "Provocação com troca de perfume",
+      "category": "Hot",
+      "points": 12,
+      "description": "Usem o perfume um do outro por um dia e comentem como se sentiram com o cheiro do parceiro(a).",
+      "flavor": "hot",
+      "active": true
+    },
+    {
+      "id": "act-hot-m7-jogo-desafio-resistencia-cocegas",
+      "name": "Desafio de resistência às cócegas",
+      "category": "Hot",
+      "points": 12,
+      "description": "Façam cócegas leves um no outro e vejam quem resiste mais sem rir.",
+      "flavor": "hot",
+      "active": true
+    },
+    {
+      "id": "act-hot-m7-noite-so-perfume-vela-penumbra",
+      "name": "Noite de penumbra com vela e perfume",
+      "category": "Hot",
+      "points": 20,
+      "description": "Apaguem as luzes, acendam uma vela perfumada e aproveitem um tempo de intimidade na penumbra.",
+      "flavor": "hot",
+      "active": true
+    }
+  ],
+  "contentChallenges": [
+    {
+      "id": "week-m7-escuta-ativa",
+      "title": "Escuta ativa",
+      "description": "Pratiquem escutar um ao outro até o fim, sem interromper, em pelo menos 3 conversas na semana",
+      "points": 12,
+      "type": "connection",
+      "active": true
+    },
+    {
+      "id": "week-m7-pergunta-do-dia",
+      "title": "Pergunta do dia",
+      "description": "Façam uma pergunta pessoal nova um ao outro todos os dias da semana",
+      "points": 8,
+      "type": "connection",
+      "active": true
+    },
+    {
+      "id": "week-m7-momento-so-nos-dois",
+      "title": "Momento só nós dois",
+      "description": "Reservem um momento sem filhos, trabalho ou tela por pelo menos 3 vezes na semana",
+      "points": 14,
+      "type": "connection",
+      "active": true
+    },
+    {
+      "id": "week-m7-desafio-risada-diaria",
+      "title": "Desafio da risada diária",
+      "description": "Façam algo engraçado juntos todos os dias da semana, nem que seja assistir a um vídeo curto",
+      "points": 8,
+      "type": "fun",
+      "active": true
+    },
+    {
+      "id": "week-m7-jogo-diferente-semana",
+      "title": "Jogo diferente",
+      "description": "Experimentem um jogo que nunca jogaram juntos durante a semana",
+      "points": 10,
+      "type": "fun",
+      "active": true
+    },
+    {
+      "id": "week-m7-desafio-bobagem-controlada",
+      "title": "Desafio da bobagem controlada",
+      "description": "Façam pelo menos uma coisa bem boba e divertida juntos essa semana",
+      "points": 8,
+      "type": "fun",
+      "active": true
+    },
+    {
+      "id": "week-m7-flerte-diario",
+      "title": "Flerte diário",
+      "description": "Flertem um com o outro pelo menos uma vez por dia durante a semana",
+      "points": 10,
+      "type": "romance",
+      "active": true
+    },
+    {
+      "id": "week-m7-encontro-em-casa",
+      "title": "Encontro romântico em casa",
+      "description": "Organizem um 'date night' completo dentro de casa, com clima especial",
+      "points": 15,
+      "type": "romance",
+      "active": true
+    },
+    {
+      "id": "week-m7-presente-simbolico",
+      "title": "Presente simbólico",
+      "description": "Deem um presente simples que tenha um significado especial para o relacionamento",
+      "points": 12,
+      "type": "romance",
+      "active": true
+    },
+    {
+      "id": "week-m7-reconhecer-esforco-diario",
+      "title": "Reconhecer o esforço diário",
+      "description": "Reconheçam verbalmente algo que o outro fez de bom todos os dias da semana",
+      "points": 8,
+      "type": "appreciation",
+      "active": true
+    },
+    {
+      "id": "week-m7-lista-qualidades",
+      "title": "Lista de qualidades",
+      "description": "Façam uma lista das qualidades que mais admiram no parceiro(a) e compartilhem",
+      "points": 10,
+      "type": "appreciation",
+      "active": true
+    },
+    {
+      "id": "week-m7-agradecer-por-escrito",
+      "title": "Agradecer por escrito",
+      "description": "Escrevam um agradecimento por escrito por algo específico que o outro fez essa semana",
+      "points": 10,
+      "type": "appreciation",
+      "active": true
+    },
+    {
+      "id": "week-m7-projeto-em-equipe",
+      "title": "Projeto em equipe",
+      "description": "Comecem e avancem juntos em um pequeno projeto da casa durante a semana",
+      "points": 14,
+      "type": "together",
+      "active": true
+    },
+    {
+      "id": "week-m7-caminhada-diaria",
+      "title": "Caminhada diária",
+      "description": "Façam uma caminhada juntos pelo menos 3 vezes durante a semana",
+      "points": 12,
+      "type": "together",
+      "active": true
+    },
+    {
+      "id": "week-m7-noite-sem-tela",
+      "title": "Noite sem tela",
+      "description": "Passem pelo menos uma noite completa sem TV ou celular, só conversando ou brincando",
+      "points": 12,
+      "type": "together",
+      "active": true
+    },
+    {
+      "id": "week-m7-planejar-proximo-passeio",
+      "title": "Planejar o próximo passeio",
+      "description": "Pesquisem e planejem juntos um passeio para as próximas semanas",
+      "points": 10,
+      "type": "planning",
+      "active": true
+    },
+    {
+      "id": "week-m7-organizar-agenda-semanal",
+      "title": "Organizar a agenda semanal juntos",
+      "description": "Revisem juntos os compromissos da semana seguinte e organizem um cronograma",
+      "points": 10,
+      "type": "planning",
+      "active": true
+    },
+    {
+      "id": "week-m7-planejar-data-especial",
+      "title": "Planejar uma data especial futura",
+      "description": "Comecem a planejar juntos como será uma data importante que está chegando",
+      "points": 12,
+      "type": "planning",
+      "active": true
+    },
+    {
+      "id": "week-m7-surpresa-no-trabalho",
+      "title": "Surpresa relacionada ao trabalho",
+      "description": "Façam uma surpresa leve relacionada ao dia de trabalho do outro (mensagem, lanche, bilhete)",
+      "points": 10,
+      "type": "surprise",
+      "active": true
+    },
+    {
+      "id": "week-m7-mudanca-de-rotina",
+      "title": "Mudança de rotina surpresa",
+      "description": "Alterem algo pequeno na rotina para surpreender o parceiro(a) durante a semana",
+      "points": 10,
+      "type": "surprise",
+      "active": true
+    },
+    {
+      "id": "week-m7-encontro-marcado-as-cegas",
+      "title": "Encontro marcado 'às cegas'",
+      "description": "Um organiza um encontro surpresa sem revelar os detalhes ao outro antes",
+      "points": 15,
+      "type": "surprise",
+      "active": true
+    },
+    {
+      "id": "week-m7-revisitar-fotos-antigas",
+      "title": "Revisitar fotos antigas",
+      "description": "Escolham 10 fotos antigas do casal e relembrem juntos as histórias por trás delas",
+      "points": 10,
+      "type": "memory",
+      "active": true
+    },
+    {
+      "id": "week-m7-contar-historia-favorita",
+      "title": "Contar a história favorita do relacionamento",
+      "description": "Cada um conta qual é a lembrança favorita que tem do relacionamento",
+      "points": 10,
+      "type": "memory",
+      "active": true
+    },
+    {
+      "id": "week-m7-recriar-momento-marcante",
+      "title": "Recriar um momento marcante",
+      "description": "Escolham um momento marcante do relacionamento e tentem recriá-lo de alguma forma",
+      "points": 15,
+      "type": "memory",
+      "active": true
+    },
+    {
+      "id": "week-m7-caminhada-ativa-semana",
+      "title": "Caminhada ativa na semana",
+      "description": "Façam uma caminhada mais intensa ou corrida leve juntos pelo menos 2 vezes na semana",
+      "points": 10,
+      "type": "health",
+      "active": true
+    },
+    {
+      "id": "week-m7-refeicao-sem-processados",
+      "title": "Refeição sem processados",
+      "description": "Preparem pelo menos 2 refeições sem alimentos processados durante a semana",
+      "points": 10,
+      "type": "health",
+      "active": true
+    },
+    {
+      "id": "week-m7-pausa-para-descanso",
+      "title": "Pausa para descanso",
+      "description": "Garantam juntos pelo menos uma pausa de descanso real por dia durante a semana",
+      "points": 8,
+      "type": "health",
+      "active": true
+    },
+    {
+      "id": "week-m7-playlist-tematica-semana",
+      "title": "Playlist temática da semana",
+      "description": "Criem uma playlist com um tema específico escolhido pelos dois",
+      "points": 8,
+      "type": "music",
+      "active": true
+    },
+    {
+      "id": "week-m7-descobrir-genero-musical-novo",
+      "title": "Descobrir um gênero musical novo",
+      "description": "Explorem juntos um gênero musical que nenhum costuma ouvir",
+      "points": 10,
+      "type": "music",
+      "active": true
+    },
+    {
+      "id": "week-m7-cantar-no-carro",
+      "title": "Cantar juntos no carro ou em casa",
+      "description": "Cantem juntos pelo menos 3 músicas ao longo da semana, onde estiverem",
+      "points": 8,
+      "type": "music",
+      "active": true
+    },
+    {
+      "id": "week-m7-conversa-sem-interrupcao",
+      "title": "Conversa sem interrupção",
+      "description": "Tenham pelo menos uma conversa de 15 minutos sem interrupções ou celular por perto",
+      "points": 12,
+      "type": "communication",
+      "active": true
+    },
+    {
+      "id": "week-m7-expressar-necessidade",
+      "title": "Expressar uma necessidade",
+      "description": "Cada um compartilha uma necessidade ou desejo que gostaria que o outro soubesse",
+      "points": 12,
+      "type": "communication",
+      "active": true
+    },
+    {
+      "id": "week-m7-resolver-pendencia-conversa",
+      "title": "Resolver uma pendência por conversa",
+      "description": "Conversem e resolvam juntos algo que estava pendente entre vocês",
+      "points": 14,
+      "type": "communication",
+      "active": true
+    },
+    {
+      "id": "week-m7-experimentar-comida-nova",
+      "title": "Experimentar uma comida nova",
+      "description": "Provem juntos um alimento ou prato que nenhum dos dois já experimentou",
+      "points": 10,
+      "type": "adventure",
+      "active": true
+    },
+    {
+      "id": "week-m7-trajeto-diferente-trabalho",
+      "title": "Trajeto diferente",
+      "description": "Façam juntos um trajeto diferente do habitual para algum lugar durante a semana",
+      "points": 8,
+      "type": "adventure",
+      "active": true
+    },
+    {
+      "id": "week-m7-atividade-fora-da-zona-conforto",
+      "title": "Atividade fora da zona de conforto",
+      "description": "Façam juntos uma atividade que tira os dois da zona de conforto",
+      "points": 15,
+      "type": "adventure",
+      "active": true
+    },
+    {
+      "id": "week-m7-criar-algo-com-as-maos",
+      "title": "Criar algo com as próprias mãos",
+      "description": "Façam juntos uma criação manual (desenho, artesanato, receita) durante a semana",
+      "points": 12,
+      "type": "creative",
+      "active": true
+    },
+    {
+      "id": "week-m7-escrever-poema-a-dois",
+      "title": "Escrever um poema a dois",
+      "description": "Escrevam juntos um poema curto sobre o relacionamento, alternando versos",
+      "points": 10,
+      "type": "creative",
+      "active": true
+    },
+    {
+      "id": "week-m7-decorar-espaco-pequeno",
+      "title": "Decorar um espaço pequeno da casa",
+      "description": "Personalizem juntos um cantinho da casa com algo criativo",
+      "points": 12,
+      "type": "creative",
+      "active": true
+    },
+    {
+      "id": "week-m7-observar-estrelas",
+      "title": "Observar as estrelas juntos",
+      "description": "Reservem uma noite para observar o céu estrelado juntos, ao ar livre",
+      "points": 10,
+      "type": "outdoor",
+      "active": true
+    },
+    {
+      "id": "week-m7-praticar-esporte-ao-ar-livre",
+      "title": "Praticar esporte ao ar livre",
+      "description": "Façam juntos um esporte ao ar livre pelo menos uma vez na semana",
+      "points": 12,
+      "type": "outdoor",
+      "active": true
+    },
+    {
+      "id": "week-m7-passeio-parque-semanal",
+      "title": "Passeio semanal ao parque",
+      "description": "Visitem um parque ou área verde juntos pelo menos uma vez na semana",
+      "points": 10,
+      "type": "outdoor",
+      "active": true
+    },
+    {
+      "id": "week-m7-praticar-paciencia",
+      "title": "Praticar paciência",
+      "description": "Escolham conscientemente ser mais pacientes um com o outro durante a semana",
+      "points": 10,
+      "type": "wellness",
+      "active": true
+    },
+    {
+      "id": "week-m7-dia-de-descanso-total",
+      "title": "Dia de descanso total",
+      "description": "Reservem um dia (ou parte dele) só para descansar juntos, sem compromissos",
+      "points": 12,
+      "type": "wellness",
+      "active": true
+    },
+    {
+      "id": "week-m7-gesto-de-cuidado-diario",
+      "title": "Gesto de cuidado diário",
+      "description": "Façam um pequeno gesto de cuidado com o outro todos os dias da semana",
+      "points": 10,
+      "type": "wellness",
+      "active": true
+    },
+    {
+      "id": "week-m7-assistir-palestra-juntos",
+      "title": "Assistir a uma palestra ou vídeo educativo",
+      "description": "Escolham um vídeo educativo sobre relacionamento ou um tema de interesse comum e assistam juntos",
+      "points": 10,
+      "type": "growth",
+      "active": true
+    },
+    {
+      "id": "week-m7-definir-valor-comum",
+      "title": "Definir um valor comum do casal",
+      "description": "Conversem e definam juntos um valor que querem cultivar no relacionamento",
+      "points": 12,
+      "type": "growth",
+      "active": true
+    },
+    {
+      "id": "week-m7-ler-artigo-sobre-casais",
+      "title": "Ler um artigo sobre relacionamentos",
+      "description": "Leiam juntos um artigo sobre relacionamentos e conversem sobre o que aprenderam",
+      "points": 8,
+      "type": "growth",
+      "active": true
+    },
+    {
+      "id": "week-m7-experimentar-hobby-novo",
+      "title": "Experimentar um hobby novo",
+      "description": "Experimentem juntos um hobby que nenhum dos dois já praticou",
+      "points": 14,
+      "type": "activities",
+      "active": true
+    },
+    {
+      "id": "week-m7-repetir-atividade-favorita",
+      "title": "Repetir a atividade favorita do casal",
+      "description": "Façam de novo a atividade que mais gostaram até agora no relacionamento",
+      "points": 10,
+      "type": "activities",
+      "active": true
+    },
+    {
+      "id": "week-m7-atividade-ao-ar-livre-semana",
+      "title": "Atividade ao ar livre na semana",
+      "description": "Façam pelo menos uma atividade ao ar livre juntos durante a semana",
+      "points": 10,
+      "type": "activities",
+      "active": true
+    },
+    {
+      "id": "week-m7-assistir-stand-up",
+      "title": "Assistir a um show de stand-up comedy",
+      "description": "Assistam juntos a um show de stand-up comedy, presencial ou por streaming",
+      "points": 10,
+      "type": "entertainment",
+      "active": true
+    },
+    {
+      "id": "week-m7-jogo-de-tabuleiro-longo",
+      "title": "Jogo de tabuleiro mais longo",
+      "description": "Joguem um jogo de tabuleiro mais elaborado que dure pelo menos uma hora",
+      "points": 12,
+      "type": "entertainment",
+      "active": true
+    },
+    {
+      "id": "week-m7-teatro-ou-cinema",
+      "title": "Ir ao teatro ou cinema",
+      "description": "Assistam juntos a uma peça de teatro ou filme no cinema durante a semana",
+      "points": 15,
+      "type": "entertainment",
+      "active": true
+    },
+    {
+      "id": "week-m7-toque-diario-consciente",
+      "title": "Toque diário consciente",
+      "description": "Façam pelo menos um toque carinhoso consciente por dia (mão, ombro, cabelo)",
+      "points": 8,
+      "type": "physical",
+      "active": true
+    },
+    {
+      "id": "week-m7-alongamento-a-dois",
+      "title": "Alongamento a dois",
+      "description": "Façam uma sessão de alongamento juntos pelo menos 2 vezes na semana",
+      "points": 8,
+      "type": "physical",
+      "active": true
+    },
+    {
+      "id": "week-m7-dormir-abracados",
+      "title": "Dormir abraçados",
+      "description": "Durmam abraçados pelo menos 3 noites durante a semana",
+      "points": 10,
+      "type": "physical",
+      "active": true
+    },
+    {
+      "id": "week-m7-elogio-fisico-sincero",
+      "title": "Elogio físico sincero",
+      "description": "Façam um elogio físico sincero um ao outro todos os dias da semana",
+      "points": 8,
+      "type": "romantic",
+      "active": true
+    },
+    {
+      "id": "week-m7-carta-romantica-semana",
+      "title": "Carta romântica da semana",
+      "description": "Escrevam uma carta romântica curta para o outro ler durante a semana",
+      "points": 12,
+      "type": "romantic",
+      "active": true
+    },
+    {
+      "id": "week-m7-recriar-pedido-namoro",
+      "title": "Recriar o momento do pedido de namoro/casamento",
+      "description": "Relembrem e recriem, de forma simbólica, o momento em que ficaram juntos oficialmente",
+      "points": 15,
+      "type": "romantic",
+      "active": true
+    }
+  ]
+}

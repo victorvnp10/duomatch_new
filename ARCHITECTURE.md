@@ -191,8 +191,8 @@ tela de Perfil):
 Para que sugestões do dia/hot e o desafio semanal tenham um portfólio
 variado e editável, o conteúdo saiu do código e foi para o banco:
 
-- **`shared/contentCatalog.js`** — módulo de seed com 323 atividades
-  (72 normais + 101 hot + 150 do lote m6) e 157 desafios.
+- **`shared/contentCatalog.js`** — módulo de seed com 473 atividades
+  (72 normais + 101 hot + 150 do lote m6 + 150 do lote m7) e 217 desafios.
 - **`infrastructure/firebase/repositories/ContentRepository.js`** — nova
   camada de repositório: faz o seed por **upsert** nas coleções raiz
   (`contentActivities`/`contentChallenges`) — grava apenas os `id` ainda
