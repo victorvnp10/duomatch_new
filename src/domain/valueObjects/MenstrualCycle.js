@@ -25,6 +25,26 @@ const LUTEAL_PHASE_LENGTH = 14;
 const FERTILE_WINDOW_START_OFFSET = 5; // dias antes da ovulação
 const FERTILE_WINDOW_END_OFFSET = 1; // dias depois da ovulação
 
+// B2-29: limites fisiológicos do comprimento do ciclo. Ciclos humanos reais
+// quase nunca saem de ~21–35 dias; o intervalo [15, 60] serve de rede de
+// segurança contra typos (ex.: registrar um ciclo de "3 dias" invertia a
+// janela fértil — `end < start` — e gerava fases/insights sem sentido).
+export const MIN_CYCLE_LENGTH = 15;
+export const MAX_CYCLE_LENGTH = 60;
+
+/** Restringe o comprimento do ciclo a um intervalo fisiologicamente plausível. */
+export const clampCycleLength = (cycleLength) => {
+  const value = Number(cycleLength);
+  if (!Number.isFinite(value) || value <= 0) return 28;
+  return Math.min(MAX_CYCLE_LENGTH, Math.max(MIN_CYCLE_LENGTH, value));
+};
+
+/** `true` se o comprimento está dentro do intervalo fisiológico aceito. */
+export const isValidCycleLength = (cycleLength) => {
+  const value = Number(cycleLength);
+  return Number.isFinite(value) && value >= MIN_CYCLE_LENGTH && value <= MAX_CYCLE_LENGTH;
+};
+
 export const PHASES = {
   MENSTRUATION: "menstruation",
   FOLLICULAR: "follicular",
@@ -51,20 +71,23 @@ const daysBetween = (laterDateStr, earlierDateStr) =>
  * registrado.
  */
 export const getCurrentCycleStartDate = (lastPeriodStart, cycleLength, todayStr) => {
+  // B2-29: ciclo seguro — um typo (ex.: 3) quebraria módulo/divisão.
+  const safeLength = clampCycleLength(cycleLength);
   const daysSinceStart = daysBetween(todayStr, lastPeriodStart);
   if (daysSinceStart < 0) return lastPeriodStart;
-  const completedCycles = Math.floor(daysSinceStart / cycleLength);
-  return addDays(lastPeriodStart, completedCycles * cycleLength);
+  const completedCycles = Math.floor(daysSinceStart / safeLength);
+  return addDays(lastPeriodStart, completedCycles * safeLength);
 };
 
 /** Retorna o dia atual dentro do ciclo (1-indexado). */
 export const getCurrentCycleDay = (lastPeriodStart, cycleLength, todayStr) => {
+  const safeLength = clampCycleLength(cycleLength);
   const daysSinceStart = daysBetween(todayStr, lastPeriodStart);
   if (daysSinceStart < 0) return 1;
-  return (daysSinceStart % cycleLength) + 1;
+  return (daysSinceStart % safeLength) + 1;
 };
 
-export const getOvulationDay = (cycleLength) => cycleLength - LUTEAL_PHASE_LENGTH;
+export const getOvulationDay = (cycleLength) => clampCycleLength(cycleLength) - LUTEAL_PHASE_LENGTH;
 
 export const getFertileWindow = (cycleLength) => {
   const ovulationDay = getOvulationDay(cycleLength);
@@ -163,8 +186,12 @@ export const computeAveragePeriodLength = (periods, fallback = 5) => {
 /** Início da menstruação mais recente registrada. */
 export const getLastPeriodStart = (periods) => {
   if (!periods || periods.length === 0) return null;
-  return [...periods].sort((a, b) => (a.startDate < b.startDate ? -1 : 1)).at(-1)
-    .startDate;
+  // B2-38: `.at(-1)` precisa de polyfill em Safari/iOS < 15.4 — usar
+  // indexação clássica (app é PWA usado em qualquer navegador de casal).
+  const sorted = [...periods].sort((a, b) =>
+    a.startDate < b.startDate ? -1 : 1
+  );
+  return sorted[sorted.length - 1].startDate;
 };
 export const summarizeCycle = ({
   lastPeriodStart,
@@ -172,15 +199,18 @@ export const summarizeCycle = ({
   periodLength = 5,
   todayStr,
 }) => {
-  const cycleStartDate = getCurrentCycleStartDate(lastPeriodStart, cycleLength, todayStr);
-  const cycleDay = getCurrentCycleDay(lastPeriodStart, cycleLength, todayStr);
-  const phase = getPhaseForDay(cycleDay, cycleLength, periodLength);
-  const fertileWindow = getFertileWindow(cycleLength);
-  const nextPeriodDate = addDays(cycleStartDate, cycleLength);
+  // B2-29: clamp no ponto central de consumo — ciclo vindo de override ou de
+  // média de dados legados podem conter valores inválidos.
+  const safeCycleLength = clampCycleLength(cycleLength);
+  const cycleStartDate = getCurrentCycleStartDate(lastPeriodStart, safeCycleLength, todayStr);
+  const cycleDay = getCurrentCycleDay(lastPeriodStart, safeCycleLength, todayStr);
+  const phase = getPhaseForDay(cycleDay, safeCycleLength, periodLength);
+  const fertileWindow = getFertileWindow(safeCycleLength);
+  const nextPeriodDate = addDays(cycleStartDate, safeCycleLength);
 
   return {
     cycleDay,
-    cycleLength,
+    cycleLength: safeCycleLength,
     periodLength,
     phase,
     fertileWindow,

@@ -20,13 +20,11 @@ export const useActivities = (user, userData, coupleData, rounds) => {
   const [partnerSelections, setPartnerSelections] = useState({});
   const [activityToDelete, setActivityToDelete] = useState(null);
   const [activityToEdit, setActivityToEdit] = useState(null);
-  const [showMatchNotification, setShowMatchNotification] = useState(false);
-  const [partnerNotification, setPartnerNotification] = useState({
-    visible: false,
-    timestamp: null,
-  });
-  const [showHotSelectionNotification, setShowHotSelectionNotification] =
-    useState(false);
+  // B2-39: `showMatchNotification`/`partnerNotification`/
+  // `showHotSelectionNotification` eram estados NUNCA setados (morte de
+  // notificação "fantasma" no NotificationManager) — o match 1:1 é
+  // entregue pelo evento `activityMatch` (MainView/HotZone) e o hot match
+  // por `dispatchHotMatchEvent` (DuoMatchApp). Removidos aqui.
   const [pointsMessage, setPointsMessage] = useState("");
 
   // Matches do dia: atividades em que os dois parceiros confirmaram hoje.
@@ -484,11 +482,6 @@ export const useActivities = (user, userData, coupleData, rounds) => {
     setActivityToDelete,
     activityToEdit,
     setActivityToEdit,
-    showMatchNotification,
-    partnerNotification,
-    setPartnerNotification,
-    showHotSelectionNotification,
-    setShowHotSelectionNotification,
     pointsMessage,
     setPointsMessage,
     handleSelectActivity,

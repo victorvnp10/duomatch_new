@@ -67,7 +67,13 @@ const SignalGame = ({ user, userData, coupleData, handleSetDailySignal, setView 
 
   // Dica do dia do ciclo — exibida acima das opções para ajudar na
   // decisão de qual sinal enviar hoje.
-  const { dailyInsight } = useMenstrualCycle({ user, userData, coupleData });
+  // B2-41: só o PARCEIRO (não-owner) recebe o insight — a owner conhece o
+  // próprio ciclo e vê a dica no CycleView. MainView já filtrava assim.
+  const { isOwner: isCycleOwner, dailyInsight } = useMenstrualCycle({
+    user,
+    userData,
+    coupleData,
+  });
 
   const signals = [
     {
@@ -175,7 +181,7 @@ const SignalGame = ({ user, userData, coupleData, handleSetDailySignal, setView 
   // Estado 1: Escolhendo o sinal
   return (
     <div className="bg-gradient-to-br from-black/60 to-pink-900/40 p-6 rounded-2xl border border-pink-500/40 backdrop-blur-md">
-      {dailyInsight && (
+      {!isCycleOwner && dailyInsight && (
         <div className="mb-5">
           <DailyTipCard
             dailyInsight={dailyInsight}
@@ -579,7 +585,8 @@ export default function HotZone(props) {
     setActiveChatActivity,
   } = props;
 
-  const [showHistory, setShowHistory] = useState(false);
+  // B2-55: `showHistory` fantasma removido — o controle vive apenas em
+  // `IntimateMemoriesSection` (linha ~438). Este estado nunca era usado.
   const [showLevelUpAnimation, setShowLevelUpAnimation] = useState(false);
   const [newLevel, setNewLevel] = useState(0);
   const [showMatchNotification, setShowMatchNotification] = useState(false);

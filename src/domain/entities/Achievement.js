@@ -25,6 +25,7 @@
  * @typedef {Object} AchievementStats
  * @property {number} totalChallengesCompleted
  * @property {number} completedActivities
+ * @property {number} matchedActivities
  * @property {number} completedHotActivities
  * @property {number} completedHotChallenges
  * @property {number} currentStreak
@@ -46,7 +47,10 @@ export const ACHIEVEMENT_CATALOG = [
     title: "Primeiro Match",
     description: "Tiveram seu primeiro match em uma atividade",
     icon: "💫",
-    isUnlocked: (stats) => stats.completedActivities >= 1,
+    // B2-36: exigir atividade originada de um match de sugestão
+    // (`createdBy === "SYSTEM"` com ambos confirmados) — antes a condição
+    // era idêntica à de "first_activity" e os dois desbloqueavam juntos.
+    isUnlocked: (stats) => stats.matchedActivities >= 1,
   },
   {
     id: "first_hot_match",

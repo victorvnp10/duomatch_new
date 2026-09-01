@@ -2,7 +2,6 @@ import React, { useEffect } from "react"; // <-- MUDANÇA 1: Adiciona a importa�
 // Importe os ícones que serão usados nas notificações.
 import {
   ChatBubbleIcon,
-  FireIcon,
   GiftIcon,
   TrophyIcon,
   StarIcon, // Ícone para a nova notificação
@@ -11,11 +10,6 @@ import {
 export default function NotificationManager(props) {
   // Recebemos todas as props, mas só usaremos as de notificação.
   const {
-    showMatchNotification,
-    partnerNotification,
-    setPartnerNotification,
-    showHotSelectionNotification,
-    setShowHotSelectionNotification,
     wishlistNotification,
     handleDismissWishlistNotification, // Função correta para a wishlist
     purchaseNotification,
@@ -48,60 +42,12 @@ export default function NotificationManager(props) {
           <p className="font-semibold">{pointsMessage}</p>
         </div>
       )}
-      {/* Notificações existentes (inalteradas) */}
-      {showMatchNotification && (
-        <div className="fixed bottom-24 right-4 md:right-10 bg-ink shadow-lg rounded-lg p-4 flex items-center animate-bounce border-l-4 border-green-500 z-50">
-          <span className="text-2xl mr-3">🎉</span>
-          <div>
-            <h4 className="font-bold text-green-400">Vocês têm um match!</h4>
-            <p className="text-sm text-gray-300">
-              Novos interesses em comum foram adicionados.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {partnerNotification.visible && (
-        <div className="fixed top-20 right-4 md:right-10 bg-blue-900/80 border-l-4 border-blue-500 shadow-lg rounded-lg p-4 flex items-start z-50">
-          <span className="text-2xl mr-3 pt-1">😉</span>
-          <div>
-            <h4 className="font-bold text-blue-300">Seu par já escolheu!</h4>
-            <p className="text-sm text-gray-300">
-              Agora é a sua vez de confirmar as atividades.
-            </p>
-          </div>
-          <button
-            onClick={() =>
-              setPartnerNotification((p) => ({ ...p, visible: false }))
-            }
-            className="ml-4 text-gray-400 hover:text-white font-bold text-lg"
-          >
-            &times;
-          </button>
-        </div>
-      )}
-
-      {showHotSelectionNotification && (
-        <div className="fixed top-20 right-4 md:right-10 bg-red-900/80 border-l-4 border-red-500 shadow-lg rounded-lg p-4 flex items-start z-50 animate-bounce">
-          <span className="text-2xl mr-3 pt-1">
-            <FireIcon className="text-red-400" />
-          </span>
-          <div>
-            <h4 className="font-bold text-red-300">
-              O clima está esquentando...
-            </h4>
-            <p className="text-sm text-gray-300">
-              Seu parceiro(a) marcou um interesse na Hot Zone! 🔥
-            </p>
-          </div>
-          <button
-            onClick={() => setShowHotSelectionNotification(false)}
-            className="ml-4 text-gray-400 hover:text-white font-bold text-lg"
-          >
-            &times;
-          </button>
-        </div>
-      )}
+      {/* B2-39: `showMatchNotification`, `partnerNotification` e
+          `showHotSelectionNotification` eram toasts que NINGUÉM ativava
+          (estados nunca setados em useActivities.js). O match 1:1 já tem
+          UI viva: evento `activityMatch` em MainView/HotZone; o hot match
+          via `dispatchHotMatchEvent` em DuoMatchApp; e o "par já escolheu"
+          cobre-se pela Central de Notificações. Blocos removidos. */}
 
       {wishlistNotification.visible && (
         <div

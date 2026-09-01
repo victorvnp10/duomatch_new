@@ -22,10 +22,16 @@ function AddWishlistItemModal({ isOpen, onClose, handleAddItemToWishlist }) {
       alert("Por favor, preencha o nome e um valor de pontos válido.");
       return;
     }
+    // B2-49: link armazenável é um vetor de XSS entre o par (ex.:
+    // "javascript:alert(...)"). Aceitar só http/https.
+    if (link.trim() && !/^https?:\/\//i.test(link.trim())) {
+      alert("O link deve começar com http:// ou https://.");
+      return;
+    }
     handleAddItemToWishlist({
       name,
       description,
-      link,
+      link: link.trim(),
       points: Number(points),
     });
     onClose();

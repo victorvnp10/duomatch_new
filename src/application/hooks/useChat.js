@@ -11,6 +11,8 @@ import {
   increment,
   updateDoc,
   deleteDoc,
+  getDocs,
+  limit,
 } from "../../infrastructure/firebase";
 
 /**
@@ -141,6 +143,29 @@ export const useChat = (user, userData, allActivities) => {
   };
 
   /**
+   * B2-31: a fonte de verdade do preview é a última mensagem REAL no
+   * servidor — não o array local `activeChatComments`, que fica defasado
+   * com comentários do parceiro postados/removidos em outra aba ou janela.
+   * Retorna `null` quando a subcoleção de comentários está vazia.
+   */
+  const fetchLatestMessage = async (commentsPath) => {
+    const latestQuery = query(
+      collection(db, commentsPath),
+      orderBy("createdAt", "desc"),
+      limit(1)
+    );
+    const snapshot = await getDocs(latestQuery);
+    const latest = snapshot.docs[0];
+    if (!latest) return null;
+    const data = latest.data();
+    return {
+      text: data.text,
+      senderId: data.authorId,
+      timestamp: data.createdAt,
+    };
+  };
+
+  /**
    * Edita uma mensagem já enviada. Quem chama (ChatModal) já verifica se
    * a edição é permitida (mensagem própria, ainda não vista E/OU ainda
    * não respondida) — aqui é só a escrita em si.
@@ -155,14 +180,14 @@ export const useChat = (user, userData, allActivities) => {
       });
       // Se essa era a última mensagem, atualiza também o preview salvo
       // na atividade (usado nas notificações e nas listas de atividade).
-      const latest = activeChatComments[activeChatComments.length - 1];
-      if (latest?.id === commentId) {
+      const latest = await fetchLatestMessage(commentsPath);
+      if (latest) {
         const activityRef = doc(
           db,
           `duomatches/${userData.coupleId}/activities`,
           activityId
         );
-        await updateDoc(activityRef, { "lastMessage.text": newText.trim() });
+        await updateDoc(activityRef, { lastMessage: latest });
       }
     } catch (error) {
       console.error("Erro ao editar mensagem:", error);
@@ -176,26 +201,29 @@ export const useChat = (user, userData, allActivities) => {
     try {
       await deleteDoc(doc(db, commentsPath, commentId));
 
-      const wasLatest =
-        activeChatComments[activeChatComments.length - 1]?.id === commentId;
-      if (wasLatest) {
-        const remaining = activeChatComments.filter((c) => c.id !== commentId);
-        const newLast = remaining[remaining.length - 1];
-        const activityRef = doc(
-          db,
-          `duomatches/${userData.coupleId}/activities`,
-          activityId
-        );
-        await updateDoc(activityRef, {
-          lastMessage: newLast
-            ? {
-                text: newLast.text,
-                senderId: newLast.authorId,
-                timestamp: newLast.createdAt,
-              }
-            : null,
+      // B2-44: cada post incrementa `messageCount` (conquista "communicator");
+      // apagar deve decrementar para o contador refletir o que existe de fato.
+      // Falha aqui não impede a exclusão — apenas loga.
+      try {
+        await updateDoc(doc(db, "duomatches", userData.coupleId), {
+          messageCount: increment(-1),
         });
+      } catch (countError) {
+        console.error("Erro ao decrementar messageCount:", countError);
       }
+
+      // B2-31: sempre recalcula o preview a partir do servidor (independente
+      // do estado local) — se restaram comentários, `latest` retorna o mais
+      // recente real; se não, `lastMessage` vira `null` (sem preview).
+      const latest = await fetchLatestMessage(commentsPath);
+      const activityRef = doc(
+        db,
+        `duomatches/${userData.coupleId}/activities`,
+        activityId
+      );
+      await updateDoc(activityRef, {
+        lastMessage: latest,
+      });
     } catch (error) {
       console.error("Erro ao apagar mensagem:", error);
       alert("Não foi possível apagar a mensagem.");

@@ -44,6 +44,7 @@ import AchievementAnimation from "./AchievementAnimation";
 import DeleteConfirmationModal from "./DeleteConfirmationModal";
 import OnboardingView from "./OnboardingView";
 import LoadingScreen from "./LoadingScreen";
+import ErrorScreen from "./ErrorScreen";
 import CycleView from "./CycleView";
 import { PlusIcon } from "./Icons";
 
@@ -69,6 +70,7 @@ export default function DuoMatchApp({ user, userData }) {
 
   const {
     coupleData,
+    error: coupleError,
     handleUpdateCoupleData,
     handleUnlinkCouple,
     handleCompleteOnboarding,
@@ -287,6 +289,16 @@ export default function DuoMatchApp({ user, userData }) {
       window.removeEventListener('achievementUnlocked', handleAchievementUnlocked);
     };
   }, []);
+
+  if (coupleError) {
+    return (
+      <ErrorScreen
+        title="Não foi possível carregar os dados do casal"
+        message="Falha na sincronização com o servidor. Tente novamente."
+        onRetry={() => window.location.reload()}
+      />
+    );
+  }
 
   if (!coupleData) {
     return <LoadingScreen />;

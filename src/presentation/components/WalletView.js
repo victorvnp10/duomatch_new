@@ -15,7 +15,12 @@ function WalletView({
     (r) => r.purchasedBy === user.uid
   );
 
-  const mySales = allPurchasedRewards.filter((r) => r.purchasedBy !== user.uid);
+  // B2-30: "Minhas Vendas" = itens que EU criei e que o PARCEIRO comprou.
+  // O filtro antigo (só `purchasedBy !== user.uid`) incluía também itens do
+  // parceiro comprados por ele mesmo — atribuição de entrega trocada.
+  const mySales = allPurchasedRewards.filter(
+    (r) => r.createdBy === user.uid && r.purchasedBy !== user.uid
+  );
 
   const partnerNickname = userData.partnerData?.nickname || "Parceiro(a)";
 

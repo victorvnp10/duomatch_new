@@ -9,6 +9,30 @@ Numeração `B2-xx` para não colidir com os bugs #1–#45 do plano original.
 
 ---
 
+## Status atual (atualizado na continuidade da segunda auditoria)
+
+> A maioria dos itens deste plano JÁ foi corrigida no código atual. ÚNICAS
+> pendências: **B2-32** (LinkingPage não atômico — refactor de batch para
+> transação) e **B2-33** (meta de desafios conta criação — requer decisão de
+> produto).
+>
+> Itens **CORRIGIDOS nesta continuação** (lote de robustez + baixos):
+> B2-13 (memos `.length` no MainView), B2-16 (último ponto UTC —
+> `coupleJourneyMatches`), B2-19, B2-26 (error handler nos `onSnapshot` +
+> `ErrorScreen` em vez de Loading infinito), B2-30, B2-31 (lastMessage
+> recalculado do servidor no edit/delete do chat), B2-34, B2-36, B2-37,
+> B2-38, B2-39 (toasts fantasma removidos do NotificationManager), B2-40
+> (contagem regressiva da rodada + dias até checagem alinhados ao avaliador),
+> B2-41 (insight de ciclo só para o parceiro na Hot Zone), B2-42 (botão de
+> adicionar no header desktop para o tour), B2-44, B2-49, B2-53, B2-55, e a
+> **família ciclo menstrual** — B2-27 (períodos com `runTransaction`
+> read-modify-write), B2-28 (owner determinístico por menor uid + `ownerId`
+> persistido no 1º registro), B2-29 (`clampCycleLength` em [15,60] no domínio
+> + gap mínimo de 15 dias entre registros) — e B2-48 (notificação de wishlist
+> por itens não vistos, não por timestamp único).
+
+---
+
 ## FASE 1 — Bugs CRITICOS (corrompem dados ou matam feature core)
 
 ### B2-01 ✓ Streak sempre volta para 1 — REGRESSÃO do fix #1

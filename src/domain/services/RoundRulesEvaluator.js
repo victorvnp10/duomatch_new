@@ -62,6 +62,11 @@ export const countConfirmedActivitiesInRound = (allActivities, userId, activeRou
     const selection = activity.selections?.[userId];
     if (selection?.status !== "confirmed") return false;
 
+    // B2-37: atividade confirmada e DEPOIS marcada como "não concluída"
+    // zera os pontos, mas continuava contando para a meta cíclica — usuário
+    // via "meta cumprida" e mesmo assim levava penalidade. Excluir aqui.
+    if (selection?.resolution === "not_completed") return false;
+
     return (
       selection.date >= activeRound.startDate &&
       selection.date <= activeRound.endDate

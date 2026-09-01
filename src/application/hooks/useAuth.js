@@ -28,6 +28,9 @@ export const useAuth = () => {
   const [user, setUser] = useState(null);
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
+  // B2-26: erro permanente de um listener (ex.: permissões revogadas,
+  // índice ausente). Sem isso, o app morria num LoadingScreen infinito.
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     let unsubscribeUser = () => {};
@@ -69,6 +72,10 @@ export const useAuth = () => {
                 };
               }
               setUserData({ ...currentData });
+              setLoading(false);
+            }, (snapshotError) => {
+              console.error("Erro no listener do perfil do parceiro:", snapshotError);
+              setError(snapshotError);
               setLoading(false);
             });
           } else {
@@ -114,9 +121,13 @@ export const useAuth = () => {
           // já entrega o doc real; setar o objeto mínimo reverteria o estado.
           setLoading(false);
         }
+      }, (snapshotError) => {
+        console.error("Erro no listener do perfil do usuário:", snapshotError);
+        setError(snapshotError);
+        setLoading(false);
       });
-    });
 
+    });
     return () => {
       unsubscribeAuth();
       unsubscribeUser();
@@ -124,5 +135,5 @@ export const useAuth = () => {
     };
   }, []);
 
-  return { user, userData, loading };
+  return { user, userData, loading, error };
 };

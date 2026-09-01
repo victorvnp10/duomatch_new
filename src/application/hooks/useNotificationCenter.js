@@ -61,6 +61,11 @@ export function useNotificationCenter({
       )
         return;
 
+      // B2-34: desafio já expirado não deve notificar "esperando sua
+      // resposta" para sempre — mesmo critério de validade de `isActivityForToday`.
+      const expiresAt = activity.expiresAt;
+      if (!(expiresAt?.toDate && expiresAt.toDate() > new Date())) return;
+
       items.push({
         id: `partner-challenge-${activity.id}`,
         type: "partner_created_challenge",

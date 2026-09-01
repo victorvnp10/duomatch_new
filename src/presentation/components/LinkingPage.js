@@ -44,6 +44,17 @@ function LinkingPage({ user, userData, onSkip, onBack }) {
   const duomatchesPath = "duomatches";
   const usersPath = "users";
 
+  // B2-43: erros de validação como "código inválido" ou "seu próprio
+  // código" eram engolidos pelo catch genérico e viravam uma mensagem
+  // inútil ("Verifique o código..." também era vago, mas não explicava
+  // o motivo real). Marcar o erro permite usar a mensagem específica no
+  // catch sem vazar mensagens técnicas de falhas do Firebase.
+  const validationError = (message) => {
+    const err = new Error(message);
+    err.isValidation = true;
+    return err;
+  };
+
   const generateCode = async () => {
     // ... (o resto da função permanece igual)
     setLoading(true);
@@ -80,12 +91,12 @@ function LinkingPage({ user, userData, onSkip, onBack }) {
       const inviteSnap = await getDoc(inviteRef);
 
       if (!inviteSnap.exists()) {
-        throw new Error("Código de convite inválido ou expirado.");
+        throw validationError("Código de convite inválido ou expirado.");
       }
 
       const inviteData = inviteSnap.data();
       if (inviteData.creatorId === user.uid) {
-        throw new Error("Você não pode usar seu próprio código.");
+        throw validationError("Você não pode usar seu próprio código.");
       }
 
       const coupleRef = await addDoc(collection(db, duomatchesPath), {
@@ -225,7 +236,9 @@ function LinkingPage({ user, userData, onSkip, onBack }) {
       setLinkingSuccess(true);
     } catch (err) {
       setError(
-        "Erro ao vincular contas. Verifique o código e tente novamente."
+        err?.isValidation
+          ? err.message
+          : "Erro ao vincular contas. Verifique o código e tente novamente."
       );
       console.error("Erro no vínculo:", err);
     } finally {

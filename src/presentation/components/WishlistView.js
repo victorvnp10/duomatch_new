@@ -43,6 +43,11 @@ export default function WishlistView(props) {
     const iGaveThis = !isMine && isGifted && item.giftedBy === user.uid;
     const iNeedToConfirm = isMine && isGifted && item.giftedBy !== user.uid;
 
+    // B2-49: defesa extra na renderização — itens legados podem ter link
+    // malicioso salvo; se o esquema não for http/https, nem vira âncora
+    // (um "javascript:..." renderizado é XSS executável entre o par).
+    const isSafeLink = /^https?:\/\//i.test((item.link || "").trim());
+
     return (
       <div
         key={item.id}
@@ -52,14 +57,18 @@ export default function WishlistView(props) {
       >
         <div className="flex justify-between items-start">
           <div>
-            <a
-              href={item.link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-bold text-white hover:underline"
-            >
-              {item.name}
-            </a>
+            {isSafeLink ? (
+              <a
+                href={item.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-bold text-white hover:underline"
+              >
+                {item.name}
+              </a>
+            ) : (
+              <span className="font-bold text-white">{item.name}</span>
+            )}
             <p className="text-sm text-gray-400 italic mt-1">
               {item.description}
             </p>

@@ -27,6 +27,7 @@ import {
   getDocs,
   runTransaction,
   arrayUnion,
+  limit,
 } from "firebase/firestore";
 
 import { firebaseConfig } from "./config";
@@ -89,4 +90,5 @@ export {
   getDocs,
   runTransaction,
   arrayUnion,
+  limit,
 };

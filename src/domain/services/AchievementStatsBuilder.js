@@ -53,6 +53,14 @@ export const buildAchievementStats = ({
     (a) => isCompletedChallenge(a) && isHot(a)
   ).length;
 
+  // B2-36: atividades que nasceram de um MATCH de sugestão — criadas pelo
+  // sistema (`createdBy === "SYSTEM"`) já com as seleções de ambos
+  // confirmadas. Diferencia "Primeiro Match" de "Primeira Atividade"
+  // (qualquer conclusão em casal, inclusive criações manuais).
+  const matchedActivities = allActivities.filter(
+    (a) => a.createdBy === "SYSTEM" && isConfirmedByBoth(a)
+  ).length;
+
   // Pontos gastos: soma o custo de todas as recompensas já compradas.
   // Calculado ao vivo a partir de `rewards` em vez de exigir um contador
   // redundante no Firestore — evita que o total fique desatualizado.
@@ -70,6 +78,7 @@ export const buildAchievementStats = ({
     completedActivities,
     completedHotActivities,
     completedHotChallenges,
+    matchedActivities,
     currentStreak: coupleData?.streak || 0,
     messagesSent: coupleData?.messageCount || 0,
     totalPointsSpent,

@@ -432,12 +432,22 @@ Rodadas e Perfil so acessiveis pelo header do MainView.
 ## 8. Bugs (45 originais → 43 corrigidos, 2 cancelados) + 4 de travamento/cascata
 
 > **Segunda auditoria concluída**: novos bugs numerados `B2-01` a `B2-55` documentados em
-> `BUG_FIX_PLAN_2.md` (ainda NAO corrigidos). Destaques: regressao do fix #1
-> (`streakUtils.js:25` le `partnerData.streak`, campo que nunca existe), penalidade ciclica
+> `BUG_FIX_PLAN_2.md` (a maioria já corrigida — ver "Status atual" no topo do plano).
+> Únicas pendências: `B2-32` (LinkingPage não atômico — batch não transacional) e
+> `B2-33` (meta de desafios conta criação — decisão de produto).
+> Destaques já corrigidos: regressao do fix #1 (`streakUtils.js`), penalidade ciclica
 > aplicada 2x (`useRoundRules.js`), pontos duplicados na resolucao de desafio e na
 > confirmacao de wishlist, CountdownTimer congelado, 4 conquistas de desafio inalcancaveis,
 > notificacao de hot match morta + evento disparado 2x, weekKey do desafio semanal errado no
-> domingo, familia de datas UTC (6 pontos), custo negativo de reward permite inflar pontos.
+> domingo, familia de datas UTC (6 pontos), custo negativo de reward permite inflar pontos,
+> familia ciclo menstrual (transacao nos períodos, owner deterministico por menor uid,
+> comprimento de ciclo validado/clampeado em [15,60]), toasts fantasma removidos do
+> NotificationManager (B2-39), display de regras ciclicas e contagem regressiva alinhados
+> ao avaliador (B2-40), insight de ciclo so para o parceiro na Hot Zone (B2-41), botao de
+> adicionar no header desktop para o tour (B2-42), erros de validacao do LinkingPage
+> propagados (B2-43), notificacao de wishlist por itens nao vistos (B2-48), error handler
+> nos `onSnapshot` com `ErrorScreen` em vez de Loading infinito (B2-26) e `lastMessage`
+> do chat recalculado do servidor (B2-31).
 
 ### Corrigidos (43)
 

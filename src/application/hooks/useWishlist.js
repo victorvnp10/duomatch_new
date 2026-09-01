@@ -63,29 +63,31 @@ export const useWishlist = (user, userData, coupleData, rounds) => {
       return;
     }
 
-    const { addedBy, timestamp } = coupleData.lastWishlistUpdate;
-    const addedByPartner = addedBy === userData.partnerId;
+    const { addedBy } = coupleData.lastWishlistUpdate;
+    if (addedBy !== userData.partnerId) return;
 
-    if (addedByPartner) {
-      // Encontra o item exato que disparou a atualização, comparando o timestamp
-      const latestItem = wishlistItems.find(
-        (item) =>
-          item.createdBy === userData.partnerId &&
-          item.createdAt?.isEqual(timestamp)
-      );
+    // B2-48: notifica por itens NÃO VISTOS, não por timestamp único.
+    // `lastWishlistUpdate` guarda só o ÚLTIMO item adicionado; se o parceiro
+    // adicionou 2+ itens em sequência, o matching anterior
+    // (`createdAt.isEqual(timestamp)`) notificava apenas o mais recente e
+    // os anteriores ficavam perdidos (nunca entravam em `seenWishlistItems`).
+    // A estratégia agora é "o que ainda não vi de itens ativos do parceiro" —
+    // ao dispensar, o item entra em `seenWishlistItems` e o próximo dispara.
+    const unseenPartnerItems = wishlistItems.filter(
+      (item) =>
+        item.createdBy === userData.partnerId &&
+        item.status === "active" &&
+        !userData.seenWishlistItems?.includes(item.id)
+    );
 
-      if (latestItem) {
-        // VERIFICAÇÃO PRINCIPAL: O ID do item já está na lista de 'vistos' do usuário?
-        const hasBeenSeen = userData.seenWishlistItems?.includes(latestItem.id);
-
-        if (!hasBeenSeen) {
-          setWishlistNotification({
-            visible: true,
-            itemName: latestItem.name,
-            itemId: latestItem.id, // Guarda o ID para poder marcá-lo como visto
-          });
-        }
-      }
+    if (unseenPartnerItems.length > 0) {
+      // Lista já vem `orderBy("createdAt", "desc")` — o mais recente primeiro.
+      const latestItem = unseenPartnerItems[0];
+      setWishlistNotification({
+        visible: true,
+        itemName: latestItem.name,
+        itemId: latestItem.id,
+      });
     }
     // As dependências garantem que o efeito rode quando qualquer um desses dados for atualizado
   }, [coupleData, userData, wishlistItems]);

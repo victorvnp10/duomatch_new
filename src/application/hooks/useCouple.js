@@ -22,6 +22,9 @@ import { getTodayDateString } from "../../shared/utils"; // <-- MUDANÇA: Import
  */
 export const useCouple = (user, userData) => {
   const [coupleData, setCoupleData] = useState(null);
+  // B2-26: erro permanente no listener do casal → UI de erro em vez de
+  // LoadingScreen infinita (o DuoMatchApp renderiza quando `!coupleData`).
+  const [error, setError] = useState(null);
   // NOVA FUNÇÃO: Para definir o sinal diário do usuário
   const handleSetDailySignal = async (signal) => {
     if (!userData?.coupleId || !user?.uid) return;
@@ -35,8 +38,15 @@ export const useCouple = (user, userData) => {
 
       const data = docSnap.data();
       const currentSignals = data.dailySignals;
+      const storedDate = currentSignals?.date;
 
-      if (!currentSignals || currentSignals.date !== todayStr) {
+      // B2-19: só RESETA quando a data guardada é estritamente mais antiga
+      // que hoje (ou não existe). Se a data for FUTURA (relógio do outro
+      // cliente adiantado), resetar apagaria o sinal do parceiro — atualiza
+      // apenas o sinal deste usuário sem tocar no restante.
+      const isStaleDate = !storedDate || storedDate < todayStr;
+
+      if (isStaleDate) {
         // Nova data — reseta o objeto inteiro
         transaction.update(coupleDocRef, {
           dailySignals: {
@@ -62,14 +72,22 @@ export const useCouple = (user, userData) => {
     }
 
     const coupleDocRef = doc(db, "duomatches", userData.coupleId);
-    const unsubscribe = onSnapshot(coupleDocRef, (docSnap) => {
-      if (docSnap.exists()) {
-        setCoupleData({ id: docSnap.id, ...docSnap.data() });
-      } else {
-        console.error("Documento do casal não encontrado!", userData.coupleId);
+    const unsubscribe = onSnapshot(
+      coupleDocRef,
+      (docSnap) => {
+        if (docSnap.exists()) {
+          setCoupleData({ id: docSnap.id, ...docSnap.data() });
+        } else {
+          console.error("Documento do casal não encontrado!", userData.coupleId);
+          setCoupleData(null);
+        }
+      },
+      (snapshotError) => {
+        console.error("Erro no listener do documento do casal:", snapshotError);
         setCoupleData(null);
+        setError(snapshotError);
       }
-    });
+    );
 
     return () => unsubscribe();
   }, [userData?.coupleId]);
@@ -185,7 +203,15 @@ export const useCouple = (user, userData) => {
       }
       await finalBatch.commit();
 
-      await signOut(auth);
+      // B2-53: o signOut é uma etapa posterior independente — uma falha de
+      // logout NÃO deve ser reportada como "erro grave ao desvincular"
+      // (tudo já foi apagado com sucesso; tentar de novo seria inofensivo,
+      // mas a mensagem assustava e levava a retries sobre estado destruído).
+      try {
+        await signOut(auth);
+      } catch (logOutError) {
+        console.error("Casal desvinculado, mas houve erro no logout:", logOutError);
+      }
       alert("Casal desvinculado com sucesso. Você será desconectado.");
     } catch (error) {
       console.error("Erro ao desvincular casal:", error);
@@ -195,6 +221,7 @@ export const useCouple = (user, userData) => {
 
   return {
     coupleData,
+    error,
     handleUpdateCoupleData,
     handleUnlinkCouple,
     handleCompleteOnboarding,

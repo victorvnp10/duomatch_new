@@ -14,6 +14,7 @@ import {
   ChallengeIcon,
   UserCircleIcon,
   WalletIcon,
+  PlusIcon,
 } from "./Icons";
 import MatchItem from "./MatchItem";
 import StreakTracker from "./StreakTracker";
@@ -115,6 +116,7 @@ export default function MainView(props) {
     handleDeclineChallenge,
     handleOpenTour,
     setIsAddRoundModalOpen,
+    setIsAddItemModalOpen,
   } = props;
 
   const [isLoading, setIsLoading] = useState(false);
@@ -153,14 +155,21 @@ export default function MainView(props) {
   const getRoundCountdownInfo = () => {
     const baseClasses = "text-center text-sm mt-4";
     if (!activeRound) return { text: null, className: baseClasses };
-    const endDate = new Date(activeRound.endDate + "T23:59:59");
-    const diffTime = endDate.getTime() - new Date().getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    if (diffDays <= 1)
+    // B2-40: o fim da rodada é INCLUSIVO e `Math.ceil` sobre
+    // `endDate + T23:59:59` nunca produzia `diffDays === 0` — o aviso
+    // "acaba hoje" de fato nunca aparecia e o ramo `diffDays === 1`
+    // do fallback era inalcançável (o `<= 1` pegava antes). Comparar a
+    // data-string do fim (YYY-MM-DD) com hoje é exato.
+    if (todayStr >= activeRound.endDate)
       return {
         text: "A rodada acaba hoje!",
         className: `${baseClasses} text-yellow-400 font-bold`,
       };
+    const diffDays = Math.ceil(
+      (new Date(activeRound.endDate).getTime() -
+        new Date(todayStr).getTime()) /
+        (1000 * 60 * 60 * 24)
+    );
     const text =
       diffDays === 1
         ? "Falta 1 dia para acabar a rodada."
@@ -269,16 +278,32 @@ export default function MainView(props) {
         todayStr
       );
 
-      const today = new Date(todayStr);
-      const startDate = new Date(activeRound.startDate);
-      const daysSinceStart = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
-      const daysUntilNextCheck = activitiesRule.days - (daysSinceStart % activitiesRule.days);
+      // B2-40: alinhar o painel com o avaliador. O avaliador (evaluateGoal)
+      // avalia quando `daysBetween(today, reference) >= rule.days`, com
+      // `reference = rulesLastChecked?.X || startDate`. A conta antiga por
+      // módulo do início da rodada marcava "Hoje!" logo no dia 0 — quando
+      // faltavam `days` para a PRIMEIRA checagem — o painel mentia que a
+      // regra vencia no próprio início da rodada.
+      const activitiesReferenceDate =
+        activeRound.rulesLastChecked?.activities || activeRound.startDate;
+      const activitiesDaysSinceCheck = Math.max(
+        0,
+        Math.floor(
+          (new Date(todayStr).getTime() -
+            new Date(activitiesReferenceDate).getTime()) /
+            (1000 * 60 * 60 * 24)
+        )
+      );
+      const activitiesDaysRemaining = Math.max(
+        0,
+        activitiesRule.days - activitiesDaysSinceCheck
+      );
 
       result.activitiesRule = {
         myProgress: { count: myCount, target: activitiesRule.quantity },
         partnerProgress: { count: partnerCount, target: activitiesRule.quantity },
         penalty: activitiesRule.penalty,
-        daysRemaining: daysUntilNextCheck === activitiesRule.days ? 0 : daysUntilNextCheck,
+        daysRemaining: activitiesDaysRemaining,
       };
     }
 
@@ -295,16 +320,29 @@ export default function MainView(props) {
         activeRound
       );
 
-      const today = new Date(todayStr);
-      const startDate = new Date(activeRound.startDate);
-      const daysSinceStart = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
-      const daysUntilNextCheck = challengesRule.days - (daysSinceStart % challengesRule.days);
+      // B2-40: mesma correção da regra de atividades — dias até a próxima
+      // checagem contando a partir de `rulesLastChecked?.challenges ||
+      // startDate`, sem o bug do módulo no dia 0.
+      const challengesReferenceDate =
+        activeRound.rulesLastChecked?.challenges || activeRound.startDate;
+      const challengesDaysSinceCheck = Math.max(
+        0,
+        Math.floor(
+          (new Date(todayStr).getTime() -
+            new Date(challengesReferenceDate).getTime()) /
+            (1000 * 60 * 60 * 24)
+        )
+      );
+      const challengesDaysRemaining = Math.max(
+        0,
+        challengesRule.days - challengesDaysSinceCheck
+      );
 
       result.challengesRule = {
         myProgress: { count: myChallengesCount, target: challengesRule.quantity },
         partnerProgress: { count: partnerChallengesCount, target: challengesRule.quantity },
         penalty: challengesRule.penalty,
-        daysRemaining: daysUntilNextCheck === challengesRule.days ? 0 : daysUntilNextCheck,
+        daysRemaining: challengesDaysRemaining,
       };
     }
 
@@ -343,9 +381,9 @@ export default function MainView(props) {
   }, [allActivities, user.uid, userData.partnerId]);
 
   const coupleJourneyMatches = useMemo(() => {
-    const journeyToday = new Date();
-    journeyToday.setHours(0, 0, 0, 0);
-    const today = journeyToday.toISOString().slice(0, 10);
+    // B2-16: data LOCAL (convenção do projeto) — toISOString() é UTC e à
+    // noite vira "amanhã", escondendo as atividades de hoje da jornada.
+    const today = getTodayDateString();
 
     return allActivities.filter((activity) => {
       // Atividades normais do passado
@@ -390,16 +428,16 @@ export default function MainView(props) {
     coupleData?.messageCount
   ]);
 
-  const memoizedActivities = useMemo(() => allActivities, [allActivities.length]);
-  const memoizedRewards = useMemo(() => rewards || [], [rewards?.length]);
-  const memoizedWishlistItems = useMemo(() => wishlistItems || [], [wishlistItems?.length]);
-
+  // B2-13: NÃO memoizar por `.length` — a identidade dos arrays é estável
+  // entre snapshots (os hooks só setam estado em mudança real), e depender
+  // só do comprimento mascarava trocas de STATUS (ex.: reward vira
+  // "purchased" sem mudar tamanho), deixando conquistas presas.
   useAchievements({
     userData: memoizedUserData,
     coupleData: memoizedCoupleData,
-    allActivities: memoizedActivities,
-    rewards: memoizedRewards,
-    wishlistItems: memoizedWishlistItems,
+    allActivities,
+    rewards,
+    wishlistItems,
   });
 
   const { isOwner: isCycleOwner, isConfigured: isCycleConfigured, dailyInsight } =
@@ -571,6 +609,20 @@ export default function MainView(props) {
               aria-label="Ajuda"
             >
               <HelpIcon />
+            </button>
+            {/* B2-42: botão de adicionar também no DESKTOP — antes só existia
+                no FAB mobile (`md:hidden` no DuoMatchApp), então o passo do
+                tour "Crie Seus Próprios Momentos" não tinha alvo visível em
+                telas grandes e degradava para um diálogo central sem
+                destaque. Aproveita o mesmo aria-label do FAB, então o
+                selector do tour casa no breakpoint certo em cada tamanho. */}
+            <button
+              onClick={() => setIsAddItemModalOpen(true)}
+              className="p-2 text-gray-300 hover:text-pink-400"
+              aria-label="Adicionar Novo Item"
+              title="Adicionar atividade ou desafio"
+            >
+              <PlusIcon />
             </button>
             <button
               onClick={() => signOut(auth)}
