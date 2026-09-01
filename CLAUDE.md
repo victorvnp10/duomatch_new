@@ -478,6 +478,14 @@ Rodadas e Perfil so acessiveis pelo header do MainView.
 > **Segunda auditoria concluída**: novos bugs numerados `B2-01` a `B2-55` documentados em
 > `BUG_FIX_PLAN_2.md` (todos corrigidos — ver "Status atual" no topo do plano). Nenhuma
 > pendência restante.
+> **B2-56** (pós-auditoria, fix entregue): o bloco de match em `useSuggestions.js`
+> gravava `selections.{uid}` (notação de ponto) e `selections` inteiro→`{}` na MESMA
+> transação — paths de update sobrepostos são rejeitados pelo Firestore, abortando a
+> transação inteira (rollback atômico). Sintoma: clicar numa sugestão já selecionada
+> pela parceira dava "Não foi possível registrar sua escolha" e nenhum match/atividade
+> era criada. Confirmado via Firestore (casal ativo: `matched=false` + só uma seleção).
+> Fix: marcar apenas `matched=true` (UI já filtra `activity.matched`; matches históricos
+> mantêm as seleções).
 > Último item entregue: `B2-33` (meta cíclica de desafios exige conclusão — crédito ao
 > propositor com `challengeState === "completed"`). Antes dele, `B2-32` (vinculação
 > atômica no LinkingPage — convite reservado/consumido por transação, guard "conta já
