@@ -512,6 +512,12 @@ Rodadas e Perfil so acessiveis pelo header do MainView.
 > (`suggestionsRef`) quando havia match: um para `selections.{uid}` e outro para `matched`.
 > Firestore rejeita múltiplos updates no mesmo doc numa transação. Fix: fundido em um único
 > `transaction.update` com spread condicional (`...(isMatch && { matched: true })`).
+> **B2-58** (pós-auditoria, fix entregue): `doc(db, "duomatches/.../activities")` tem path
+> de coleção (3 segmentos — ímpar), o que na API modular do Firestore v9 lança exceção
+> (`Expected collection, got document`). Sintoma: toda tentativa de match lançava o erro
+> capturado pelo catch → "Não foi possível registrar sua escolha". Fix: substituído por
+> `doc(collection(db, path))` que gera ID automático válido. `collection` adicionado ao
+> import de `useSuggestions.js`.
 > **Login Google** (pós-auditoria, fix entregue): `signInWithRedirect` nunca finalizava em
 > produção (Chrome 2024+ restringe storage cross-origin; `getRedirectResult` retornava null
 > determinísticamente). Fix: `signInWithPopup` como via primária — funciona porque `vercel.json`

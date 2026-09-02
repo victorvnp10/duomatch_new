@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   db,
   doc,
+  collection,
   arrayUnion,
   onSnapshot,
   serverTimestamp,
@@ -244,10 +245,11 @@ export const useSuggestions = (userData, _handleAddActivity, suggestionType) => 
               createdAt: serverTimestamp(),
             };
 
-            // Gravar a atividade dentro da mesma transação
+            // Gravar a atividade dentro da mesma transação.
+            // doc(collection(...)) gera ID automático válido — doc(db, path)
+            // com path de coleção (segmentos ímpares) lança exceção no SDK v9.
             const newActivityRef = doc(
-              db,
-              `duomatches/${userData.coupleId}/activities`
+              collection(db, `duomatches/${userData.coupleId}/activities`)
             );
             transaction.set(newActivityRef, finalActivityData);
 
