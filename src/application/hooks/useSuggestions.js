@@ -206,25 +206,26 @@ export const useSuggestions = (userData, _handleAddActivity, suggestionType) => 
           } else {
             // Notação de ponto altera apenas o campo do usuário, sem
             // sobrescrever a seleção do parceiro.
+            // Match: se ambos selecionaram, funde num único update — dois
+            // transaction.update no mesmo doc são rejeitados pelo Firestore.
+            const isMatch =
+              newStatus === "selected" &&
+              freshSuggestion.selections?.[userData.partnerId] === "selected";
+
             transaction.update(suggestionsRef, {
               [`suggestions.${suggestionId}.selections.${userData.uid}`]:
                 newStatus,
+              ...(isMatch && {
+                [`suggestions.${suggestionId}.matched`]: true,
+              }),
             });
           }
 
-          // Match: ambos selecionaram a mesma sugestão
+          // Match: ambos selecionaram — cria a atividade real
           if (
             newStatus === "selected" &&
             freshSuggestion.selections?.[userData.partnerId] === "selected"
           ) {
-            // Marcar como matched. NÃO zerar o mapa `selections` inteiro:
-            // isso sobrepõe o path `selections.{uid}` gravado acima na mesma
-            // escrita (paths de update sobrepostos são rejeitados pelo
-            // Firestore, abortando a transação). A UI filtra matched.
-            transaction.update(suggestionsRef, {
-              [`suggestions.${suggestionId}.matched`]: true,
-            });
-
             const confirmedSelections = {
               [userData.uid]: { status: "confirmed", date: today },
               [userData.partnerId]: { status: "confirmed", date: today },

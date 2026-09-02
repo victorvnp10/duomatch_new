@@ -59,8 +59,10 @@ os dois providers forem vinculados ao MESMO `uid`. Regras em `AuthPage.js`:
   retorna `["google.com"]` → orienta o login pelo Google em vez de mostrar
   "senha inválida".
 
-> **⚠️ PENDÊNCIA ATIVA:** o login pelo Google "bate e volta" (volta do Google sem entrar) —
-> veja **§8**, bloco "PENDÊNCIA ATIVA — Login Google". A próxima sessão deve começar por ali.
+> **Login Google:** usa `signInWithPopup` como via primária (redirect falha no Chrome 2024+
+> por restrição de storage cross-origin). O popup funciona porque `vercel.json` envia
+> `Cross-Origin-Opener-Policy: same-origin-allow-popups`. Fallback para `signInWithRedirect`
+> se popup for bloqueado. Ver `AuthPage.js:handleGoogleSignIn`.
 
 ### Vincular casal
 | Camada | Arquivo |
@@ -505,6 +507,16 @@ Rodadas e Perfil so acessiveis pelo header do MainView.
 > era criada. Confirmado via Firestore (casal ativo: `matched=false` + só uma seleção).
 > Fix: marcar apenas `matched=true` (UI já filtra `activity.matched`; matches históricos
 > mantêm as seleções).
+> **B2-57** (pós-auditoria, fix entregue): regressão do B2-56 — o fix anterior removeu o
+> `selections inteiro→{}` mas deixou dois `transaction.update` separados no MESMO doc
+> (`suggestionsRef`) quando havia match: um para `selections.{uid}` e outro para `matched`.
+> Firestore rejeita múltiplos updates no mesmo doc numa transação. Fix: fundido em um único
+> `transaction.update` com spread condicional (`...(isMatch && { matched: true })`).
+> **Login Google** (pós-auditoria, fix entregue): `signInWithRedirect` nunca finalizava em
+> produção (Chrome 2024+ restringe storage cross-origin; `getRedirectResult` retornava null
+> determinísticamente). Fix: `signInWithPopup` como via primária — funciona porque `vercel.json`
+> envia `Cross-Origin-Opener-Policy: same-origin-allow-popups`. Fallback para redirect se popup
+> bloqueado. `AuthPage.js:handleGoogleSignIn`.
 > Último item entregue: `B2-33` (meta cíclica de desafios exige conclusão — crédito ao
 > propositor com `challengeState === "completed"`). Antes dele, `B2-32` (vinculação
 > atômica no LinkingPage — convite reservado/consumido por transação, guard "conta já
@@ -595,7 +607,7 @@ Rodadas e Perfil so acessiveis pelo header do MainView.
 - **#43** — `deliveryStatus` não documentado (requer análise Firestore real)
 - **#44** — BottomNavBar sem Rounds (decisão de UX intencional)
 
-### ⚠️ PENDÊNCIA ATIVA — Login Google "bate e volta" (produção) — PRÓXIMA SESSÃO COMEÇA POR AQUI
+### Login Google "bate e volta" — histórico do fix (resolvido)
 
 **Sintoma:** clicar "Continuar com o Google" vai ao accounts.google.com, autentica e
 **volta para a tela de login** sem entrar. Determinístico. A causa confirmada é o
