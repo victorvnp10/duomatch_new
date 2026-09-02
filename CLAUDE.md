@@ -59,6 +59,9 @@ os dois providers forem vinculados ao MESMO `uid`. Regras em `AuthPage.js`:
   retorna `["google.com"]` → orienta o login pelo Google em vez de mostrar
   "senha inválida".
 
+> **⚠️ PENDÊNCIA ATIVA:** o login pelo Google "bate e volta" (volta do Google sem entrar) —
+> veja **§8**, bloco "PENDÊNCIA ATIVA — Login Google". A próxima sessão deve começar por ali.
+
 ### Vincular casal
 | Camada | Arquivo |
 |---|---|
@@ -591,6 +594,39 @@ Rodadas e Perfil so acessiveis pelo header do MainView.
 ### Cancelados (2)
 - **#43** — `deliveryStatus` não documentado (requer análise Firestore real)
 - **#44** — BottomNavBar sem Rounds (decisão de UX intencional)
+
+### ⚠️ PENDÊNCIA ATIVA — Login Google "bate e volta" (produção) — PRÓXIMA SESSÃO COMEÇA POR AQUI
+
+**Sintoma:** clicar "Continuar com o Google" vai ao accounts.google.com, autentica e
+**volta para a tela de login** sem entrar — sem mensagem de erro (era mudo: o
+`getRedirectResult` só logava `console.error` em `AuthPage.js`). Determinístico (sempre).
+
+**Evidência dura:** `victornogueirapinto@gmail.com` **NÃO existe** como conta no Firebase Auth
+(createAuthUri devolve só `sessionId`, sem `signinMethods`) — o login Google **nunca chegou a
+completar** neste projeto, nem antes do fix popup→redirect (que era sobre
+`auth/popup-closed-by-user`). O fluxo redirect atual **também não finaliza**.
+
+**Fluxo que quebra:** `signInWithRedirect` (AuthPage.js) → Google → handler
+`conexaocasal-18136.firebaseapp.com/__/auth/handler` → volta para `www.duomatch.com.br` →
+`getRedirectResult` não entrega usuário (retorna null OU rejeita) → `onAuthStateChanged` do
+`useAuth.js` segue sem usuário → router pinta `AuthPage` de novo.
+
+**Já feito (debug agora é VISÍVEL na tela):**
+- `AuthPage.js` exibe o erro real do `getRedirectResult` (`err.code` + `err.message`) no `setError`.
+- `handleGoogleSignIn` marca `sessionStorage["duomatch_google_redirect_started"]` antes do
+  redirect; o flag sobrevive à ida-e-volta (sessionStorage é por aba). Se `getRedirectResult`
+  voltar **null** com esse flag presente → exibe "O Google confirmou o login, mas a confirmação
+  não chegou ao app…" + `console.warn` com a URL real.
+
+**COMO CONTINUAR (próximo passo):** reproduzir 1x no site de produção (ou no dev server) e ler
+a mensagem/console — ela dá a causa exata. Se aparecer `auth/internal-error`, coletar a call
+`identitytoolkit.googleapis.com/v1/accounts:signInWithIdp` na aba Network (status + corpo) e
+repassar ao Firebase. Checar também: (1) URL de retorno (fragment/`?authType=`) vs `redirectUrl`
+gravado no início do redirect; (2) se o SW (`service-worker.js:94-102`) serviu index.html
+precacheado com bundle antigo no retorno (version skew); (3) "Authorized domains" no Console
+(www.duomatch.com.br é usado como app_domain). Já descartado: CSP (`vercel.json`) permite
+identitytoolkit/securetoken; inicialização do Firebase é única (`firebase/index.js:48-49`;
+`DuoMatchApp.js:164` usa o mesmo singleton); não há popup (é redirect top-level).
 
 ---
 

@@ -211,13 +211,35 @@ function AuthPage() {
     let cancelled = false;
     getRedirectResult(auth)
       .then(async (result) => {
-        if (!result) return; // nenhum redirect pendente
+        // PENDÊNCIA ATIVA (CLAUDE.md §8) — "bate e volta" do login Google: o
+        // redirect volta do Google mas o app não finaliza. O flag abaixo
+        // sobrevive à navegação de ida-e-volta (sessionStorage é por aba) e
+        // permite distinguir "voltou do Google sem finalizar" de acesso direto.
+        const redirectedFromGoogle = sessionStorage.getItem(
+          "duomatch_google_redirect_started"
+        );
+        sessionStorage.removeItem("duomatch_google_redirect_started");
+
+        if (!result) {
+          if (cancelled) return;
+          if (redirectedFromGoogle) {
+            console.warn(
+              "getRedirectResult: voltou do Google sem redirect pendente. URL:",
+              window.location.href
+            );
+            setError(
+              "O Google confirmou o login, mas a confirmação não chegou ao app. Tente novamente ou use e-mail/senha."
+            );
+          }
+          return; // nenhum redirect pendente (acesso direto)
+        }
         if (cancelled) return;
         const googleUser = result.user;
         await ensureGoogleUserDoc(googleUser);
       })
       .catch((err) => {
         if (cancelled) return;
+        sessionStorage.removeItem("duomatch_google_redirect_started");
         // Login unificado: já existe conta de e-mail/senha com o mesmo e-mail.
         // O Firebase se recusa a criar um segundo usuário e devolve a
         // credential do Google suspensa — pedimos a senha e vinculamos o
@@ -233,7 +255,15 @@ function AuthPage() {
             return;
           }
         }
+        // PENDÊNCIA ATIVA (§8) — antes este erro era mudo: a pessoa voltava
+        // para a tela de login sem nenhuma mensagem ("bate e volta"). Agora o
+        // erro REAL aparece na tela para o diagnóstico ficar imediato.
         console.error("Erro ao processar login do Google:", err);
+        setError(
+          `O login pelo Google falhou (${err.code}). Detalhes: ${
+            err.message || "veja o console do navegador"
+          }`
+        );
       });
     return () => {
       cancelled = true;
@@ -243,10 +273,17 @@ function AuthPage() {
   const handleGoogleSignIn = async () => {
     setError("");
     setLoading(true);
+    // PENDÊNCIA ATIVA (§8): marca em sessionStorage que iniciamos um redirect
+    // do Google — o flag sobrevive à ida-e-volta e o getRedirectResult usa
+    // para detectar o "bate e volta" (voltou sem resultado) vs. acesso direto.
+    sessionStorage.setItem("duomatch_google_redirect_started", "1");
     try {
       await signInWithRedirect(auth, googleProvider);
     } catch (err) {
-      setError("Não foi possível continuar com o Google. Tente novamente.");
+      sessionStorage.removeItem("duomatch_google_redirect_started");
+      setError(
+        `Não foi possível continuar com o Google (${err.code}). Tente novamente.`
+      );
       console.error("Erro no login com Google:", err);
     } finally {
       setLoading(false);
