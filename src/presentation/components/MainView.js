@@ -24,8 +24,8 @@ import MatchNotification from "./MatchNotification";
 import { isActivityForToday, getTodayDateString, getDateString } from "../../shared/utils";
 import { updateStreak } from "../../shared/utils/streakUtils";
 import {
-  countConfirmedActivitiesInRound,
-  countChallengesCompletedInRound,
+  countMarkedActivitiesInRound,
+  countChallengesCreatedInRound,
 } from "../../domain/services/RoundRulesEvaluator";
 import CountdownTimer from "./CountdownTimer";
 import { useAchievements } from "../../application/hooks/useAchievements";
@@ -265,13 +265,13 @@ export default function MainView(props) {
       // pontos (critério de criação na rodada + bônus de sugestões
       // marcadas), então o painel mostrava "meta cumprida" enquanto o
       // avaliador aplicava penalidade.
-      const myCount = countConfirmedActivitiesInRound(
+      const myCount = countMarkedActivitiesInRound(
         allActivities,
         user.uid,
         activeRound,
         todayStr
       );
-      const partnerCount = countConfirmedActivitiesInRound(
+      const partnerCount = countMarkedActivitiesInRound(
         allActivities,
         userData.partnerId,
         activeRound,
@@ -308,13 +308,13 @@ export default function MainView(props) {
     }
 
     if (challengesRule) {
-      // Mesmo critério do avaliador (desafios propostos por cada pessoa e concluídos)
-      const myChallengesCount = countChallengesCompletedInRound(
+      // Mesmo critério do avaliador (desafios LANÇADOS por cada pessoa)
+      const myChallengesCount = countChallengesCreatedInRound(
         allActivities,
         user.uid,
         activeRound
       );
-      const partnerChallengesCount = countChallengesCompletedInRound(
+      const partnerChallengesCount = countChallengesCreatedInRound(
         allActivities,
         userData.partnerId,
         activeRound

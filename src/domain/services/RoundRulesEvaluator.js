@@ -42,16 +42,21 @@ const activityCreationDate = (activity, fallback) => {
 };
 
 /**
- * Conta quantas atividades (não-desafio) um usuário confirmou dentro da
+ * Conta quantas atividades (não-desafio) um usuário MARCOU dentro da
  * rodada atual, considerando apenas atividades criadas depois do início
  * da rodada (evita contar atividades antigas de rodadas anteriores).
+ *
+ * CRITÉRIO = MARCAR. A meta cíclica do placar recompensa a PARTICIPAÇÃO:
+ * basta o usuário marcar a atividade no período — NÃO exige match nem
+ * conclusão (o "cumprir a atividade" pontua à parte, na conclusão). Assim,
+ * marcar e depois declarar "não concluída" continua contando a marca.
  *
  * EXPORTADA também para a UI (MainView): o painel de progresso precisa
  * exibir EXATAMENTE o mesmo critério que o avaliador usa para pontuar —
  * critérios divergentes faziam o usuário ver "meta cumprida" e ainda
  * assim levar penalidade.
  */
-export const countConfirmedActivitiesInRound = (allActivities, userId, activeRound, todayStr) => {
+export const countMarkedActivitiesInRound = (allActivities, userId, activeRound, todayStr) => {
   return allActivities.filter((activity) => {
     if (activity.type?.startsWith("desafio")) return false;
 
@@ -62,11 +67,6 @@ export const countConfirmedActivitiesInRound = (allActivities, userId, activeRou
     const selection = activity.selections?.[userId];
     if (selection?.status !== "confirmed") return false;
 
-    // B2-37: atividade confirmada e DEPOIS marcada como "não concluída"
-    // zera os pontos, mas continuava contando para a meta cíclica — usuário
-    // via "meta cumprida" e mesmo assim levava penalidade. Excluir aqui.
-    if (selection?.resolution === "not_completed") return false;
-
     return (
       selection.date >= activeRound.startDate &&
       selection.date <= activeRound.endDate
@@ -75,24 +75,21 @@ export const countConfirmedActivitiesInRound = (allActivities, userId, activeRou
 };
 
 /**
- * Conta quantos desafios PROPOSTOS pelo usuário foram CONCLUÍDOS dentro da
- * rodada atual. B2-33: a meta cíclica ("desafios propostos devem ser feitos
- * no período") só vale quando o desafio acontece de verdade. Antes contava
- * mera CRIAÇÃO — criar N desafios que o parceiro recusa (ou deixa em aberto)
- * cumpria a marca sem nada ter sido feito, contradizendo "desafio vale para
- * quem conclui". Agora: crédito da META é de quem PROPÔS (as marcas são de
- * cada usuário sobre os próprios desafios propostos), mas apenas se o
- * desafio foi concluído (`challengeState === "completed"`). A conclusão em
- * si continua valendo pontos para quem completa (useActivities).
+ * Conta quantos desafios foram LANÇADOS (criados) por um usuário dentro da
+ * rodada atual.
+ *
+ * CRITÉRIO = LANÇAR/DESAFIAR. A meta cíclica do placar recompensa a
+ * PARTICIPAÇÃO: basta o usuário DESAFIAR o parceiro no período — NÃO exige
+ * que o parceiro aceite nem que o desafio seja concluído (o "cumprir o
+ * desafio" pontua à parte, na conclusão, para quem completa).
  *
  * EXPORTADA também para a UI (MainView): o painel de progresso precisa
  * exibir EXATAMENTE o mesmo critério que o avaliador usa para pontuar.
  */
-export const countChallengesCompletedInRound = (allActivities, userId, activeRound) => {
+export const countChallengesCreatedInRound = (allActivities, userId, activeRound) => {
   return allActivities.filter((activity) => {
     if (!activity.type?.startsWith("desafio")) return false;
     if (activity.createdBy !== userId) return false;
-    if (activity.challengeState !== "completed") return false;
 
     const activityDate = activityCreationDate(activity, activeRound.startDate);
     return (
@@ -162,7 +159,7 @@ export const evaluateCyclicalRules = ({
     userId,
     partnerId,
     countFn: (uid) =>
-      countConfirmedActivitiesInRound(allActivities, uid, activeRound, todayStr),
+      countMarkedActivitiesInRound(allActivities, uid, activeRound, todayStr),
   });
   if (activitiesResult) {
     if (activitiesResult.scoreDeltas) {
@@ -180,7 +177,7 @@ export const evaluateCyclicalRules = ({
     todayStr,
     userId,
     partnerId,
-    countFn: (uid) => countChallengesCompletedInRound(allActivities, uid, activeRound),
+    countFn: (uid) => countChallengesCreatedInRound(allActivities, uid, activeRound),
   });
   if (challengesResult) {
     if (challengesResult.scoreDeltas) {

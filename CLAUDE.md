@@ -394,14 +394,17 @@ Tokens rejeitados pelo FCM (`unregistered`) sao podados pela function `sendPushT
   (Antes era diferencial/competitiva — so aplicava quando um cumpria e o outro nao;
   corrigido para incentivar uso individual.)
 - Avaliacao so roda quando o periodo (em dias) desde a ultima checagem >= `rule.days`.
-- **Meta de desafios = desafios PROPOSTOS pelo usuario que foram CONCLUIDOS**
-  (`createdBy === userId && challengeState === "completed"`). Criar desafio que o
-  parceiro recusa/nao conclui NAO cumpre a meta (B2-33). Metas de atividades =
-  atividades confirmadas (sem `resolution === "not_completed"`).
-- **Dois sistemas de pontuacao SOMAM no `scores` da rodada**: (1) regra ciclica acima;
-  (2) conclusao — atividade feita em casal (ambos concluiram) = ambos ganham
-  `activity.points`; desafio recebido cumprido = quem cumpriu ganha `challenge.points`
-  (`useActivities.js`).
+- **Meta ciclica = PARTICIPACAO**, nao conclusao:
+  - **Atividades = MARCADAS pelo usuario** (`countMarkedActivitiesInRound`): basta marcar
+    a atividade no periodo (`selections.{uid}.status === "confirmed"`), sem exigir match
+    nem conclusao. Marcar e depois declarar "nao concluida" continua contando a marca.
+  - **Desafios = LANCADOS pelo usuario** (`countChallengesCreatedInRound`): basta desafiar
+    o parceiro (`createdBy === userId`), sem exigir aceite nem conclusao.
+  - (Reversao do antigo B2-33, que exigia `challengeState === "completed"`.)
+- **Dois sistemas de pontuacao SOMAM no `scores` da rodada**: (1) regra ciclica acima
+  (marcar/desafiar); (2) conclusao — atividade com match cumprida em casal (ambos
+  concluiram) = ambos ganham `activity.points`; desafio cumprido = quem cumpriu ganha
+  `challenge.points` (`useActivities.js`).
 
 ### Conquistas (12 no catalogo)
 Unlock por条件oes puras em `domain/entities/Achievement.js`:
