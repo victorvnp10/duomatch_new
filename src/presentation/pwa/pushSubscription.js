@@ -25,6 +25,7 @@ import {
 import {
   getNotificationPermission,
   showSystemNotification,
+  isSystemNotificationsSupported,
 } from "./systemNotifications";
 
 const DEVICE_KEY = "duomatch_push_device";
@@ -39,9 +40,16 @@ const registerForegroundPush = () => {
   try {
     onMessage(getFirebaseMessaging(), (payload) => {
       const { notification, data = {} } = payload;
-      showSystemNotification(data.eventId || `push-${Date.now()}`, {
-        title: notification?.title || "DuoMatch",
-        body: notification?.body || "",
+      // Com o app em foco, o usePwaNotifications já exibe toast/sino —
+      // só mostra notificação do sistema se o app estiver em background.
+      // Sem esse guard, a notificação aparece em cima do app aberto.
+      const inBackground = typeof document !== "undefined" && !document.hasFocus();
+      if (!inBackground) return;
+      if (!isSystemNotificationsSupported()) return;
+      if (getNotificationPermission() !== "granted") return;
+      showSystemNotification(data.eventId || `push-fg-${Date.now()}`, {
+        title: notification?.title || data.title || "DuoMatch",
+        body: notification?.body || data.body || "",
       });
     });
   } catch (error) {
@@ -98,12 +106,17 @@ export async function ensurePushSubscription({ userId }) {
     if (!token) return null;
 
     const deviceId = getOrCreateDeviceId();
+    // IMPORTANTE: usar { tokens: { [deviceId]: token } } com merge:true,
+    // NÃO `tokens.${deviceId}` como chave top-level. No Firestore, a notação
+    // de ponto numa chave literal (não de update path) grava um campo cujo
+    // NOME contém o ponto — a Cloud Function lê `data.tokens` e encontra o
+    // mapa correto só com a estrutura aninhada.
     await setDoc(
       doc(db, "pushTokens", userId),
       {
         uid: userId,
         updatedAt: serverTimestamp(),
-        [`tokens.${deviceId}`]: token,
+        tokens: { [deviceId]: token },
       },
       { merge: true }
     );

@@ -313,10 +313,14 @@ exports.dailyReminder = onSchedule(
       if (Object.keys(suggestions).length === 0) continue;
 
       for (const uid of members) {
-        const confirmedToday = Object.values(suggestions).some(
-          (s) => s?.selections?.[uid]?.status === "confirmed"
+        // Nas dailySuggestions, selections[uid] é a string "selected" (não
+        // um objeto {status}). O status "confirmed" fica na atividade real
+        // criada após o match — não nas sugestões. O lembrete dispara para
+        // quem ainda não selecionou NENHUMA sugestão do dia.
+        const selectedToday = Object.values(suggestions).some(
+          (s) => s?.selections?.[uid] === "selected"
         );
-        if (confirmedToday) continue;
+        if (selectedToday) continue;
 
         await sendPushToUser(uid, {
           title: "Não esqueça de marcar uma atividade hoje!",

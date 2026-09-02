@@ -252,6 +252,22 @@ export default function DuoMatchApp({ user, userData }) {
     }
   };
 
+  // Navega para a view pedida pelo SW ao clicar numa notificação push.
+  // O SW envia postMessage({ type: "sw:navigate", targetView }) em vez de
+  // client.navigate() (que não existe em WindowClient de clients.matchAll).
+  useEffect(() => {
+    const handleSwMessage = (event) => {
+      if (event.data?.type === "sw:navigate" && event.data.targetView) {
+        const allowed = ["main", "hot", "wishlist", "shop", "wallet", "rounds", "cycle", "profile"];
+        if (allowed.includes(event.data.targetView)) {
+          setView(event.data.targetView);
+        }
+      }
+    };
+    navigator.serviceWorker?.addEventListener("message", handleSwMessage);
+    return () => navigator.serviceWorker?.removeEventListener("message", handleSwMessage);
+  }, []);
+
   useEffect(() => {
     const handleHotMatchEvent = (event) => {
       const { activityName } = event.detail;

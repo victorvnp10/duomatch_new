@@ -48,23 +48,41 @@ if (firebaseConfig && firebaseConfig.projectId) {
   });
 }
 
-// Clique na notificação do sistema: foca uma janela aberta do app e navega
-// para a view alvo (`?view=` é lida no primeiro render de DuoMatchApp.js),
-// ou abre uma nova janela se o app estiver fechado.
+// Clique na notificação do sistema: foca uma janela aberta do app e avisa
+// via postMessage para navegar para a view alvo, ou abre nova janela.
+//
+// IMPORTANTE: `client.navigate()` não existe em WindowClient retornado por
+// clients.matchAll — ele existe apenas em alguns contextos específicos e
+// não é confiável cross-browser. A abordagem correta para um SPA é:
+//   1) focar o cliente existente + enviar postMessage com a view alvo;
+//   2) o app (DuoMatchApp) escuta esse evento e chama setView();
+//   3) se nenhum cliente aberto, openWindow com a URL de destino.
+// A comparação de URL também é armadilha: client.url tem a URL completa
+// (origin + path + query), nunca igual ao clickUrl relativo.
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
+  const targetView = event.notification?.data?.targetView || "";
   const clickUrl = event.notification?.data?.clickUrl || "/";
+
   event.waitUntil(
     clients
       .matchAll({ type: "window", includeUncontrolled: true })
       .then((windowClients) => {
-        for (const client of windowClients) {
-          if ("focus" in client) {
-            client.focus();
-            if (client.url !== clickUrl) client.navigate(clickUrl);
-            return;
+        // Filtra clientes que são realmente do app (mesmo origin).
+        const appClients = windowClients.filter((c) =>
+          c.url.startsWith(self.location.origin)
+        );
+        if (appClients.length > 0) {
+          const client = appClients[0];
+          client.focus();
+          // Avisa o app para navegar para a view — DuoMatchApp escuta
+          // "sw:navigate" e chama setView(targetView).
+          if (targetView) {
+            client.postMessage({ type: "sw:navigate", targetView });
           }
+          return;
         }
+        // App fechado: abre nova janela com a URL de destino.
         return clients.openWindow(clickUrl);
       })
   );
