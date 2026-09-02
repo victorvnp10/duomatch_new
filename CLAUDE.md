@@ -598,35 +598,34 @@ Rodadas e Perfil so acessiveis pelo header do MainView.
 ### ⚠️ PENDÊNCIA ATIVA — Login Google "bate e volta" (produção) — PRÓXIMA SESSÃO COMEÇA POR AQUI
 
 **Sintoma:** clicar "Continuar com o Google" vai ao accounts.google.com, autentica e
-**volta para a tela de login** sem entrar — sem mensagem de erro (era mudo: o
-`getRedirectResult` só logava `console.error` em `AuthPage.js`). Determinístico (sempre).
+**volta para a tela de login** sem entrar. Determinístico. A causa confirmada é o
+**`signInWithRedirect` NÃO finalizar** neste deploy: desde segundo semestre de 2024 o Chrome
+restringe cookies/storage cross-origin e o fluxo redirect morre no handler do Firebase — o
+`getRedirectResult` (AuthPage.js) retorna null e o `onAuthStateChanged` segue sem usuário →
+router pinta `AuthPage` de novo (a mensagem "O Google confirmou o login, mas a confirmação não
+chegou ao app…" foi exibida em produção, confirmando o `getRedirectResult === null`).
 
 **Evidência dura:** `victornogueirapinto@gmail.com` **NÃO existe** como conta no Firebase Auth
 (createAuthUri devolve só `sessionId`, sem `signinMethods`) — o login Google **nunca chegou a
-completar** neste projeto, nem antes do fix popup→redirect (que era sobre
-`auth/popup-closed-by-user`). O fluxo redirect atual **também não finaliza**.
+completar** neste projeto. O Google só "parece" autenticar porque o handler redireciona de volta;
+a finalização do credencial nunca acontece.
 
-**Fluxo que quebra:** `signInWithRedirect` (AuthPage.js) → Google → handler
-`conexaocasal-18136.firebaseapp.com/__/auth/handler` → volta para `www.duomatch.com.br` →
-`getRedirectResult` não entrega usuário (retorna null OU rejeita) → `onAuthStateChanged` do
-`useAuth.js` segue sem usuário → router pinta `AuthPage` de novo.
+**FIX DE MITIGAÇÃO APLICADO (commit "22"):** `AuthPage.js:handleGoogleSignIn` agora tenta
+**`signInWithPopup` como via PRIMÁRIA** (o popup entrega o credential via `window.opener.postMessage`,
+não depende de cookies cross-origin restritos) e cai em **`signInWithRedirect` apenas como fallback**
+quando o popup é bloqueado (`auth/popup-blocked`/`auth/popup-closed-by-user`). O popup SÓ funciona
+porque o `vercel.json` envia `Cross-Origin-Opener-Policy: same-origin-allow-popups` (confirmado no
+deploy via `curl -sI`; sem COEP). **Atenção:** `same-origin-allow-popups` é obrigatório — com COOP
+`same-origin` o popup morreria silenciosamente (sem recipient do postMessage). Não há COEP no
+`vercel.json`, o que é necessário para o popup. O redirect de fallback mantém o debug visível:
+`sessionStorage["duomatch_google_redirect_started"]` + exibição do erro no `setError`.
 
-**Já feito (debug agora é VISÍVEL na tela):**
-- `AuthPage.js` exibe o erro real do `getRedirectResult` (`err.code` + `err.message`) no `setError`.
-- `handleGoogleSignIn` marca `sessionStorage["duomatch_google_redirect_started"]` antes do
-  redirect; o flag sobrevive à ida-e-volta (sessionStorage é por aba). Se `getRedirectResult`
-  voltar **null** com esse flag presente → exibe "O Google confirmou o login, mas a confirmação
-  não chegou ao app…" + `console.warn` com a URL real.
-
-**COMO CONTINUAR (próximo passo):** reproduzir 1x no site de produção (ou no dev server) e ler
-a mensagem/console — ela dá a causa exata. Se aparecer `auth/internal-error`, coletar a call
-`identitytoolkit.googleapis.com/v1/accounts:signInWithIdp` na aba Network (status + corpo) e
-repassar ao Firebase. Checar também: (1) URL de retorno (fragment/`?authType=`) vs `redirectUrl`
-gravado no início do redirect; (2) se o SW (`service-worker.js:94-102`) serviu index.html
-precacheado com bundle antigo no retorno (version skew); (3) "Authorized domains" no Console
-(www.duomatch.com.br é usado como app_domain). Já descartado: CSP (`vercel.json`) permite
-identitytoolkit/securetoken; inicialização do Firebase é única (`firebase/index.js:48-49`;
-`DuoMatchApp.js:164` usa o mesmo singleton); não há popup (é redirect top-level).
+**COMO CONTINUAR (próximo passo):** testar no NA VEGADOR REAL (browser isolado do DevTools MCP é
+bloqueado pelo Google e não reproduz o fluxo). Confirmar que o popup fecha e entra. Se AINDA bater
+e voltar: procurar nas boas práticas do Firebase (`firebase.google.com/docs/auth/web/redirect-best-practices`)
+a solução oficial do redirect — exige habilitar os "Authorized redirect URIs"/FedCM. Suspeitos já
+descartados: CSP (`vercel.json` permite identitytoolkit/securetoken); inicialização do Firebase é
+única (`firebase/index.js:48-49`; `DuoMatchApp.js:164` usa o mesmo singleton); não há COEP.
 
 ---
 

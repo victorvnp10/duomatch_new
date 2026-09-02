@@ -6,6 +6,7 @@ import {
   googleProvider,
   GoogleAuthProvider,
   signInWithRedirect,
+  signInWithPopup,
   getRedirectResult,
   fetchSignInMethodsForEmail,
   linkWithCredential,
@@ -273,14 +274,46 @@ function AuthPage() {
   const handleGoogleSignIn = async () => {
     setError("");
     setLoading(true);
-    // PENDÊNCIA ATIVA (§8): marca em sessionStorage que iniciamos um redirect
-    // do Google — o flag sobrevive à ida-e-volta e o getRedirectResult usa
-    // para detectar o "bate e volta" (voltou sem resultado) vs. acesso direto.
-    sessionStorage.setItem("duomatch_google_redirect_started", "1");
     try {
-      await signInWithRedirect(auth, googleProvider);
+      // PENDÊNCIA ATIVA (§8): o signInWithRedirect NÃO finaliza neste
+      // deploy (getRedirectResult volta null — Chrome 2024+ restringe
+      // cookies/storage cross-origin e o fluxo redirect morre no handler).
+      // A COOP do vercel.json (same-origin-allow-popups) é o valor que
+      // permite o POPUP finalizar (postMessage via opener) — por isso o
+      // popup é a via primária. Redirect fica só como fallback p/ contextos
+      // que bloqueiam popup.
+      const result = await signInWithPopup(auth, googleProvider);
+      await ensureGoogleUserDoc(result.user);
     } catch (err) {
-      sessionStorage.removeItem("duomatch_google_redirect_started");
+      if (err.code === "auth/account-exists-with-different-credential") {
+        // Login unificado: igual ao getRedirectResult — pede a senha e vincula.
+        const email = err.customData?.email;
+        const credential = GoogleAuthProvider.credentialFromError(err);
+        if (email && credential) {
+          setLinkRequest({ email, credential });
+          setError(
+            `Já existe uma conta com este e-mail (${email}). Digite a senha dessa conta para vinculá-la ao Google.`
+          );
+          return;
+        }
+      }
+      if (
+        err.code === "auth/popup-blocked" ||
+        err.code === "auth/popup-closed-by-user"
+      ) {
+        // Popup inviável (ex.: bloqueador de janelas) → volta o redirect.
+        try {
+          sessionStorage.setItem("duomatch_google_redirect_started", "1");
+          await signInWithRedirect(auth, googleProvider);
+          return;
+        } catch (redirectErr) {
+          setError(
+            `Não foi possível continuar com o Google (${redirectErr.code}). Tente novamente.`
+          );
+          console.error("Erro no login com Google (redirect):", redirectErr);
+          return;
+        }
+      }
       setError(
         `Não foi possível continuar com o Google (${err.code}). Tente novamente.`
       );
