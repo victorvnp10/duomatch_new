@@ -10,8 +10,8 @@ Este arquivo é a fonte de verdade sobre estrutura, dados e estado do projeto.
 ## 1. Stack e comandos
 
 React 18 (CRA `react-scripts` 5) + Firebase 9 (Auth + Firestore) + Tailwind CSS 3.4 + Workbox (PWA).
-Sem TypeScript, sem backend próprio — toda a lógica de servidor é Firestore Security Rules (não versionadas
-neste repo) + Cloud Firestore diretamente do cliente.
+Sem TypeScript, sem backend próprio — toda a lógica de servidor é Firestore Security Rules (agora versionadas
+em `firestore.rules`; deploy: `npx firebase-tools deploy --only firestore:rules`) + Cloud Firestore diretamente do cliente.
 
 ```bash
 npm install         # instalar dependências
