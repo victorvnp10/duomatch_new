@@ -260,37 +260,33 @@ export default function MainView(props) {
     const challengesRule = activeRound.rules.minChallenges;
 
     if (activitiesRule) {
-      // B2-18: usa os MESMOS contadores do domínio que o avaliador usa
-      // para pontuar. A implementação inline anterior divergia em dois
-      // pontos (critério de criação na rodada + bônus de sugestões
-      // marcadas), então o painel mostrava "meta cumprida" enquanto o
-      // avaliador aplicava penalidade.
+      // Period-aware: conta apenas atividades marcadas DENTRO da janela de
+      // avaliação corrente (desde rulesLastChecked), alinhado ao avaliador.
+      const activitiesPeriodStart =
+        activeRound.rulesLastChecked?.activities || activeRound.startDate;
       const myCount = countMarkedActivitiesInRound(
         allActivities,
         user.uid,
         activeRound,
-        todayStr
+        todayStr,
+        activitiesPeriodStart
       );
       const partnerCount = countMarkedActivitiesInRound(
         allActivities,
         userData.partnerId,
         activeRound,
-        todayStr
+        todayStr,
+        activitiesPeriodStart
       );
 
       // B2-40: alinhar o painel com o avaliador. O avaliador (evaluateGoal)
       // avalia quando `daysBetween(today, reference) >= rule.days`, com
-      // `reference = rulesLastChecked?.X || startDate`. A conta antiga por
-      // módulo do início da rodada marcava "Hoje!" logo no dia 0 — quando
-      // faltavam `days` para a PRIMEIRA checagem — o painel mentia que a
-      // regra vencia no próprio início da rodada.
-      const activitiesReferenceDate =
-        activeRound.rulesLastChecked?.activities || activeRound.startDate;
+      // `reference = rulesLastChecked?.X || startDate`.
       const activitiesDaysSinceCheck = Math.max(
         0,
         Math.floor(
           (new Date(todayStr).getTime() -
-            new Date(activitiesReferenceDate).getTime()) /
+            new Date(activitiesPeriodStart).getTime()) /
             (1000 * 60 * 60 * 24)
         )
       );
@@ -308,28 +304,33 @@ export default function MainView(props) {
     }
 
     if (challengesRule) {
-      // Mesmo critério do avaliador (desafios LANÇADOS por cada pessoa)
+      // Period-aware: conta apenas desafios lançados DENTRO da janela de
+      // avaliação corrente, alinhado ao avaliador.
+      const challengesPeriodStart =
+        activeRound.rulesLastChecked?.challenges || activeRound.startDate;
       const myChallengesCount = countChallengesCreatedInRound(
         allActivities,
         user.uid,
-        activeRound
+        activeRound,
+        challengesPeriodStart,
+        todayStr
       );
       const partnerChallengesCount = countChallengesCreatedInRound(
         allActivities,
         userData.partnerId,
-        activeRound
+        activeRound,
+        challengesPeriodStart,
+        todayStr
       );
 
       // B2-40: mesma correção da regra de atividades — dias até a próxima
       // checagem contando a partir de `rulesLastChecked?.challenges ||
       // startDate`, sem o bug do módulo no dia 0.
-      const challengesReferenceDate =
-        activeRound.rulesLastChecked?.challenges || activeRound.startDate;
       const challengesDaysSinceCheck = Math.max(
         0,
         Math.floor(
           (new Date(todayStr).getTime() -
-            new Date(challengesReferenceDate).getTime()) /
+            new Date(challengesPeriodStart).getTime()) /
             (1000 * 60 * 60 * 24)
         )
       );

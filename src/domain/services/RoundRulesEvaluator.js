@@ -43,57 +43,69 @@ const activityCreationDate = (activity, fallback) => {
 
 /**
  * Conta quantas atividades (não-desafio) um usuário MARCOU dentro da
- * rodada atual, considerando apenas atividades criadas depois do início
- * da rodada (evita contar atividades antigas de rodadas anteriores).
+ * JANELA DE AVALIAÇÃO corrente (desde `periodStartDate` até hoje).
  *
  * CRITÉRIO = MARCAR. A meta cíclica do placar recompensa a PARTICIPAÇÃO:
  * basta o usuário marcar a atividade no período — NÃO exige match nem
  * conclusão (o "cumprir a atividade" pontua à parte, na conclusão). Assim,
  * marcar e depois declarar "não concluída" continua contando a marca.
  *
+ * O `periodStartDate` é derivado de `rulesLastChecked` (ou `startDate` da
+ * rodada se nunca houve checagem). Isso garante que o painel e o avaliador
+ * contem EXATAMENTE as mesmas atividades — antes, os contadores usavam
+ * `startDate` da rodada inteira, acumulando contagens de períodos
+ * anteriores e inflando o progresso do painel.
+ *
  * EXPORTADA também para a UI (MainView): o painel de progresso precisa
  * exibir EXATAMENTE o mesmo critério que o avaliador usa para pontuar —
  * critérios divergentes faziam o usuário ver "meta cumprida" e ainda
  * assim levar penalidade.
  */
-export const countMarkedActivitiesInRound = (allActivities, userId, activeRound, todayStr) => {
+export const countMarkedActivitiesInRound = (allActivities, userId, activeRound, todayStr, periodStartDate) => {
+  const effectivePeriodStart = periodStartDate || activeRound.startDate;
   return allActivities.filter((activity) => {
     if (activity.type?.startsWith("desafio")) return false;
-
-    const creationDate = activityCreationDate(activity, todayStr);
-    const wasCreatedInCurrentRound = creationDate >= activeRound.startDate;
-    if (!wasCreatedInCurrentRound) return false;
 
     const selection = activity.selections?.[userId];
     if (selection?.status !== "confirmed") return false;
 
+    // Conta apenas marções feitas DENTRO da janela de avaliação corrente.
+    //selection.date é a data em que o usuário MARCOU (não a de criação).
+    // Atividades marcadas e desmarcadas no mesmo dia não contam porque
+    // desmarcar seta `status: null` — o filtro acima já exclui.
+    if (!selection.date) return false;
     return (
-      selection.date >= activeRound.startDate &&
-      selection.date <= activeRound.endDate
+      selection.date >= effectivePeriodStart &&
+      selection.date <= todayStr
     );
   }).length;
 };
 
 /**
  * Conta quantos desafios foram LANÇADOS (criados) por um usuário dentro da
- * rodada atual.
+ * JANELA DE AVALIAÇÃO corrente (desde `periodStartDate` até hoje).
  *
  * CRITÉRIO = LANÇAR/DESAFIAR. A meta cíclica do placar recompensa a
  * PARTICIPAÇÃO: basta o usuário DESAFIAR o parceiro no período — NÃO exige
  * que o parceiro aceite nem que o desafio seja concluído (o "cumprir o
  * desafio" pontua à parte, na conclusão, para quem completa).
  *
+ * O `periodStartDate` é derivado de `rulesLastChecked` (ou `startDate` da
+ * rodada se nunca houve checagem). Mesma lógica do contador de atividades.
+ *
  * EXPORTADA também para a UI (MainView): o painel de progresso precisa
  * exibir EXATAMENTE o mesmo critério que o avaliador usa para pontuar.
  */
-export const countChallengesCreatedInRound = (allActivities, userId, activeRound) => {
+export const countChallengesCreatedInRound = (allActivities, userId, activeRound, periodStartDate, todayStr) => {
+  const effectivePeriodStart = periodStartDate || activeRound.startDate;
+  const upperBound = todayStr || activeRound.endDate;
   return allActivities.filter((activity) => {
     if (!activity.type?.startsWith("desafio")) return false;
     if (activity.createdBy !== userId) return false;
 
     const activityDate = activityCreationDate(activity, activeRound.startDate);
     return (
-      activityDate >= activeRound.startDate && activityDate <= activeRound.endDate
+      activityDate >= effectivePeriodStart && activityDate <= upperBound
     );
   }).length;
 };
@@ -159,7 +171,13 @@ export const evaluateCyclicalRules = ({
     userId,
     partnerId,
     countFn: (uid) =>
-      countMarkedActivitiesInRound(allActivities, uid, activeRound, todayStr),
+      countMarkedActivitiesInRound(
+        allActivities,
+        uid,
+        activeRound,
+        todayStr,
+        activeRound.rulesLastChecked?.activities || activeRound.startDate
+      ),
   });
   if (activitiesResult) {
     if (activitiesResult.scoreDeltas) {
@@ -177,7 +195,14 @@ export const evaluateCyclicalRules = ({
     todayStr,
     userId,
     partnerId,
-    countFn: (uid) => countChallengesCreatedInRound(allActivities, uid, activeRound),
+    countFn: (uid) =>
+      countChallengesCreatedInRound(
+        allActivities,
+        uid,
+        activeRound,
+        activeRound.rulesLastChecked?.challenges || activeRound.startDate,
+        todayStr
+      ),
   });
   if (challengesResult) {
     if (challengesResult.scoreDeltas) {

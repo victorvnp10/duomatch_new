@@ -401,6 +401,10 @@ Tokens rejeitados pelo FCM (`unregistered`) sao podados pela function `sendPushT
   - **Desafios = LANCADOS pelo usuario** (`countChallengesCreatedInRound`): basta desafiar
     o parceiro (`createdBy === userId`), sem exigir aceite nem conclusao.
   - (Reversao do antigo B2-33, que exigia `challengeState === "completed"`.)
+- **Contadores period-aware**: os contadores recebem `periodStartDate` (= `rulesLastChecked`
+  ou `startDate` da rodada) e contam apenas maracoes/lançamentos feitos DENTRO da janela
+  de avaliacao corrente (B2-59). Isso impede que atividades de periodos anteriores
+  acumulem no progresso do painel.
 - **Dois sistemas de pontuacao SOMAM no `scores` da rodada**: (1) regra ciclica acima
   (marcar/desafiar); (2) conclusao — atividade com match cumprida em casal (ambos
   concluiram) = ambos ganham `activity.points`; desafio cumprido = quem cumpriu ganha
@@ -521,6 +525,15 @@ Rodadas e Perfil so acessiveis pelo header do MainView.
 > capturado pelo catch → "Não foi possível registrar sua escolha". Fix: substituído por
 > `doc(collection(db, path))` que gera ID automático válido. `collection` adicionado ao
 > import de `useSuggestions.js`.
+> **B2-59** (pós-auditoria, fix entregue): painel de progresso das regras cíclicas contava
+> atividades marcadas e desafios lançados em TODO o período da rodada (desde `startDate`),
+> acumulando contagens de períodos anteriores. Isso inflava o progresso do painel — o
+> usuário via "meta cumprida" mesmo tendo atingido a meta em períodos passados, não no
+> período corrente. Fix: `countMarkedActivitiesInRound` e `countChallengesCreatedInRound`
+> agora recebem `periodStartDate` (= `rulesLastChecked` ou `startDate` da rodada) e contam
+> apenas marações/lançamentos feitos DENTRO da janela de avaliação corrente. O avaliador
+> (`evaluateCyclicalRules`) e o painel (`MainView.js:roundRulesProgress`) usam os MESMOS
+> parâmetros, garantindo alinhamento entre visualização e pontuação.
 > **Login Google** (pós-auditoria, fix entregue): `signInWithRedirect` nunca finalizava em
 > produção (Chrome 2024+ restringe storage cross-origin; `getRedirectResult` retornava null
 > determinísticamente). Fix: `signInWithPopup` como via primária — funciona porque `vercel.json`
@@ -544,7 +557,7 @@ Rodadas e Perfil so acessiveis pelo header do MainView.
 > nos `onSnapshot` com `ErrorScreen` em vez de Loading infinito (B2-26) e `lastMessage`
 > do chat recalculado do servidor (B2-31).
 
-### Corrigidos (43)
+### Corrigidos (44)
 
 | # | Arquivo | Resumo |
 |---|---------|--------|
