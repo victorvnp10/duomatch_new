@@ -1,4 +1,4 @@
-# CLAUDE.md
+# AGENTS.md
 
 Este arquivo é a fonte de verdade sobre estrutura, dados e estado do projeto.
 > **Antes de alterar qualquer coisa**, consulte a seção "Mapa de arquivos por assunto" para localizar

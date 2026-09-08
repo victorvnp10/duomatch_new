@@ -199,6 +199,7 @@ export const useCouple = (user, userData) => {
         finalBatch.update(doc(db, "users", partnerId), {
           partnerId: null,
           coupleId: null,
+          onboardingSkipped: false,
         });
       }
       await finalBatch.commit();

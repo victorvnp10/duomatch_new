@@ -13,6 +13,7 @@ import {
   runTransaction,
 } from "../../infrastructure/firebase";
 import { getTodayDateString } from "../../shared/utils";
+import { isActivityCompletedByBoth } from "../../domain/services/ActivityCompletionEvaluator";
 
 export const useActivities = (user, userData, coupleData, rounds) => {
   const [allActivities, setAllActivities] = useState([]);
@@ -61,13 +62,14 @@ export const useActivities = (user, userData, coupleData, rounds) => {
 
       // Atividades normais para pontuação de rodada
       const activitiesToProcess = currentActivities.filter((act) => {
-        const myS = act.selections?.[user.uid];
-        const partnerS = act.selections?.[userData.partnerId];
         return (
           !act.type?.startsWith("desafio") &&
           act.points > 0 &&
-          myS?.resolution &&
-          partnerS?.resolution &&
+          isActivityCompletedByBoth({
+            activity: act,
+            userId: user.uid,
+            partnerId: userData.partnerId,
+          }) &&
           !act.pointsAwarded
         );
       });
@@ -116,21 +118,26 @@ export const useActivities = (user, userData, coupleData, rounds) => {
               return;
             }
 
-            if (
-              activityData.selections[user.uid].resolution === "completed" &&
-              activityData.selections[userData.partnerId].resolution ===
-                "completed"
-            ) {
-              transaction.update(roundRef, {
-                [`scores.${user.uid}`]: increment(act.points),
-                [`scores.${userData.partnerId}`]: increment(act.points),
-              });
-              setPointsMessage(
-                `Pontos da atividade "${act.name}" foram adicionados!`
-              );
+            // Revalida o estado do servidor. Se alguém marcou "não concluído",
+            // não trava `pointsAwarded`: uma conclusão posterior dos dois
+            // parceiros ainda deve poder gerar os pontos.
+            if (!isActivityCompletedByBoth({
+              activity: activityData,
+              userId: user.uid,
+              partnerId: userData.partnerId,
+            })) {
+              return;
             }
 
+            transaction.update(roundRef, {
+              [`scores.${user.uid}`]: increment(act.points),
+              [`scores.${userData.partnerId}`]: increment(act.points),
+            });
             transaction.update(activityRef, { pointsAwarded: true });
+            setPointsMessage(
+              `Pontos da atividade "${act.name}" foram adicionados!`
+            );
+
           });
         } catch (error) {
           console.error("Falha na transação de pontos: ", error);

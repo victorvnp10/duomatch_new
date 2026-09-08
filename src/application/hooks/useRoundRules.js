@@ -4,6 +4,7 @@ import { getTodayDateString } from "../../shared/utils";
 import {
   findActiveRound,
   evaluateCyclicalRules,
+  shouldEvaluateCyclicalRules,
 } from "../../domain/services/RoundRulesEvaluator";
 
 /**
@@ -75,7 +76,12 @@ export const useRoundRules = ({ user, userData, rounds, allActivities }) => {
   });
 
   useEffect(() => {
-    if (rounds.length > 0 && allActivities.length > 0 && userData?.coupleId) {
+    if (
+      shouldEvaluateCyclicalRules({
+        rounds,
+        coupleId: userData?.coupleId,
+      })
+    ) {
       runEvaluationRef.current();
     }
   }, [rounds.length, allActivities.length, userData?.coupleId]);

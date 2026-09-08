@@ -1,8 +1,12 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { doc, updateDoc, runTransaction, increment, arrayUnion } from 'firebase/firestore';
+import { doc, runTransaction, increment, arrayUnion } from 'firebase/firestore';
 import { db } from '../../infrastructure/firebase';
 import { getChallengeCatalog } from '../../infrastructure/firebase/repositories/ContentRepository';
+import {
+  mergeWeeklyAcceptance,
+  mergeWeeklyClaim,
+} from '../../domain/services/WeeklyChallengeState';
 import { ChallengeIcon, TrophyIcon } from './Icons';
 import { getTodayDateString, getDateString } from '../../shared/utils';
 
@@ -144,8 +148,20 @@ export const DailyChallenge = ({ userData, coupleData, rounds, onAcceptChallenge
     };
   }, [coupleData, userData, calculateWeeklyProgress.startOfWeek, localChallengeData]);
 
+  // Depois que um dos parceiros aceita, o desafio da semana passa a ser o
+  // desafio persistido no casal. O pool calculado localmente depende de
+  // recentChallengeIds e poderia mudar entre dois clientes, exibindo um
+  // desafio diferente daquele que foi aceito.
+  const selectedChallenge = useMemo(() => {
+    const persistedChallengeId = getChallengeState?.challengeData?.challengeId;
+    return (
+      challengeCatalog?.find((challenge) => challenge.id === persistedChallengeId) ||
+      getWeeklyChallenge
+    );
+  }, [challengeCatalog, getChallengeState, getWeeklyChallenge]);
+
   const handleAcceptWeeklyChallenge = async () => {
-    if (!getWeeklyChallenge) return;
+    if (!selectedChallenge) return;
     if (!userData?.uid || isLoading) return;
     if (!userData?.coupleId) {
       alert('Vincule seu parceiro(a) para aceitar desafios de verdade — no modo de demonstração isso é só ilustrativo. 💕');
@@ -159,37 +175,34 @@ export const DailyChallenge = ({ userData, coupleData, rounds, onAcceptChallenge
         getDateString(calculateWeeklyProgress.startOfWeek);
 
       const coupleRef = doc(db, 'duomatches', userData.coupleId);
-      
-      // Obter dados existentes ou criar novo array
-      const existingData = getChallengeState?.challengeData || {};
-      const existingAccepted = Array.isArray(existingData.acceptedBy) ? existingData.acceptedBy : [];
-      
-      // Adicionar apenas se ainda não estiver no array
-      const newAcceptedBy = existingAccepted.includes(userData.uid) 
-        ? existingAccepted 
-        : [...existingAccepted, userData.uid];
+      const challengeData = await runTransaction(db, async (transaction) => {
+        const coupleSnap = await transaction.get(coupleRef);
+        if (!coupleSnap.exists()) {
+          throw new Error('Casal não encontrado.');
+        }
 
-      const challengeData = {
-        ...existingData,
-        challengeId: getWeeklyChallenge.id,
-        acceptedBy: newAcceptedBy,
-        acceptedAt: existingData.acceptedAt || new Date(),
-        weekStartDate: calculateWeeklyProgress.startOfWeek.toISOString(),
-        state: 'in_progress',
-        confirmations: existingData.confirmations || {}
-      };
+        const serverData = coupleSnap.data()?.weeklyChallenge?.[weekKey] || {};
+        const persistedChallenge =
+          challengeCatalog?.find((challenge) => challenge.id === serverData.challengeId) ||
+          selectedChallenge;
+        const mergedData = mergeWeeklyAcceptance({
+          existingData: serverData,
+          userId: userData.uid,
+          challenge: persistedChallenge,
+          weekStartDate: getDateString(calculateWeeklyProgress.startOfWeek),
+          acceptedAt: new Date(),
+        });
 
-      await updateDoc(coupleRef, {
-        [`weeklyChallenge.${weekKey}`]: challengeData,
-        // Anti-repetição: registra o desafio aceito para não repetir nas
-        // próximas semanas (campos recentChallengeIds no doc do casal).
-        recentChallengeIds: arrayUnion(getWeeklyChallenge.id)
+        transaction.update(coupleRef, {
+          [`weeklyChallenge.${weekKey}`]: mergedData,
+          recentChallengeIds: arrayUnion(mergedData.challengeId),
+        });
+        return mergedData;
       });
 
       // Atualizar estado local para resposta imediata na UI
-      setLocalChallengeData({
-        [weekKey]: challengeData
-      });
+      const currentLocal = localChallengeData || coupleData?.weeklyChallenge || {};
+      setLocalChallengeData({ ...currentLocal, [weekKey]: challengeData });
 
     } catch (error) {
       console.error('Erro ao aceitar desafio semanal:', error);
@@ -209,33 +222,33 @@ export const DailyChallenge = ({ userData, coupleData, rounds, onAcceptChallenge
     try {
       const weekKey = getChallengeState.weekKey;
       const coupleRef = doc(db, 'duomatches', userData.coupleId);
-
-      // Preservar todos os dados existentes
-      const existingData = getChallengeState.challengeData || {};
-      const existingConfirmations = existingData.confirmations || {};
-
-      const updateData = {
-        [`weeklyChallenge.${weekKey}`]: {
-          ...existingData,
-          confirmations: {
-            ...existingConfirmations,
-            [userData.uid]: {
-              claimed: true,
-              claimedAt: new Date(),
-              status: 'pending_partner_confirmation'
-            }
-          },
-          state: 'pending_confirmations'
+      const updatedChallengeData = await runTransaction(db, async (transaction) => {
+        const coupleSnap = await transaction.get(coupleRef);
+        if (!coupleSnap.exists()) {
+          throw new Error('Casal não encontrado.');
         }
-      };
 
-      await updateDoc(coupleRef, updateData);
+        const existingData = coupleSnap.data()?.weeklyChallenge?.[weekKey] || {};
+        const mergedData = mergeWeeklyClaim({
+          existingData,
+          userId: userData.uid,
+          claimedAt: new Date(),
+        });
+        if (!mergedData) {
+          throw new Error('Aceite o desafio antes de reivindicar.');
+        }
+
+        transaction.update(coupleRef, {
+          [`weeklyChallenge.${weekKey}`]: mergedData,
+        });
+        return mergedData;
+      });
       
       // Atualizar estado local para resposta imediata na UI
       const currentLocal = localChallengeData || coupleData?.weeklyChallenge || {};
       setLocalChallengeData({
         ...currentLocal,
-        [weekKey]: updateData[`weeklyChallenge.${weekKey}`]
+        [weekKey]: updatedChallengeData,
       });
       
     } catch (error) {
@@ -263,11 +276,6 @@ export const DailyChallenge = ({ userData, coupleData, rounds, onAcceptChallenge
         return;
       }
 
-      // Preservar todos os dados existentes
-      const existingData = getChallengeState.challengeData || {};
-      const existingConfirmations = existingData.confirmations || {};
-      const partnerConfirmation = existingConfirmations[partnerUid] || {};
-
       // Se confirmado, registrar status E pontos na MESMA transação,
       // relendo o servidor para garantir que os pontos sejam concedidos
       // apenas na PRIMEIRA confirmação (idempotência contra duplo clique
@@ -293,6 +301,12 @@ export const DailyChallenge = ({ userData, coupleData, rounds, onAcceptChallenge
             : {};
         const serverConfirmations = serverData.confirmations || {};
         const partnerServerConfirmation = serverConfirmations[partnerUid] || {};
+        const persistedChallenge =
+          challengeCatalog?.find((challenge) => challenge.id === serverData.challengeId) ||
+          selectedChallenge;
+        if (!persistedChallenge) {
+          throw new Error('Desafio semanal não encontrado.');
+        }
 
         const alreadyAwarded =
           partnerServerConfirmation.status === 'confirmed' &&
@@ -306,7 +320,7 @@ export const DailyChallenge = ({ userData, coupleData, rounds, onAcceptChallenge
         };
 
         if (confirmed) {
-          updatedPartnerConfirmation.pointsAwarded = getWeeklyChallenge.points;
+          updatedPartnerConfirmation.pointsAwarded = persistedChallenge.points;
         }
 
         updatedChallengeDataForLocal = {
@@ -328,7 +342,7 @@ export const DailyChallenge = ({ userData, coupleData, rounds, onAcceptChallenge
           roundSnap.exists()
         ) {
           transaction.update(roundRef, {
-            [`scores.${partnerUid}`]: increment(getWeeklyChallenge.points)
+            [`scores.${partnerUid}`]: increment(persistedChallenge.points)
           });
         }
       });
@@ -373,12 +387,12 @@ export const DailyChallenge = ({ userData, coupleData, rounds, onAcceptChallenge
     );
   }, [rounds]);
 
-  if (!userData || !getWeeklyChallenge) {
+  if (!userData || !selectedChallenge) {
     return null;
   }
 
   const challengeState = getChallengeState;
-  const categoryStyle = CATEGORY_STYLES[getWeeklyChallenge.type] || DEFAULT_CATEGORY_STYLE;
+  const categoryStyle = CATEGORY_STYLES[selectedChallenge.type] || DEFAULT_CATEGORY_STYLE;
 
   return (
     <div className={`bg-gradient-to-r ${categoryStyle.card} border rounded-2xl shadow-lg p-6 backdrop-blur-sm`}>
@@ -410,16 +424,16 @@ export const DailyChallenge = ({ userData, coupleData, rounds, onAcceptChallenge
           {categoryStyle.label}
         </p>
         <h4 className="font-semibold text-white text-lg mb-2">
-          🎯 {getWeeklyChallenge.title}
+          🎯 {selectedChallenge.title}
         </h4>
         <p className="text-gray-300 text-sm mb-3 leading-relaxed">
-          {getWeeklyChallenge.description}
+          {selectedChallenge.description}
         </p>
 
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center text-yellow-400">
             <TrophyIcon className="h-4 w-4 mr-1" />
-            <span className="font-bold text-sm">+{getWeeklyChallenge.points} pontos</span>
+            <span className="font-bold text-sm">+{selectedChallenge.points} pontos</span>
           </div>
 
           {/* Status de aceitação independente */}
@@ -473,7 +487,7 @@ export const DailyChallenge = ({ userData, coupleData, rounds, onAcceptChallenge
                 {challengeState.myConfirmation.status === 'pending_partner_confirmation' && 
                   '⏳ Aguardando confirmação do parceiro'}
                 {challengeState.myConfirmation.status === 'confirmed' && 
-                  `✅ Confirmado! +${challengeState.myConfirmation.pointsAwarded || getWeeklyChallenge.points} pontos`}
+                  `✅ Confirmado! +${challengeState.myConfirmation.pointsAwarded || selectedChallenge.points} pontos`}
                 {challengeState.myConfirmation.status === 'denied' && 
                   '❌ Negado pelo parceiro - você pode tentar novamente'}
               </p>
@@ -511,7 +525,7 @@ export const DailyChallenge = ({ userData, coupleData, rounds, onAcceptChallenge
               <p className="text-gray-300 text-sm font-semibold mb-1">Reivindicação do parceiro:</p>
               <p className="text-gray-300 text-sm">
                 {challengeState.partnerConfirmation.status === 'confirmed' && 
-                  `✅ Confirmado por você! Parceiro ganhou +${challengeState.partnerConfirmation.pointsAwarded || getWeeklyChallenge.points} pontos`}
+                  `✅ Confirmado por você! Parceiro ganhou +${challengeState.partnerConfirmation.pointsAwarded || selectedChallenge.points} pontos`}
                 {challengeState.partnerConfirmation.status === 'denied' && 
                   '❌ Negado por você'}
               </p>

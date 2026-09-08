@@ -201,12 +201,9 @@ function AuthPage() {
   };
 
   /**
-   * Processa o retorno do Google Auth via REDIRECT. O fluxo anterior usava
-   * `signInWithPopup`, que é quebrado em produção quando a Vercel envia a
-   * header `Cross-Origin-Opener-Policy`: o SDK do Firebase consulta
-   * `popupWindow.closed` e o navegador bloqueia essa leitura cross-origin,
-   * abortando o login como `auth/popup-closed-by-user` — sintoma de "não
-   * sai da tela de login". O redirect evita o popup e essa interação.
+   * Processa o retorno do Google Auth quando o fallback via REDIRECT conclui.
+   * A via primária é o popup; este efeito também mantém o fluxo de redirect
+   * disponível para navegadores que bloqueiam janelas auxiliares.
    */
   useEffect(() => {
     let cancelled = false;
@@ -275,13 +272,9 @@ function AuthPage() {
     setError("");
     setLoading(true);
     try {
-      // PENDÊNCIA ATIVA (§8): o signInWithRedirect NÃO finaliza neste
-      // deploy (getRedirectResult volta null — Chrome 2024+ restringe
-      // cookies/storage cross-origin e o fluxo redirect morre no handler).
-      // A COOP do vercel.json (same-origin-allow-popups) é o valor que
-      // permite o POPUP finalizar (postMessage via opener) — por isso o
-      // popup é a via primária. Redirect fica só como fallback p/ contextos
-      // que bloqueiam popup.
+      // O popup é a via primária. Redirect fica como fallback para contextos
+      // que bloqueiam popup; a COOP do vercel.json permite a comunicação com
+      // a janela de autenticação.
       const result = await signInWithPopup(auth, googleProvider);
       await ensureGoogleUserDoc(result.user);
     } catch (err) {

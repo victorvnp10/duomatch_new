@@ -34,6 +34,13 @@ const toLocalDateString = (date) => {
 export const findActiveRound = (rounds, todayStr) =>
   rounds.find((r) => todayStr >= r.startDate && todayStr <= r.endDate) || null;
 
+/**
+ * Regras cíclicas também precisam ser avaliadas quando o casal não tem
+ * atividades: nesse caso a contagem é zero e o período pode gerar penalidade.
+ */
+export const shouldEvaluateCyclicalRules = ({ rounds = [], coupleId } = {}) =>
+  Boolean(coupleId && rounds.length > 0);
+
 const activityCreationDate = (activity, fallback) => {
   if (activity.createdAt?.toDate) {
     return toLocalDateString(activity.createdAt.toDate());

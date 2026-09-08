@@ -63,6 +63,7 @@ function LinkingPage({ user, userData, onSkip, onBack }) {
   const reserveInviteCode = async (creatorId, creatorNickname) => {
     for (let attempt = 0; attempt < 5; attempt++) {
       const code = generateRandomCode();
+      const coupleId = doc(collection(db, duomatchesPath)).id;
       try {
         await runTransaction(db, async (transaction) => {
           const inviteRef = doc(db, inviteCodesPath, code);
@@ -71,6 +72,7 @@ function LinkingPage({ user, userData, onSkip, onBack }) {
           transaction.set(inviteRef, {
             creatorId,
             creatorNickname,
+            coupleId,
             createdAt: serverTimestamp(),
           });
         });
@@ -137,7 +139,13 @@ function LinkingPage({ user, userData, onSkip, onBack }) {
           throw validationError("Você não pode usar seu próprio código.");
         }
 
-        const coupleRef = doc(collection(db, duomatchesPath));
+        if (!inviteData.coupleId) {
+          throw validationError(
+            "Este cÃ³digo Ã© antigo. PeÃ§a um novo convite ao seu parceiro."
+          );
+        }
+
+        const coupleRef = doc(db, duomatchesPath, inviteData.coupleId);
         transaction.set(coupleRef, {
           members: [user.uid, inviteData.creatorId],
           memberNicknames: {
@@ -145,6 +153,8 @@ function LinkingPage({ user, userData, onSkip, onBack }) {
             [inviteData.creatorId]: inviteData.creatorNickname,
           },
           createdAt: serverTimestamp(),
+          createdBy: user.uid,
+          invitedUserId: inviteData.creatorId,
           confirmationTime: "22:00",
         });
 

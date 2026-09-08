@@ -1,11 +1,9 @@
 /**
- * Notificações do sistema (sem backend) — Notification API + App Badging.
+ * Notificações do sistema no cliente — Notification API + App Badging.
  *
- * COBERTURA (limite honesto): as notificações disparam enquanto uma aba com
- * o app está aberta — em primeiro plano ou em segundo plano (PWA instalado
- * costuma continuar vivo no background). Com o app totalmente fechado ou
- * sem conexão, nada é garantido sem Web Push (FCM), que fica fora do
- * escopo atual.
+ * COBERTURA: esta API cobre a aba aberta, em primeiro ou segundo plano.
+ * Com o app fechado, o Web Push (FCM) usa `pushSubscription.js`, o service
+ * worker e as Cloud Functions para entregar as notificações.
  *
  * O serviço é puro (sem React): cuida de suporte, permissão, dedup por
  * evento e clique (define o foco e reencaminha para a navegação do app).
