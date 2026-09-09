@@ -48,6 +48,11 @@ const activityCreationDate = (activity, fallback) => {
   return activity.createdAt?.slice(0, 10) || fallback;
 };
 
+// "selected" foi usado por versões anteriores do app para representar uma
+// marcação. Mantê-lo como compatibilidade evita zerar o progresso de dados
+// antigos; novas marcações usam "confirmed".
+const MARKED_SELECTION_STATUSES = new Set(["confirmed", "selected"]);
+
 /**
  * Conta quantas atividades (não-desafio) um usuário MARCOU dentro da
  * JANELA DE AVALIAÇÃO corrente (desde `periodStartDate` até hoje).
@@ -55,7 +60,9 @@ const activityCreationDate = (activity, fallback) => {
  * CRITÉRIO = MARCAR. A meta cíclica do placar recompensa a PARTICIPAÇÃO:
  * basta o usuário marcar a atividade no período — NÃO exige match nem
  * conclusão (o "cumprir a atividade" pontua à parte, na conclusão). Assim,
- * marcar e depois declarar "não concluída" continua contando a marca.
+ * marcar e depois declarar "não concluída" continua contando a marca. O
+ * status legado "selected" também é reconhecido para não perder progresso
+ * de atividades criadas em versões anteriores.
  *
  * O `periodStartDate` é derivado de `rulesLastChecked` (ou `startDate` da
  * rodada se nunca houve checagem). Isso garante que o painel e o avaliador
@@ -74,7 +81,7 @@ export const countMarkedActivitiesInRound = (allActivities, userId, activeRound,
     if (activity.type?.startsWith("desafio")) return false;
 
     const selection = activity.selections?.[userId];
-    if (selection?.status !== "confirmed") return false;
+    if (!MARKED_SELECTION_STATUSES.has(selection?.status)) return false;
 
     // Conta apenas marções feitas DENTRO da janela de avaliação corrente.
     //selection.date é a data em que o usuário MARCOU (não a de criação).

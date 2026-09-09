@@ -5,6 +5,7 @@
 - `ActivitySelectionEvaluator.js` centraliza o toggle: selecao confirmada do dia desmarca; selecao antiga ou legado `selected` marca novamente.
 - `useActivities.js` faz o toggle real em transacao, recalcula a data em cada snapshot e concede pontos de desafio somente para `completed`.
 - `ActivityCompletionEvaluator.js` so considera pontos de atividade quando existe match confirmado no mesmo dia e ambos registram `completed`.
+- `RoundRulesEvaluator.js` conta marcacoes `confirmed` e o legado `selected` para preservar o progresso de atividades antigas; desafios continuam contando por `createdBy`, sem exigir aceite.
 - `useRoundRules.js` reage a mudancas de status/data das selecoes e consolida a escrita da rodada em um unico `transaction.update`.
 - `PreviewApp.js` usa o mesmo formato de selecao do app real e atualiza o painel local ao marcar/desmarcar.
 
@@ -408,8 +409,9 @@ são removidos pelo emissor.
 - Avaliacao so roda quando o periodo (em dias) desde a ultima checagem >= `rule.days`.
 - **Meta ciclica = PARTICIPACAO**, nao conclusao:
   - **Atividades = MARCADAS pelo usuario** (`countMarkedActivitiesInRound`): basta marcar
-    a atividade no periodo (`selections.{uid}.status === "confirmed"`), sem exigir match
-    nem conclusao. Marcar e depois declarar "nao concluida" continua contando a marca.
+    a atividade no periodo (`selections.{uid}.status === "confirmed"`; o legado
+    `"selected"` tambem e aceito), sem exigir match nem conclusao. Marcar e depois
+    declarar "nao concluida" continua contando a marca.
   - **Desafios = LANCADOS pelo usuario** (`countChallengesCreatedInRound`): basta desafiar
     o parceiro (`createdBy === userId`), sem exigir aceite nem conclusao.
   - (Reversao do antigo B2-33, que exigia `challengeState === "completed"`.)
