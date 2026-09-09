@@ -5,3 +5,6 @@
 export const isActivityCompletedByBoth = ({ activity, userId, partnerId }) =>
   activity?.selections?.[userId]?.resolution === "completed" &&
   activity?.selections?.[partnerId]?.resolution === "completed";
+
+export const isChallengeCompleted = (challengeState) =>
+  challengeState === "completed";

@@ -2,6 +2,7 @@ import React, { useState, useRef, useMemo } from "react";
 import { signOut } from "firebase/auth";
 import { auth } from "../../infrastructure/firebase";
 import { getTodayDateString } from "../../shared/utils";
+import { toggleActivitySelection } from "../../domain/services/ActivitySelectionEvaluator";
 import {
   DEMO_PARTNER_UID,
   buildPreviewPartnerData,
@@ -65,6 +66,7 @@ function PreviewApp({ user, userData }) {
     buildPreviewActivities(user.uid)
   );
   const [mySelections, setMySelections] = useState({});
+  const mySelectionsRef = useRef({});
   const [wishlistItems] = useState(() => buildPreviewWishlistItems(user.uid));
   const [rewards] = useState(() => buildPreviewRewards());
 
@@ -85,14 +87,30 @@ function PreviewApp({ user, userData }) {
 
   const handleSelectActivity = async (activityId) => {
     const today = getTodayDateString();
-    setMySelections((prev) => {
-      const already = prev[activityId]?.status === "selected";
-      if (already) {
-        const { [activityId]: _removed, ...rest } = prev;
-        return rest;
-      }
-      return { ...prev, [activityId]: { status: "selected", date: today } };
+    const nextSelection = toggleActivitySelection({
+      selection: mySelectionsRef.current[activityId],
+      todayStr: today,
     });
+    const nextSelections = {
+      ...mySelectionsRef.current,
+      [activityId]: nextSelection,
+    };
+    mySelectionsRef.current = nextSelections;
+    setMySelections(nextSelections);
+
+    setAllActivities((prev) =>
+      prev.map((activity) =>
+        activity.id === activityId
+          ? {
+              ...activity,
+              selections: {
+                ...activity.selections,
+                [user.uid]: nextSelection,
+              },
+            }
+          : activity
+      )
+    );
   };
 
   const handleAddActivity = async (newActivity) => {

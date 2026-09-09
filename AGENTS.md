@@ -1,5 +1,12 @@
 # AGENTS.md
 
+## Ajustes da versao atual
+
+- `ActivitySelectionEvaluator.js` centraliza o toggle: selecao confirmada do dia desmarca; selecao antiga ou legado `selected` marca novamente.
+- `useActivities.js` faz o toggle real em transacao, recalcula a data em cada snapshot e concede pontos de desafio somente para `completed`.
+- `useRoundRules.js` reage a mudancas de status/data das selecoes e consolida a escrita da rodada em um unico `transaction.update`.
+- `PreviewApp.js` usa o mesmo formato de selecao do app real e atualiza o painel local ao marcar/desmarcar.
+
 Este arquivo é a fonte de verdade sobre estrutura, dados e estado do projeto.
 > **Antes de alterar qualquer coisa**, consulte a seção "Mapa de arquivos por assunto" para localizar
 > o(s) arquivo(s) relevante(s). **Depois de qualquer alteração** (novo campo, nova coleção, novo hook,
@@ -72,8 +79,8 @@ os dois providers forem vinculados ao MESMO `uid`. Regras em `AuthPage.js`:
 ### Atividades / matches / pontos
 | Camada | Arquivo |
 |---|---|
-| Domain | `src/domain/services/ActivityCompletionEvaluator.js` |
-| Application | `src/application/hooks/useActivities.js` (516 linhas, runTransaction) |
+| Domain | `src/domain/services/ActivityCompletionEvaluator.js`, `src/domain/services/ActivitySelectionEvaluator.js` |
+| Application | `src/application/hooks/useActivities.js` (528 linhas, runTransaction) |
 | Presentation | `src/presentation/components/MainView.js` (1027 linhas), `AllActivitiesView.js` (132 linhas), `HotZone.js` (838 linhas) |
 
 ### Desafio semanal (DAILY CHALLENGE)
@@ -100,7 +107,7 @@ os dois providers forem vinculados ao MESMO `uid`. Regras em `AuthPage.js`:
 | Camada | Arquivo |
 |---|---|
 | Domain | `src/domain/services/RoundRulesEvaluator.js` (161 linhas) |
-| Application | `src/application/hooks/useRoundRules.js` (59 linhas) |
+| Application | `src/application/hooks/useRoundRules.js` (124 linhas) |
 
 ### Rodadas / placar
 | Camada | Arquivo |
@@ -193,7 +200,7 @@ os dois providers forem vinculados ao MESMO `uid`. Regras em `AuthPage.js`:
 | Camada | Arquivo |
 |---|---|
 | Shared | `src/shared/previewData.js` |
-| Presentation | `src/presentation/components/PreviewApp.js` (286 linhas) |
+| Presentation | `src/presentation/components/PreviewApp.js` (316 linhas) |
 
 ### PWA / offline
 | Camada | Arquivo |
@@ -220,7 +227,7 @@ os dois providers forem vinculados ao MESMO `uid`. Regras em `AuthPage.js`:
 src/
   domain/                    # Regras de negocio puras. ZERO dependencia de Firestore/React.
     entities/Achievement.js
-    services/AchievementStatsBuilder.js, ActivityCompletionEvaluator.js, CycleInsightService.js,
+    services/AchievementStatsBuilder.js, ActivityCompletionEvaluator.js, ActivitySelectionEvaluator.js, CycleInsightService.js,
     RoundRulesEvaluator.js, WeeklyChallengeState.js
     valueObjects/MenstrualCycle.js, Periodicity.js
 

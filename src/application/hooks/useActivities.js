@@ -13,7 +13,11 @@ import {
   runTransaction,
 } from "../../infrastructure/firebase";
 import { getTodayDateString } from "../../shared/utils";
-import { isActivityCompletedByBoth } from "../../domain/services/ActivityCompletionEvaluator";
+import {
+  isActivityCompletedByBoth,
+  isChallengeCompleted,
+} from "../../domain/services/ActivityCompletionEvaluator";
+import { toggleActivitySelection } from "../../domain/services/ActivitySelectionEvaluator";
 
 export const useActivities = (user, userData, coupleData, rounds) => {
   const [allActivities, setAllActivities] = useState([]);
@@ -219,9 +223,11 @@ export const useActivities = (user, userData, coupleData, rounds) => {
       collection(db, activitiesPath),
       orderBy("createdAt", "desc")
     );
-    const today = getTodayDateString();
-
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      // O listener pode permanecer aberto por vários dias. Calcular a data
+      // aqui evita que uma seleção feita após a meia-noite seja escondida por
+      // um `today` capturado quando o efeito foi montado.
+      const today = getTodayDateString();
       const activitiesData = [];
       let mySels = {};
       let partnerSels = {};
@@ -322,7 +328,11 @@ export const useActivities = (user, userData, coupleData, rounds) => {
 
         transaction.update(activityRef, { challengeState: resolution });
 
-        if (winnerId && fresh.points > 0) {
+        if (
+          isChallengeCompleted(resolution) &&
+          winnerId &&
+          fresh.points > 0
+        ) {
           transaction.update(roundRef, {
             [`scores.${winnerId}`]: increment(fresh.points),
           });
@@ -356,32 +366,45 @@ export const useActivities = (user, userData, coupleData, rounds) => {
         activityId
       );
 
-      // Verifica o estado atual para decidir se vai marcar ou desmarcar
-      const myCurrentStatus = mySelections[activityId]?.status;
-      const newStatus = myCurrentStatus === "confirmed" ? null : "confirmed";
+      // O estado usado para o toggle precisa vir do servidor. O snapshot do
+      // React pode estar atrasado quando há dois cliques rápidos ou quando o
+      // parceiro acabou de alterar a atividade.
+      const result = await runTransaction(db, async (transaction) => {
+        const activitySnap = await transaction.get(activityRef);
+        if (!activitySnap.exists()) {
+          throw new Error("A atividade não existe mais.");
+        }
 
-      // Atualiza o Firestore com o novo estado
-      await updateDoc(activityRef, {
-        [`selections.${user.uid}`]: {
-          status: newStatus,
-          date: newStatus ? today : null,
-        },
+        const activityData = activitySnap.data();
+        const nextSelection = toggleActivitySelection({
+          selection: activityData.selections?.[user.uid],
+          todayStr: today,
+        });
+
+        transaction.update(activityRef, {
+          [`selections.${user.uid}`]: nextSelection,
+        });
+
+        const partnerSelection = activityData.selections?.[userData.partnerId];
+        return {
+          activity: activityData,
+          nextSelection,
+          partnerIsConfirmed:
+            nextSelection.status === "confirmed" &&
+            partnerSelection?.status === "confirmed" &&
+            partnerSelection.date === today,
+        };
       });
 
       // Se a ação foi de MARCAR, verifica se resultou em um match
-      if (newStatus === "confirmed") {
-        const partnerIsConfirmed =
-          partnerSelections[activityId]?.status === "confirmed" &&
-          partnerSelections[activityId]?.date === today;
-
-        if (partnerIsConfirmed) {
+      if (result.nextSelection.status === "confirmed") {
+        if (result.partnerIsConfirmed) {
           // Encontrar o nome da atividade
-          const activity = allActivities.find(act => act.id === activityId);
-          const activityName = activity?.name || 'Atividade';
+          const activityName = result.activity.name || "Atividade";
           
           // Disparar evento de match após delay
           setTimeout(() => {
-            if (activity?.category === "Hot") {
+            if (result.activity.category === "Hot") {
               // Para atividades hot, usar o evento específico — UMA única
               // vez (dispatchHotMatchEvent já dispara 'hotActivityMatch').
               if (window.dispatchHotMatchEvent) {
@@ -403,14 +426,14 @@ export const useActivities = (user, userData, coupleData, rounds) => {
           }, 1500);
         }
       }
+
+      return result;
     },
     // As dependências são importantes para a função ter os dados mais recentes
     [
       user.uid,
       userData.coupleId,
-      mySelections,
-      partnerSelections,
-      allActivities,
+      userData.partnerId,
     ]
   );
 
@@ -419,8 +442,8 @@ export const useActivities = (user, userData, coupleData, rounds) => {
       doc(db, `duomatches/${userData.coupleId}/activities`, activityId),
       {
         [`selections.${user.uid}`]: {
-          status: "selected",
-          date: getTodayDateString(),
+          status: null,
+          date: null,
         },
       }
     );

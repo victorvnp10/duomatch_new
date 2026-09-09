@@ -23,6 +23,35 @@ import {
  * (compare-and-set), impedindo penalidade/bônus aplicado em dobro.
  */
 export const useRoundRules = ({ user, userData, rounds, allActivities }) => {
+  // O tamanho dos arrays nao muda quando alguem marca/desmarca uma atividade.
+  // Estas revisoes incluem apenas campos que alteram a contagem das regras.
+  const rulesRevision = rounds
+    .map((round) =>
+      [
+        round.id,
+        round.startDate,
+        round.endDate,
+        JSON.stringify(round.rules || {}),
+      ].join(":"),
+    )
+    .join("|");
+  const activitiesRevision = allActivities
+    .map((activity) => {
+      const mySelection = activity.selections?.[user?.uid];
+      const partnerSelection = activity.selections?.[userData?.partnerId];
+      return [
+        activity.id,
+        activity.type,
+        activity.createdBy,
+        activity.challengeState,
+        mySelection?.status,
+        mySelection?.date,
+        partnerSelection?.status,
+        partnerSelection?.date,
+      ].join(":");
+    })
+    .join("|");
+
   const runEvaluation = useCallback(async () => {
     if (!userData?.coupleId || !rounds.length) return;
 
@@ -52,13 +81,20 @@ export const useRoundRules = ({ user, userData, rounds, allActivities }) => {
         const hasChecks = Object.keys(plan.lastCheckedUpdates || {}).length > 0;
         if (!hasDeltas && !hasChecks) return;
 
+        const roundUpdate = {};
         for (const [uid, delta] of Object.entries(plan.scoreDeltas)) {
           if (delta !== 0) {
-            transaction.update(roundRef, { [`scores.${uid}`]: increment(delta) });
+            roundUpdate[`scores.${uid}`] = increment(delta);
           }
         }
         for (const [key, value] of Object.entries(plan.lastCheckedUpdates)) {
-          transaction.update(roundRef, { [`rulesLastChecked.${key}`]: value });
+          roundUpdate[`rulesLastChecked.${key}`] = value;
+        }
+        // Uma única escrita no documento da rodada. Várias chamadas
+        // transaction.update() para o mesmo documento podem fazer a
+        // transação falhar, deixando o painel sem registrar a avaliação.
+        if (Object.keys(roundUpdate).length > 0) {
+          transaction.update(roundRef, roundUpdate);
         }
       });
     } catch (error) {
@@ -67,9 +103,9 @@ export const useRoundRules = ({ user, userData, rounds, allActivities }) => {
   }, [rounds, allActivities, user?.uid, userData?.partnerId, userData?.coupleId]);
 
   // Mantém sempre a versão mais recente da avaliação sem recriar o listener.
-  // O efeito abaixo só depende de primitivas (tamanhos + coupleId), então não
-  // dispara a cada mudança de identidade dos arrays/rodadas, evitando a
-  // cascata de re-transactions a cada snapshot do Firestore.
+  // O efeito depende das revisões primitivas acima: uma marcação/desmarcação
+  // da mesma atividade dispara a avaliação, mas um re-render sem mudança de
+  // dados não abre outra transação.
   const runEvaluationRef = useRef(runEvaluation);
   useEffect(() => {
     runEvaluationRef.current = runEvaluation;
@@ -84,5 +120,5 @@ export const useRoundRules = ({ user, userData, rounds, allActivities }) => {
     ) {
       runEvaluationRef.current();
     }
-  }, [rounds.length, allActivities.length, userData?.coupleId]);
+  }, [rulesRevision, activitiesRevision, userData?.coupleId]);
 };

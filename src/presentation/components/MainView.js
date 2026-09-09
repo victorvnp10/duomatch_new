@@ -476,11 +476,28 @@ export default function MainView(props) {
   const handleSelectActivityAndUpdateStreak = async (activityId) => {
     setIsLoading(true);
     try {
-      await handleSelectActivity(activityId);
+      const selectionResult = await handleSelectActivity(activityId);
 
       // Atualizar sequência após seleção
-      if (userData?.coupleId) {
-        updateStreak(userData.coupleId, { ...userData, coupleData }, allActivities, dailySuggestions, hotSuggestions);
+      if (userData?.coupleId && selectionResult?.nextSelection?.status === "confirmed") {
+        const activitiesAfterSelection = allActivities.map((activity) =>
+          activity.id === activityId
+            ? {
+                ...activity,
+                selections: {
+                  ...activity.selections,
+                  [user.uid]: selectionResult.nextSelection,
+                },
+              }
+            : activity
+        );
+        updateStreak(
+          userData.coupleId,
+          { ...userData, coupleData },
+          activitiesAfterSelection,
+          dailySuggestions,
+          hotSuggestions
+        );
       }
     } catch (error) {
       console.error("Erro ao selecionar atividade:", error);

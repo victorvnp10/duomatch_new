@@ -1,4 +1,5 @@
 import {
+  countMarkedActivitiesInRound,
   evaluateCyclicalRules,
   shouldEvaluateCyclicalRules,
 } from "./RoundRulesEvaluator";
@@ -46,5 +47,39 @@ describe("RoundRulesEvaluator", () => {
     });
 
     expect(plan).toBeNull();
+  });
+
+  it("counts an individual marking independently from activity completion", () => {
+    const activity = {
+      id: "activity-1",
+      type: "atividade",
+      selections: {
+        userA: {
+          status: "confirmed",
+          date: "2026-09-03",
+          resolution: "not_completed",
+        },
+        userB: { status: null, date: null },
+      },
+    };
+
+    expect(
+      countMarkedActivitiesInRound(
+        [activity],
+        "userA",
+        activeRound,
+        "2026-09-08",
+        "2026-09-01"
+      )
+    ).toBe(1);
+    expect(
+      countMarkedActivitiesInRound(
+        [activity],
+        "userB",
+        activeRound,
+        "2026-09-08",
+        "2026-09-01"
+      )
+    ).toBe(0);
   });
 });

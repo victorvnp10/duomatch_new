@@ -72,8 +72,8 @@ os dois providers forem vinculados ao MESMO `uid`. Regras em `AuthPage.js`:
 ### Atividades / matches / pontos
 | Camada | Arquivo |
 |---|---|
-| Domain | `src/domain/services/ActivityCompletionEvaluator.js` |
-| Application | `src/application/hooks/useActivities.js` (516 linhas, runTransaction) |
+| Domain | `src/domain/services/ActivityCompletionEvaluator.js`, `src/domain/services/ActivitySelectionEvaluator.js` |
+| Application | `src/application/hooks/useActivities.js` (528 linhas, runTransaction) |
 | Presentation | `src/presentation/components/MainView.js` (1027 linhas), `AllActivitiesView.js` (132 linhas), `HotZone.js` (838 linhas) |
 
 ### Desafio semanal (DAILY CHALLENGE)
@@ -100,7 +100,7 @@ os dois providers forem vinculados ao MESMO `uid`. Regras em `AuthPage.js`:
 | Camada | Arquivo |
 |---|---|
 | Domain | `src/domain/services/RoundRulesEvaluator.js` (161 linhas) |
-| Application | `src/application/hooks/useRoundRules.js` (59 linhas) |
+| Application | `src/application/hooks/useRoundRules.js` (124 linhas) |
 
 ### Rodadas / placar
 | Camada | Arquivo |
@@ -193,7 +193,7 @@ os dois providers forem vinculados ao MESMO `uid`. Regras em `AuthPage.js`:
 | Camada | Arquivo |
 |---|---|
 | Shared | `src/shared/previewData.js` |
-| Presentation | `src/presentation/components/PreviewApp.js` (286 linhas) |
+| Presentation | `src/presentation/components/PreviewApp.js` (316 linhas) |
 
 ### PWA / offline
 | Camada | Arquivo |
