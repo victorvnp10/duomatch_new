@@ -17,7 +17,10 @@ import {
   isActivityCompletedByBoth,
   isChallengeCompleted,
 } from "../../domain/services/ActivityCompletionEvaluator";
-import { toggleActivitySelection } from "../../domain/services/ActivitySelectionEvaluator";
+import {
+  applyActivitySelection,
+  toggleActivitySelection,
+} from "../../domain/services/ActivitySelectionEvaluator";
 
 export const useActivities = (user, userData, coupleData, rounds) => {
   const [allActivities, setAllActivities] = useState([]);
@@ -395,6 +398,22 @@ export const useActivities = (user, userData, coupleData, rounds) => {
             partnerSelection.date === today,
         };
       });
+
+      // Atualiza a UI imediatamente depois da confirmação da transação. O
+      // snapshot continua sendo a fonte de verdade e corrigirá o estado caso
+      // outro cliente altere a atividade em seguida.
+      setAllActivities((currentActivities) =>
+        applyActivitySelection({
+          activities: currentActivities,
+          activityId,
+          userId: user.uid,
+          selection: result.nextSelection,
+        })
+      );
+      setMySelections((currentSelections) => ({
+        ...currentSelections,
+        [activityId]: result.nextSelection,
+      }));
 
       // Se a ação foi de MARCAR, verifica se resultou em um match
       if (result.nextSelection.status === "confirmed") {

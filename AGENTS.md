@@ -2,8 +2,8 @@
 
 ## Ajustes da versao atual
 
-- `ActivitySelectionEvaluator.js` centraliza o toggle: selecao confirmada do dia desmarca; selecao antiga ou legado `selected` marca novamente.
-- `useActivities.js` faz o toggle real em transacao, recalcula a data em cada snapshot e concede pontos de desafio somente para `completed`.
+- `ActivitySelectionEvaluator.js` centraliza o toggle e a projecao local: selecao confirmada do dia desmarca; selecao antiga ou legado `selected` marca novamente.
+- `useActivities.js` faz o toggle real em transacao, atualiza a UI apos o commit, recalcula a data em cada snapshot e concede pontos de desafio somente para `completed`.
 - `ActivityCompletionEvaluator.js` so considera pontos de atividade quando existe match confirmado no mesmo dia e ambos registram `completed`.
 - `RoundRulesEvaluator.js` conta marcacoes `confirmed` e o legado `selected` para preservar o progresso de atividades antigas; desafios continuam contando por `createdBy`, sem exigir aceite.
 - `useRoundRules.js` reage a mudancas de status/data das selecoes e consolida a escrita da rodada em um unico `transaction.update`.

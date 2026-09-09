@@ -13,3 +13,26 @@ export const toggleActivitySelection = ({ selection, todayStr }) => {
     ? { status: null, date: null }
     : { status: "confirmed", date: todayStr };
 };
+
+/**
+ * Aplica no estado local a seleção que acabou de ser confirmada no servidor.
+ * A função é pura para que a UI não precise esperar o próximo snapshot para
+ * refletir uma ação concluída.
+ */
+export const applyActivitySelection = ({
+  activities,
+  activityId,
+  userId,
+  selection,
+}) =>
+  activities.map((activity) =>
+    activity.id === activityId
+      ? {
+          ...activity,
+          selections: {
+            ...activity.selections,
+            [userId]: selection,
+          },
+        }
+      : activity
+  );

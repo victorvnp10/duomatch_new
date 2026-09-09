@@ -1,4 +1,7 @@
-import { toggleActivitySelection } from "./ActivitySelectionEvaluator";
+import {
+  applyActivitySelection,
+  toggleActivitySelection,
+} from "./ActivitySelectionEvaluator";
 
 describe("toggleActivitySelection", () => {
   it("marks an activity when there is no selection for today", () => {
@@ -26,5 +29,31 @@ describe("toggleActivitySelection", () => {
         todayStr: "2026-09-08",
       })
     ).toEqual({ status: "confirmed", date: "2026-09-08" });
+  });
+});
+
+describe("applyActivitySelection", () => {
+  it("projects the confirmed selection into the activity list", () => {
+    const activities = [
+      { id: "activity-1", name: "Caminhar" },
+      { id: "activity-2", name: "Cozinhar" },
+    ];
+    const selection = { status: "confirmed", date: "2026-09-08" };
+
+    expect(
+      applyActivitySelection({
+        activities,
+        activityId: "activity-1",
+        userId: "userA",
+        selection,
+      })
+    ).toEqual([
+      {
+        id: "activity-1",
+        name: "Caminhar",
+        selections: { userA: selection },
+      },
+      { id: "activity-2", name: "Cozinhar" },
+    ]);
   });
 });
