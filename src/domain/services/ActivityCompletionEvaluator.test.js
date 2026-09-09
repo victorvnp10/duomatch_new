@@ -24,6 +24,23 @@ describe("isActivityCompletedByBoth", () => {
   it("is eligible only when both partners completed the activity", () => {
     const activity = {
       selections: {
+        userA: { status: "confirmed", date: "2026-09-08", resolution: "completed" },
+        userB: { status: "confirmed", date: "2026-09-08", resolution: "completed" },
+      },
+    };
+
+    expect(
+      isActivityCompletedByBoth({
+        activity,
+        userId: "userA",
+        partnerId: "userB",
+      })
+    ).toBe(true);
+  });
+
+  it("does not score resolutions that do not belong to a confirmed match", () => {
+    const activity = {
+      selections: {
         userA: { resolution: "completed" },
         userB: { resolution: "completed" },
       },
@@ -35,7 +52,7 @@ describe("isActivityCompletedByBoth", () => {
         userId: "userA",
         partnerId: "userB",
       })
-    ).toBe(true);
+    ).toBe(false);
   });
 });
 

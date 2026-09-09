@@ -4,6 +4,7 @@
 
 - `ActivitySelectionEvaluator.js` centraliza o toggle: selecao confirmada do dia desmarca; selecao antiga ou legado `selected` marca novamente.
 - `useActivities.js` faz o toggle real em transacao, recalcula a data em cada snapshot e concede pontos de desafio somente para `completed`.
+- `ActivityCompletionEvaluator.js` so considera pontos de atividade quando existe match confirmado no mesmo dia e ambos registram `completed`.
 - `useRoundRules.js` reage a mudancas de status/data das selecoes e consolida a escrita da rodada em um unico `transaction.update`.
 - `PreviewApp.js` usa o mesmo formato de selecao do app real e atualiza o painel local ao marcar/desmarcar.
 
