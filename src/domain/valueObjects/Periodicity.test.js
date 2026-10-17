@@ -29,15 +29,17 @@ describe("formatPeriodicity (Periodicity.js:23-48)", () => {
     );
   });
 
-  it("formata 'semanal' com o nome do dia (WEEKDAY_NAMES)", () => {
-    // Periodicity.js:12-20 e :34-35: índice 0=Domingo ... 6=Sábado.
+  it("formata 'semanal' com o nome do dia (WEEKDAY_LABELS)", () => {
+    // Periodicity.js:12-20 e :34-35: índice 0=Domingo ... 6=Sábado, com a
+    // concordância correta do artigo — "Domingo" e "Sábado" são masculinos
+    // ("Todo"), os "-feira" são femininos ("Toda").
     expect(formatPeriodicity({ type: "semanal", value: 0 })).toBe(
-      "(Toda Domingo)"
+      "(Todo Domingo)"
     );
     expect(formatPeriodicity({ type: "semanal", value: 3 })).toBe(
       "(Toda Quarta-feira)"
     );
-    expect(formatPeriodicity({ type: "semanal", value: 6 })).toBe("(Toda Sábado)");
+    expect(formatPeriodicity({ type: "semanal", value: 6 })).toBe("(Todo Sábado)");
   });
 
   it("formata 'mensal'", () => {
