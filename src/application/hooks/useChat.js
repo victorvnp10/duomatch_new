@@ -1,3 +1,4 @@
+import { useOperationError } from "./useOperationError";
 import { useState, useEffect, useRef } from "react";
 import {
   db,
@@ -22,6 +23,7 @@ import {
  * @param {Array} allActivities - Lista de todas as atividades, para as notificações.
  */
 export const useChat = (user, userData, allActivities) => {
+  const { operationError, reportOperationError, clearOperationError } = useOperationError();
   const [activeChatActivity, setActiveChatActivity] = useState(null);
   const [activeChatComments, setActiveChatComments] = useState([]);
   const [chatNotification, setChatNotification] = useState({
@@ -62,11 +64,16 @@ export const useChat = (user, userData, allActivities) => {
         });
         batch
           .commit()
-          .catch((err) => console.error("Erro ao marcar mensagens como lidas:", err));
+          .catch((err) => {
+            console.error("Erro ao marcar mensagens como lidas:", err);
+            reportOperationError("Não foi possível marcar as mensagens como lidas.", err);
+            // A failed commit is not a receipt: allow the next snapshot to retry.
+            unreadFromPartner.forEach((c) => markedAsReadRef.current.delete(c.id));
+          });
       }
     });
     return () => unsubscribe();
-  }, [activeChatActivity, userData.coupleId, user.uid]);
+  }, [activeChatActivity, userData.coupleId, user.uid, reportOperationError]);
 
   // Efeito para verificar novas mensagens e disparar a notificação.
   useEffect(() => {
@@ -138,6 +145,7 @@ export const useChat = (user, userData, allActivities) => {
       await batch.commit();
     } catch (error) {
       console.error("Erro ao postar comentário:", error);
+      reportOperationError("Não foi possível enviar a mensagem. Tente novamente.", error);
       alert("Ocorreu um erro ao enviar sua mensagem.");
     }
   };
@@ -191,6 +199,7 @@ export const useChat = (user, userData, allActivities) => {
       }
     } catch (error) {
       console.error("Erro ao editar mensagem:", error);
+      reportOperationError("Não foi possível salvar a edição da mensagem ou atualizar seu resumo.", error);
       alert("Não foi possível editar a mensagem.");
     }
   };
@@ -203,13 +212,14 @@ export const useChat = (user, userData, allActivities) => {
 
       // B2-44: cada post incrementa `messageCount` (conquista "communicator");
       // apagar deve decrementar para o contador refletir o que existe de fato.
-      // Falha aqui não impede a exclusão — apenas loga.
+      // Falha aqui não impede o preview — expõe degradação separadamente.
       try {
         await updateDoc(doc(db, "duomatches", userData.coupleId), {
           messageCount: increment(-1),
         });
       } catch (countError) {
         console.error("Erro ao decrementar messageCount:", countError);
+        reportOperationError("Mensagem excluída, mas não foi possível atualizar o contador de mensagens.", countError);
       }
 
       // B2-31: sempre recalcula o preview a partir do servidor (independente
@@ -226,12 +236,15 @@ export const useChat = (user, userData, allActivities) => {
       });
     } catch (error) {
       console.error("Erro ao apagar mensagem:", error);
+      reportOperationError("Não foi possível concluir a exclusão da mensagem e atualizar seu resumo.", error);
       alert("Não foi possível apagar a mensagem.");
     }
   };
 
   // Retorna os estados e a função para o componente principal.
   return {
+    operationError,
+    clearOperationError,
     activeChatActivity,
     setActiveChatActivity,
     activeChatComments,

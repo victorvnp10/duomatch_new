@@ -1,3 +1,4 @@
+import { useOperationError } from "./useOperationError";
 import { useState, useEffect } from "react";
 import {
   db,
@@ -25,6 +26,7 @@ import { arrayUnion } from "firebase/firestore"; // 2. Adicione esta nova linha
  * @param {Array} rounds - Lista de rodadas, usada para adicionar pontos ao confirmar um presente.
  */
 export const useWishlist = (user, userData, coupleData, rounds) => {
+  const { operationError, reportOperationError, clearOperationError } = useOperationError();
   const [wishlistItems, setWishlistItems] = useState([]);
   const [wishlistItemToEdit, setWishlistItemToEdit] = useState(null);
   const [wishlistItemToDelete, setWishlistItemToDelete] = useState(null);
@@ -140,6 +142,7 @@ export const useWishlist = (user, userData, coupleData, rounds) => {
       await batch.commit();
     } catch (error) {
       console.error("Erro ao adicionar item na wishlist:", error);
+      reportOperationError("Não foi possível adicionar o desejo. Tente novamente.", error);
       alert("Não foi possível adicionar o item. Tente novamente.");
     }
   };
@@ -218,12 +221,15 @@ export const useWishlist = (user, userData, coupleData, rounds) => {
       alert(`Presente "${item.name}" confirmado! Pontos adicionados à rodada.`);
     } catch (error) {
       console.error("Erro ao confirmar presente:", error);
+      reportOperationError("Não foi possível confirmar o recebimento do presente. Tente novamente.", error);
       alert("Ocorreu um erro ao confirmar o presente. Tente novamente.");
     }
   };
 
   // Retorna os estados e as funções que o componente principal precisará.
   return {
+    operationError,
+    clearOperationError,
     wishlistItems,
     wishlistItemToEdit,
     setWishlistItemToEdit,

@@ -1,3 +1,4 @@
+import { useOperationError } from "./useOperationError";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   db,
@@ -23,6 +24,7 @@ import {
 } from "../../domain/services/ActivitySelectionEvaluator";
 
 export const useActivities = (user, userData, coupleData, rounds) => {
+  const { operationError, reportOperationError, clearOperationError } = useOperationError();
   const [allActivities, setAllActivities] = useState([]);
   const [mySelections, setMySelections] = useState({});
   const [partnerSelections, setPartnerSelections] = useState({});
@@ -112,7 +114,7 @@ export const useActivities = (user, userData, coupleData, rounds) => {
         );
 
         try {
-          await runTransaction(db, async (transaction) => {
+          const pointsAwarded = await runTransaction(db, async (transaction) => {
             const activityDoc = await transaction.get(activityRef);
 
             if (!activityDoc.exists()) {
@@ -141,13 +143,16 @@ export const useActivities = (user, userData, coupleData, rounds) => {
               [`scores.${userData.partnerId}`]: increment(act.points),
             });
             transaction.update(activityRef, { pointsAwarded: true });
-            setPointsMessage(
-              `Pontos da atividade "${act.name}" foram adicionados!`
-            );
-
+            return true;
           });
+          // A transaction body can run before a failed commit (or be retried).
+          // Announce success only after the commit has actually completed.
+          if (pointsAwarded) {
+            setPointsMessage(`Pontos da atividade "${act.name}" foram adicionados!`);
+          }
         } catch (error) {
           console.error("Falha na transação de pontos: ", error);
+          reportOperationError("Não foi possível registrar os pontos da atividade. A pontuação pode estar desatualizada.", error);
         }
       }
 
@@ -196,10 +201,11 @@ export const useActivities = (user, userData, coupleData, rounds) => {
           });
         } catch (error) {
           console.error("Falha na transação de pontos de intimidade: ", error);
+          reportOperationError("Não foi possível registrar os pontos de intimidade. A pontuação pode estar desatualizada.", error);
         }
       }
     },
-    [rounds, user.uid, userData.coupleId, userData.partnerId]
+    [rounds, user.uid, userData.coupleId, userData.partnerId, reportOperationError]
   );
 
   // O resto do arquivo permanece igual...
@@ -280,6 +286,7 @@ export const useActivities = (user, userData, coupleData, rounds) => {
         });
       } catch (error) {
         console.error("Erro ao definir a resolução da atividade:", error);
+        reportOperationError("Não foi possível salvar a resolução da atividade. Tente novamente.", error);
         alert("Ocorreu um erro ao salvar sua escolha. Tente novamente.");
       }
     }
@@ -354,6 +361,7 @@ export const useActivities = (user, userData, coupleData, rounds) => {
       setPointsMessage(`Desafio "${activity.name}" finalizado!`);
     } catch (error) {
       console.error("Erro ao resolver desafio:", error);
+      reportOperationError("Não foi possível finalizar o desafio. Tente novamente.", error);
       alert("Ocorreu um erro ao finalizar o desafio.");
     }
   };
@@ -476,6 +484,7 @@ export const useActivities = (user, userData, coupleData, rounds) => {
       );
     } catch (error) {
       console.error("Erro ao adicionar atividade:", error);
+      reportOperationError("Não foi possível adicionar a atividade. Tente novamente.", error);
       alert("Ocorreu um erro ao salvar o item. Tente novamente.");
     }
   };
@@ -523,6 +532,8 @@ export const useActivities = (user, userData, coupleData, rounds) => {
   };
 
   return {
+    operationError,
+    clearOperationError,
     allActivities,
     mySelections,
     partnerSelections,

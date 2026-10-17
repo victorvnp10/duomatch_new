@@ -1,3 +1,4 @@
+import { useOperationError } from "./useOperationError";
 import { useState, useEffect, useMemo } from 'react';
 import { doc, runTransaction, increment, arrayUnion } from 'firebase/firestore';
 import { db } from '../../infrastructure/firebase';
@@ -28,13 +29,12 @@ import { getTodayDateString, getDateString } from '../../shared/lib/dateUtils';
  * Este hook apenas orquestra quando ler/gravar e mantém o estado local
  * otimista para resposta imediata na UI.
  *
- * NOTA DE TESTE: o hook não tem teste unitário próprio porque o projeto não
- * tem `@testing-library/react` nem `react-test-renderer` instalados (e a
- * tarefa proíbe instalar). A parte pura extraída está coberta em
- * `WeeklyChallengeSchedule.test.js`. Registrar como pendência: testar o hook
- * quando um harness de hooks for adicionado.
+ * Testes de orquestração e falhas: `operationErrors.test.js`, usando
+ * ReactDOM/createRoot e act sem dependências adicionais. As regras puras
+ * continuam cobertas em `WeeklyChallengeSchedule.test.js`.
  */
 export const useDailyChallenge = ({ userData, coupleData, rounds }) => {
+  const { operationError, reportOperationError, clearOperationError } = useOperationError();
   const [currentChallenge, setCurrentChallenge] = useState(null);
   const [weeklyProgress, setWeeklyProgress] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -48,13 +48,15 @@ export const useDailyChallenge = ({ userData, coupleData, rounds }) => {
       .then((cat) => {
         if (active) setChallengeCatalog(cat);
       })
-      .catch(() => {
-        if (active) setChallengeCatalog([]);
+      .catch((error) => {
+        if (!active) return;
+        reportOperationError("Não foi possível carregar o catálogo de desafios semanais.", error);
+        setChallengeCatalog([]);
       });
     return () => {
       active = false;
     };
-  }, []);
+  }, [reportOperationError]);
 
   // Função para obter o desafio da semana
   const getWeeklyChallengeValue = useMemo(
@@ -146,6 +148,7 @@ export const useDailyChallenge = ({ userData, coupleData, rounds }) => {
 
     } catch (error) {
       console.error('Erro ao aceitar desafio semanal:', error);
+      reportOperationError("Não foi possível aceitar o desafio semanal. Tente novamente.", error);
       alert(`Erro ao aceitar desafio: ${error.message}`);
     } finally {
       setIsLoading(false);
@@ -193,6 +196,7 @@ export const useDailyChallenge = ({ userData, coupleData, rounds }) => {
 
     } catch (error) {
       console.error('Erro ao reivindicar conclusão:', error);
+      reportOperationError("Não foi possível registrar a conclusão do desafio semanal. Tente novamente.", error);
       alert(`Erro ao reivindicar conclusão: ${error.message}`);
     } finally {
       setIsLoading(false);
@@ -295,6 +299,7 @@ export const useDailyChallenge = ({ userData, coupleData, rounds }) => {
       }
     } catch (error) {
       console.error('Erro ao confirmar parceiro:', error);
+      reportOperationError("Não foi possível confirmar o desafio do parceiro. Tente novamente.", error);
       alert(`Erro ao confirmar: ${error.message}`);
     } finally {
       setIsLoading(false);
@@ -325,6 +330,8 @@ export const useDailyChallenge = ({ userData, coupleData, rounds }) => {
   void weeklyProgress;
 
   return {
+    operationError,
+    clearOperationError,
     selectedChallenge,
     challengeState: getChallengeStateValue,
     calculateWeeklyProgress: calculateWeeklyProgressValue,
