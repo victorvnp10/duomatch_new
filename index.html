@@ -13,12 +13,12 @@
       rel="stylesheet"
     />
 
-    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
-    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="manifest" href="/manifest.json" />
 
     <!-- PWA: iOS não lê o manifest.json para ícone/tela cheia, precisa
          destas tags específicas da Apple. -->
-    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    <link rel="apple-touch-icon" href="/logo192.png" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="DuoMatch" />
@@ -31,5 +31,6 @@
   <body>
     <noscript>Você precisa habilitar o JavaScript para rodar este aplicativo.</noscript>
     <div id="root"></div>
+    <script type="module" src="/src/index.js"></script>
   </body>
 </html>

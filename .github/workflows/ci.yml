@@ -17,12 +17,10 @@ jobs:
     name: Lint, testes e build
     runs-on: ubuntu-latest
 
-    # Node 20 LTS: é a linha "conhecida boa" do react-scripts 5.0.1 (CRA 5).
-    # O ambiente local usa Node 26, que o CRA não garante suportar; 20 é a
-    # versão estável com melhor compatibilidade comprovada com o CRA 5.
+    # Vite exige Node >=20.19 ou >=22.12; CI usa Node 22 LTS.
     strategy:
       matrix:
-        node-version: [20]
+        node-version: [22]
 
     steps:
       - name: Checkout
@@ -47,7 +45,7 @@ jobs:
         run: npm run lint
 
       - name: Testes
-        run: CI=true npx react-scripts test --watchAll=false
+        run: CI=true npm test -- --watchAll=false
 
       # REGRAS DO FIRESTORE — a suíte de test/rules prova, dos dois lados, que
       # os ataques são bloqueados E que o fluxo legítimo continua funcionando.
@@ -75,7 +73,7 @@ jobs:
             "node test/rules/duomatch.rules.test.cjs"
 
       # BUILD — sem secrets reais.
-      # O CRA inlina as REACT_APP_* em tempo de build. Os valores abaixo são
+      # O shim Vite inlina as REACT_APP_* em tempo de build. Os valores abaixo são
       # placeholders SÓ para o smoke-build do CI (o artefato do CI não é
       # publicado); em produção os valores reais vêm das env vars da Vercel.
       # Ver a justificativa completa no relatório.
@@ -87,4 +85,4 @@ jobs:
           REACT_APP_FIREBASE_STORAGE_BUCKET: ci-placeholder.appspot.com
           REACT_APP_FIREBASE_MESSAGING_SENDER_ID: "000000000000"
           REACT_APP_FIREBASE_APP_ID: "1:000000000000:web:ciplaceholder"
-        run: CI=true npx react-scripts build
+        run: CI=true npm run build

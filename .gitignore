@@ -12,3 +12,5 @@ firebase-debug.*.log
 # Emulador do Firestore
 firestore-debug.log
 firestore.rules.bak
+
+/dist
