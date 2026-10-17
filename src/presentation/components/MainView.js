@@ -1,6 +1,5 @@
 import React, { useMemo, useState, useEffect } from "react";
-import { signOut } from "firebase/auth";
-import { auth } from "../../infrastructure/firebase";
+import { endSession } from "../../application/services/sessionService";
 import {
   HeartIcon,
   TagIcon,
@@ -22,7 +21,7 @@ import DailyChallenge from "./DailyChallenge";
 import AchievementSystem from "./AchievementSystem";
 import MatchNotification from "./MatchNotification";
 import { getTodayDateString } from "../../shared/lib/dateUtils";
-import { updateStreak } from "../../application/services/streakService";
+import { recordActivitySelectionStreak, recordSuggestionSelectionStreak } from "../../application/services/mainViewService";
 import { getRoundCountdownInfo } from "../../application/services/roundCountdownService";
 import {
   filterAvailableActivities,
@@ -263,26 +262,9 @@ export default function MainView(props) {
       const selectionResult = await handleSelectActivity(activityId);
 
       // Atualizar sequência após seleção
-      if (userData?.coupleId && selectionResult?.nextSelection?.status === "confirmed") {
-        const activitiesAfterSelection = allActivities.map((activity) =>
-          activity.id === activityId
-            ? {
-                ...activity,
-                selections: {
-                  ...activity.selections,
-                  [user.uid]: selectionResult.nextSelection,
-                },
-              }
-            : activity
-        );
-        updateStreak(
-          userData.coupleId,
-          { ...userData, coupleData },
-          activitiesAfterSelection,
-          dailySuggestions,
-          hotSuggestions
-        );
-      }
+      recordActivitySelectionStreak(activityId, selectionResult, {
+        user, userData, coupleData, allActivities, dailySuggestions, hotSuggestions,
+      });
     } catch (error) {
       console.error("Erro ao selecionar atividade:", error);
     } finally {
@@ -296,9 +278,9 @@ export default function MainView(props) {
       await handleSelectSuggestion(suggestionId);
 
       // Atualizar sequência após seleção de sugestão especial
-      if (userData?.coupleId) {
-        updateStreak(userData.coupleId, { ...userData, coupleData }, allActivities, dailySuggestions, hotSuggestions);
-      }
+      recordSuggestionSelectionStreak({
+        userData, coupleData, allActivities, dailySuggestions, hotSuggestions,
+      });
     } catch (error) {
       console.error("Erro ao selecionar sugestão:", error);
     } finally {
@@ -312,9 +294,9 @@ export default function MainView(props) {
       await handleSelectHotSuggestion(hotId);
 
       // Atualizar sequência após seleção de sugestão picante
-      if (userData?.coupleId) {
-        updateStreak(userData.coupleId, { ...userData, coupleData }, allActivities, dailySuggestions, hotSuggestions);
-      }
+      recordSuggestionSelectionStreak({
+        userData, coupleData, allActivities, dailySuggestions, hotSuggestions,
+      });
     } catch (error) {
       console.error("Erro ao selecionar hot suggestion:", error);
     } finally {
@@ -427,7 +409,7 @@ export default function MainView(props) {
               <PlusIcon />
             </button>
             <button
-              onClick={() => signOut(auth)}
+              onClick={() => endSession()}
               className="text-sm text-gray-400 hover:text-red-500"
             >
               Sair
@@ -461,7 +443,7 @@ export default function MainView(props) {
               <CalendarIcon />
             </button>
             <button
-              onClick={() => signOut(auth)}
+              onClick={() => endSession()}
               className="text-sm font-semibold text-gray-400 hover:text-red-500"
             >
               Sair
