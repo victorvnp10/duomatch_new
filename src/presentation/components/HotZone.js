@@ -130,7 +130,7 @@ export default function HotZone(props) {
 
       <main className="relative z-10 max-w-2xl mx-auto p-4 md:p-6 space-y-8">
         {/* Nível de Intimidade */}
-        <IntimacyMeter user={user} userData={userData} coupleData={coupleData} />
+        <IntimacyMeter coupleData={coupleData} />
 
         {/* Jogo de Sinais */}
         <SignalGame
