@@ -63,13 +63,19 @@ jobs:
       # As dependências do harness vão para um diretório isolado: o teste as
       # carrega de FIREBASE_TOOLS_NODE_MODULES de propósito, para não instalar
       # nada no repositório. Aqui apontamos a variável para o diretório do CI.
+      #
+      # VERSÕES FIXADAS de propósito: com @firebase/rules-unit-testing sem
+      # versão, o npm resolveu 6.0.0 localmente (peer firebase ^13, compatível)
+      # e 5.0.2 no runner (peer firebase ^12) — ERESOLVE e pipeline vermelho,
+      # por causa de versão flutuante resolvendo diferente em outro ambiente.
       - name: Testes das regras do Firestore (emulador)
         run: |
           mkdir -p /tmp/fb-tools && cd /tmp/fb-tools
           npm init -y >/dev/null
           # Sem --silent de propósito: com ele, uma falha aqui morre com exit 1
           # SEM imprimir nada, e o log do CI não diz o motivo.
-          npm i --no-audit --no-fund --loglevel=error firebase@13 firebase-tools @firebase/rules-unit-testing
+          npm i --no-audit --no-fund --loglevel=error \
+            firebase@13 firebase-tools "@firebase/rules-unit-testing@6"
           cd "$GITHUB_WORKSPACE"
           FIREBASE_TOOLS_NODE_MODULES=/tmp/fb-tools/node_modules \
             /tmp/fb-tools/node_modules/.bin/firebase emulators:exec \
