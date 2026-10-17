@@ -1,0 +1,951 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function couplePath(coupleId) {
+      return /databases/$(database)/documents/duomatches/$(coupleId);
+    }
+
+    function isCoupleMember(coupleId) {
+      return isSignedIn() &&
+        request.auth.uid in get(couplePath(coupleId)).data.members;
+    }
+
+    function hasEmptyRelationship(data) {
+      return data.get('partnerId', null) == null &&
+        data.get('coupleId', null) == null;
+    }
+
+    // CATALOG-ALLOWLIST:START
+    // Allowlist de ids do catálogo global. GERADO AUTOMATICAMENTE de
+    // src/infrastructure/seed/contentCatalog.js — NÃO editar à mão.
+    // Regenerar: node test/rules/gen-catalog-allowlist.cjs
+    // Sincronia verificada por test/rules/catalog-allowlist.test.cjs.
+    function isCatalogActivityId(docId) {
+      return docId in [
+        "act-hot-1-jogo-dos-5-sentidos",
+        "act-hot-10-uma-noite-como-estranhos",
+        "act-hot-11-degustacao-as-cegas",
+        "act-hot-12-cafe-da-manha-na-cama-co",
+        "act-hot-13-vale-audio-provocante",
+        "act-hot-14-desafio-do-gelo",
+        "act-hot-15-noite-de-fondue-no-quart",
+        "act-hot-16-criar-uma-playlist-proib",
+        "act-hot-17-massagem-nos-pes-que-sob",
+        "act-hot-18-escolher-um-sex-toy-junt",
+        "act-hot-19-um-dia-maos-livres",
+        "act-hot-2-vale-striptease-exclusiv",
+        "act-hot-20-sussurros-de-fantasias",
+        "act-hot-201-massagem-com-oleo-aromat",
+        "act-hot-202-danca-lenta-no-escuro",
+        "act-hot-203-banho-a-dois",
+        "act-hot-204-jogo-de-verdade-ou-desaf",
+        "act-hot-205-beijo-que-marca-a-semana",
+        "act-hot-206-sessao-de-caricias-cegas",
+        "act-hot-207-cafe-da-manha-sensual",
+        "act-hot-208-noite-de-fantasias",
+        "act-hot-209-pijama-party-picante",
+        "act-hot-21-danca-intima-no-escuro",
+        "act-hot-210-brincadeira-de-congelar",
+        "act-hot-211-diario-da-intimidade",
+        "act-hot-212-chuva-de-elogios-nus",
+        "act-hot-213-desafio-do-espelho",
+        "act-hot-214-sombra-chinesa-apaixonad",
+        "act-hot-215-massagem-que-progressiva",
+        "act-hot-216-brincadeira-do-obstaculo",
+        "act-hot-217-hora-de-perder-a-vergonh",
+        "act-hot-218-noite-de-velas-e-petalas",
+        "act-hot-219-desafio-do-nao-pode-toca",
+        "act-hot-22-a-primeira-mensagem",
+        "act-hot-220-bilhetes-sensuais-escond",
+        "act-hot-221-spa-do-casal-em-casa",
+        "act-hot-222-desafio-da-roupa-de-baix",
+        "act-hot-223-video-ligacao-picante",
+        "act-hot-224-noite-de-beijo-com-music",
+        "act-hot-225-jogo-dos-sentidos-vendad",
+        "act-hot-226-amor-sob-as-estrelas",
+        "act-hot-227-banho-juntos-com-musica",
+        "act-hot-228-massagem-nos-pes-carinho",
+        "act-hot-23-vale-banho-de-espuma-sur",
+        "act-hot-24-kama-sutra-challenge",
+        "act-hot-25-jantar-tematico-sensual",
+        "act-hot-26-guerra-de-cocegas-com-re",
+        "act-hot-27-beijo-de-3-minutos",
+        "act-hot-28-mapa-do-corpo",
+        "act-hot-29-noite-de-jogos-de-tabule",
+        "act-hot-3-cozinhando-de-avental-e-",
+        "act-hot-30-um-elogio-por-hora",
+        "act-hot-31-adivinhe-a-palavra",
+        "act-hot-32-banho-de-piscina-ou-mar-",
+        "act-hot-33-concurso-de-gemidos",
+        "act-hot-34-assistir-ao-por-do-sol-c",
+        "act-hot-35-comando-por-um-dia",
+        "act-hot-36-catalogo-de-posicoes",
+        "act-hot-37-o-jogo-do-espelho",
+        "act-hot-38-amigo-secreto-de-lingeri",
+        "act-hot-39-spa-day-de-casal-em-casa",
+        "act-hot-4-sessao-de-fotos-boudoir",
+        "act-hot-40-duelo-de-olhares",
+        "act-hot-41-vale-troca-de-5-mensagen",
+        "act-hot-42-noite-de-cinema-com-um-t",
+        "act-hot-43-jantar-a-luz-de-velas-no",
+        "act-hot-44-criar-um-drink-com-nomes",
+        "act-hot-45-sessao-de-massagem-com-o",
+        "act-hot-46-batalha-de-verdade-ou-co",
+        "act-hot-47-recriar-a-primeira-noite",
+        "act-hot-48-tomar-um-banho-de-banhei",
+        "act-hot-49-mordidas-provocantes",
+        "act-hot-5-caca-ao-tesouro-picante",
+        "act-hot-50-desafio-da-respiracao-no",
+        "act-hot-51-noite-de-roleplay-fantas",
+        "act-hot-52-massagem-com-penas",
+        "act-hot-53-competicao-de-beijos-cri",
+        "act-hot-54-sessao-de-amarracao-sens",
+        "act-hot-55-confessionario-intimo",
+        "act-hot-56-desafio-dos-30-segundos",
+        "act-hot-57-banquete-sensual-na-cama",
+        "act-hot-58-jogo-da-temperatura",
+        "act-hot-59-carta-de-amor-erotica",
+        "act-hot-6-leitura-de-contos-erotic",
+        "act-hot-60-danca-do-ventre-sedutora",
+        "act-hot-61-caca-palavras-picante",
+        "act-hot-62-sessao-de-dirty-talk",
+        "act-hot-63-desfile-de-lingerie-roup",
+        "act-hot-64-massagem-tantrica-basica",
+        "act-hot-65-jogo-das-zonas-erogenas",
+        "act-hot-66-videoconferencia-provoca",
+        "act-hot-67-competicao-de-striptease",
+        "act-hot-68-trilha-de-beijos-pelo-co",
+        "act-hot-69-sessao-de-fotos-sensuais",
+        "act-hot-7-poker-strip",
+        "act-hot-70-despertar-com-caricias",
+        "act-hot-71-banho-de-lua-com-provoca",
+        "act-hot-72-escrita-no-corpo-com-gel",
+        "act-hot-73-jogo-da-seducao-progress",
+        "act-hot-8-recriando-um-beijo-de-ci",
+        "act-hot-9-pintura-corporal-comesti",
+        "act-hot-m6-adivinhar-toques-favoritos",
+        "act-hot-m6-banho-banheira-compartilhado",
+        "act-hot-m6-beijo-cronometrado",
+        "act-hot-m6-bilhete-sedutor-escondido",
+        "act-hot-m6-caricias-sem-pressa",
+        "act-hot-m6-cartas-desafios-sensuais",
+        "act-hot-m6-cartas-desejos-secretos",
+        "act-hot-m6-danca-lenta-abracados-escuro",
+        "act-hot-m6-danca-seducao-improvisada",
+        "act-hot-m6-danca-sensual-a-dois",
+        "act-hot-m6-ensaio-sensual-privado",
+        "act-hot-m6-fotos-preto-branco-sensuais",
+        "act-hot-m6-jantar-velas-dress-code",
+        "act-hot-m6-jogo-gelo-provocacao",
+        "act-hot-m6-massagem-pes-provocante",
+        "act-hot-m6-massagem-surpresa-oleo",
+        "act-hot-m6-massagem-troca-papeis",
+        "act-hot-m6-massagem-velas-aromaticas",
+        "act-hot-m6-mensagens-picantes-dia",
+        "act-hot-m6-noite-lingerie-surpresa",
+        "act-hot-m6-noite-sem-roupa-dormir-so-carinho",
+        "act-hot-m6-perguntas-fantasias-leves",
+        "act-hot-m6-perguntas-picantes",
+        "act-hot-m6-playlist-clima-noite",
+        "act-hot-m6-provocacao-pena-plumas",
+        "act-hot-m6-recriar-clima-filme-romantico",
+        "act-hot-m6-ritual-noturno-so-dois",
+        "act-hot-m6-seduza-me-regras-na-hora",
+        "act-hot-m6-seduzir-tres-palavras",
+        "act-hot-m6-spa-a-dois-em-casa",
+        "act-hot-m6-striptease-comico-musica",
+        "act-hot-m6-striptease-humor-leve",
+        "act-hot-m6-sussurros-elogios",
+        "act-hot-m6-sussurros-fantasias-leves",
+        "act-hot-m6-tabuleiro-ousadia-romantica",
+        "act-hot-m6-tabuleiro-sorte-picante",
+        "act-hot-m6-tabuleiro-temperatura",
+        "act-hot-m6-toque-cego-tecidos",
+        "act-hot-m6-vendar-adivinhar-toques",
+        "act-hot-m6-verdade-consequencia-picante",
+        "act-hot-m7-banho-de-espuma-compartilhado",
+        "act-hot-m7-bilhetes-espalhados-desejos",
+        "act-hot-m7-carta-fantasia-anonima",
+        "act-hot-m7-danca-lenta-luz-vela",
+        "act-hot-m7-dancar-de-olhos-fechados",
+        "act-hot-m7-dança-cadeira-sensual",
+        "act-hot-m7-dança-sensual-vendada",
+        "act-hot-m7-jogo-bloqueio-toque",
+        "act-hot-m7-jogo-cartas-desafios-crescentes",
+        "act-hot-m7-jogo-cartas-elogios-corpo",
+        "act-hot-m7-jogo-cartas-verdade-ousada",
+        "act-hot-m7-jogo-desafio-resistencia-cocegas",
+        "act-hot-m7-jogo-perguntas-desejos-realizados",
+        "act-hot-m7-jogo-perguntas-fantasia-favorita",
+        "act-hot-m7-jogo-perguntas-fantasias-realizar",
+        "act-hot-m7-jogo-perguntas-limites-desejos",
+        "act-hot-m7-jogo-perguntas-o-que-me-atrai",
+        "act-hot-m7-jogo-perguntas-o-que-voce-faria",
+        "act-hot-m7-jogo-perguntas-primeira-vez",
+        "act-hot-m7-jogo-roleta-beijos",
+        "act-hot-m7-jogo-roleta-desejos",
+        "act-hot-m7-jogo-strip-cartas",
+        "act-hot-m7-massagem-com-chocolate",
+        "act-hot-m7-massagem-com-musica-escolhida-a-dois",
+        "act-hot-m7-massagem-com-plumas-e-gelo",
+        "act-hot-m7-massagem-oleo-quente",
+        "act-hot-m7-massagem-relaxante-musica-baixa",
+        "act-hot-m7-massagem-so-nas-costas-demorada",
+        "act-hot-m7-noite-fantasia-personagem",
+        "act-hot-m7-noite-jantar-e-sobremesa-na-cama",
+        "act-hot-m7-noite-photoshoot-casal-intimista",
+        "act-hot-m7-noite-roupa-intima-escolhida-por-outro",
+        "act-hot-m7-noite-so-abraco-conversa-intima",
+        "act-hot-m7-noite-so-carinho-sem-pressa-final",
+        "act-hot-m7-noite-so-perfume-vela-penumbra",
+        "act-hot-m7-noite-so-toque-sem-palavras",
+        "act-hot-m7-provocacao-com-batom",
+        "act-hot-m7-provocacao-espelho",
+        "act-hot-m7-provocacao-mensagem-durante-tarefa",
+        "act-hot-m7-provocacao-troca-perfume",
+        "act-normal-1-maratona-de-um-filme-que",
+        "act-normal-10-aula-online-de-algo-novo",
+        "act-normal-101-jogo-de-tabuleiro-em-dup",
+        "act-normal-102-quebra-cabeca-colaborati",
+        "act-normal-103-aula-de-danca-online",
+        "act-normal-104-noite-de-karaoke",
+        "act-normal-105-concurso-de-pior-melhor-",
+        "act-normal-106-degustacao-as-cegas",
+        "act-normal-107-picnic-no-parque",
+        "act-normal-108-caminhada-de-domingo",
+        "act-normal-109-noite-de-filmes-com-tema",
+        "act-normal-110-sessao-dupla-de-series",
+        "act-normal-111-mercado-de-misterios",
+        "act-normal-112-playlist-dos-10-anos",
+        "act-normal-113-carta-para-o-futuro",
+        "act-normal-114-desenho-retrato-do-outro",
+        "act-normal-115-cozinhar-receita-de-fami",
+        "act-normal-116-noite-de-jogos-de-celula",
+        "act-normal-117-banho-de-mar-ou-piscina",
+        "act-normal-118-observar-o-movimento-da-",
+        "act-normal-119-hora-do-cha-e-conversa",
+        "act-normal-120-visita-a-museu-ou-galeri",
+        "act-normal-121-gincana-caseira",
+        "act-normal-122-hora-do-livro-em-dupla",
+        "act-normal-123-dia-de-acampamento-na-sa",
+        "act-normal-124-cozinhar-sob-pressao",
+        "act-normal-125-quiz-um-sobre-o-outro",
+        "act-normal-126-plantar-algo-juntos",
+        "act-normal-127-noite-de-comedia-stand-u",
+        "act-normal-128-viagem-no-tempo-da-memor",
+        "act-normal-129-aula-de-barista-em-casa",
+        "act-normal-130-desafio-de-fotografia",
+        "act-normal-131-noite-de-bordar-artesana",
+        "act-normal-132-karaoke-do-cafe-da-manha",
+        "act-normal-133-montar-roteiro-de-bairro",
+        "act-normal-134-dia-de-sim-para-tudo",
+        "act-normal-135-noite-de-ciencia-em-casa",
+        "act-normal-136-comparar-listas-de-sonho",
+        "act-normal-137-trocar-de-papel-por-um-d",
+        "act-normal-138-noite-de-jazz-e-vinho",
+        "act-normal-139-conte-me-uma-historia",
+        "act-normal-140-desafio-do-sorriso",
+        "act-normal-141-mapa-dos-momentos-felize",
+        "act-normal-142-noite-de-estrelas-no-tet",
+        "act-normal-143-feira-livre-do-domingo",
+        "act-normal-144-aprender-uma-palavra-nov",
+        "act-normal-145-desafio-do-desenho-de-me",
+        "act-normal-146-montar-o-quebra-gelo-de-",
+        "act-normal-147-noite-de-pega-na-mentira",
+        "act-normal-148-preparar-marmita-do-outr",
+        "act-normal-149-desenhar-o-dia-do-outro",
+        "act-normal-150-lista-de-5-lugares-para-",
+        "act-normal-151-hora-do-jogo-de-pergunta",
+        "act-normal-152-noite-de-massagem-em-cas",
+        "act-normal-153-fazer-yoga-juntos",
+        "act-normal-154-recriar-prato-de-restaur",
+        "act-normal-155-noite-de-narrativa-de-vi",
+        "act-normal-156-desafio-do-abraco-de-30s",
+        "act-normal-157-maratona-de-curtas",
+        "act-normal-158-dia-sem-reclamar",
+        "act-normal-159-montar-album-fisico",
+        "act-normal-160-hora-do-conto-antes-de-d",
+        "act-normal-161-desafio-do-restaurante-n",
+        "act-normal-162-aula-de-culinaria-de-coz",
+        "act-normal-2-recriar-uma-foto-antiga-",
+        "act-normal-3-passeio-sem-destino",
+        "act-normal-4-noite-de-detox-digital",
+        "act-normal-5-montar-uma-playlist-cola",
+        "act-normal-6-cozinhar-o-prato-favorit",
+        "act-normal-7-planejar-uma-viagem-dos-",
+        "act-normal-8-escrever-3-coisas-que-ad",
+        "act-normal-9-manha-de-cafe-da-manha-n",
+        "act-normal-m6-album-de-memorias-digital",
+        "act-normal-m6-aprender-palavras-outro-idioma",
+        "act-normal-m6-aprender-truque-de-magica",
+        "act-normal-m6-assistir-por-do-sol",
+        "act-normal-m6-brinde-especial-relacionamento",
+        "act-normal-m6-caca-ao-tesouro-em-casa",
+        "act-normal-m6-cafe-da-manha-na-cama",
+        "act-normal-m6-cafeteria-nova-cidade",
+        "act-normal-m6-capsula-do-tempo",
+        "act-normal-m6-carta-para-o-futuro-casal",
+        "act-normal-m6-cartas-de-agradecimento",
+        "act-normal-m6-cha-especial-conversar",
+        "act-normal-m6-chocolate-quente-especial",
+        "act-normal-m6-cinema-em-casa-tematico",
+        "act-normal-m6-compor-musica-paradia",
+        "act-normal-m6-cozinhar-receita-nova",
+        "act-normal-m6-cozinhar-sem-receita",
+        "act-normal-m6-criar-apelidos-carinhosos",
+        "act-normal-m6-danca-livre-na-sala",
+        "act-normal-m6-dancar-musica-relacionamento",
+        "act-normal-m6-desafio-decorar-bolo",
+        "act-normal-m6-descobrir-banda-nova",
+        "act-normal-m6-desenhar-um-ao-outro",
+        "act-normal-m6-documentario-debater",
+        "act-normal-m6-drink-autoral-a-dois",
+        "act-normal-m6-ensaio-fotografico-tematico",
+        "act-normal-m6-ensinar-musica-favorita",
+        "act-normal-m6-explorar-feira-mercado",
+        "act-normal-m6-explorar-praca-historica",
+        "act-normal-m6-fazer-sobremesa-juntos",
+        "act-normal-m6-feira-de-artesanato",
+        "act-normal-m6-filme-nenhum-viu",
+        "act-normal-m6-filme-outro-idioma",
+        "act-normal-m6-filme-por-sorteio",
+        "act-normal-m6-harmonizacao-vinho-queijos",
+        "act-normal-m6-historia-inventada-alternando",
+        "act-normal-m6-jantar-luz-de-velas",
+        "act-normal-m6-jardim-botanico",
+        "act-normal-m6-jogo-da-verdade-romantico",
+        "act-normal-m6-jogo-de-tabuleiro-classico",
+        "act-normal-m6-jogo-de-tabuleiro-inventado",
+        "act-normal-m6-jogo-eu-nunca",
+        "act-normal-m6-jogo-perguntas-sobre-futuro",
+        "act-normal-m6-karaoke-caseiro",
+        "act-normal-m6-letra-musica-outro-idioma",
+        "act-normal-m6-lista-motivos-para-amar",
+        "act-normal-m6-mapa-de-sonhos",
+        "act-normal-m6-maratona-decada-do-casal",
+        "act-normal-m6-marmita-saudavel-semana",
+        "act-normal-m6-massagem-relaxante-revezada",
+        "act-normal-m6-meditacao-guiada-em-dupla",
+        "act-normal-m6-menu-surpresa-um-para-outro",
+        "act-normal-m6-mimica-romantica",
+        "act-normal-m6-nascer-do-sol-juntos",
+        "act-normal-m6-noite-comida-etnica",
+        "act-normal-m6-noite-curtas-metragens",
+        "act-normal-m6-noite-fondue-caseiro",
+        "act-normal-m6-noite-pizza-caseira",
+        "act-normal-m6-organizar-gaveta-recordacoes",
+        "act-normal-m6-origami-a-dois",
+        "act-normal-m6-origami-coracao",
+        "act-normal-m6-pao-caseiro-juntos",
+        "act-normal-m6-passeio-bairro-novo",
+        "act-normal-m6-passeio-barco-lago",
+        "act-normal-m6-passeio-carro-sem-destino",
+        "act-normal-m6-passeio-de-bicicleta",
+        "act-normal-m6-passeio-noturno-luzes",
+        "act-normal-m6-pintura-compartilhada",
+        "act-normal-m6-pipoca-gourmet",
+        "act-normal-m6-piquenique-ao-ar-livre",
+        "act-normal-m6-piquenique-na-sala",
+        "act-normal-m6-planejar-viagem-dos-sonhos",
+        "act-normal-m6-playlist-colaborativa",
+        "act-normal-m6-playlist-data-especial",
+        "act-normal-m6-playlist-nossa-historia",
+        "act-normal-m6-por-do-sol-mirante",
+        "act-normal-m6-prato-da-infancia",
+        "act-normal-m6-prova-as-cegas",
+        "act-normal-m6-provar-tres-queijos",
+        "act-normal-m6-quebra-cabeca-a-dois",
+        "act-normal-m6-receita-familia-nova",
+        "act-normal-m6-receitas-de-app-culinaria",
+        "act-normal-m6-recriar-cena-filme",
+        "act-normal-m6-recriar-prato-primeiro-encontro",
+        "act-normal-m6-reorganizar-comodo-juntos",
+        "act-normal-m6-restaurante-novo-bairro",
+        "act-normal-m6-ritual-cafe-da-tarde",
+        "act-normal-m6-roteiro-food-trucks",
+        "act-normal-m6-serie-favorita-infancia",
+        "act-normal-m6-sessao-de-ioga-a-dois",
+        "act-normal-m6-show-ao-vivo",
+        "act-normal-m6-show-evento-cultural",
+        "act-normal-m6-smoothie-personalizado",
+        "act-normal-m6-suco-natural-diferente",
+        "act-normal-m6-tabua-de-frios",
+        "act-normal-m6-testar-tempero-novo",
+        "act-normal-m6-teste-personalidade-comparar",
+        "act-normal-m6-top-5-filmes-cada-um",
+        "act-normal-m6-trilha-leve-juntos",
+        "act-normal-m6-trilha-primeiro-encontro",
+        "act-normal-m6-trilha-urbana-grafites",
+        "act-normal-m6-turista-na-propria-cidade",
+        "act-normal-m6-verdade-ou-desafio-leve",
+        "act-normal-m6-video-engracado-juntos",
+        "act-normal-m6-videogame-cooperativo",
+        "act-normal-m6-vinicola-cervejaria-local",
+        "act-normal-m6-visitar-cidade-vizinha",
+        "act-normal-m6-visitar-livraria",
+        "act-normal-m6-visitar-museu-exposicao",
+        "act-normal-m6-visitar-parque-local",
+        "act-normal-m7-acampar-no-quintal",
+        "act-normal-m7-aprender-coreografia-simples",
+        "act-normal-m7-aprender-instrumento-simples",
+        "act-normal-m7-assistir-classico-nunca-viram",
+        "act-normal-m7-assistir-curta-animacao",
+        "act-normal-m7-assistir-documentario-musical",
+        "act-normal-m7-assistir-filme-decada-passada",
+        "act-normal-m7-assistir-filme-premiado",
+        "act-normal-m7-assistir-serie-nova-episodio-piloto",
+        "act-normal-m7-assistir-tutorial-habilidade-nova",
+        "act-normal-m7-aula-de-danca-online",
+        "act-normal-m7-bebida-quente-inverno",
+        "act-normal-m7-caca-objetos-escondidos",
+        "act-normal-m7-cafe-da-manha-tematico-viagem",
+        "act-normal-m7-cafe-da-tarde-tematico",
+        "act-normal-m7-cafe-gelado-caseiro",
+        "act-normal-m7-caixa-de-lembrancas-fisica",
+        "act-normal-m7-caligrafia-mensagem-um-para-outro",
+        "act-normal-m7-carta-do-futuro-eu",
+        "act-normal-m7-cha-da-tarde-ingles",
+        "act-normal-m7-cozinhar-receita-avos",
+        "act-normal-m7-criar-cronograma-sonhos",
+        "act-normal-m7-criar-hino-do-casal",
+        "act-normal-m7-criar-jogo-perguntas-app",
+        "act-normal-m7-criar-playlist-por-decada",
+        "act-normal-m7-criar-playlist-treino",
+        "act-normal-m7-criar-podcast-caseiro",
+        "act-normal-m7-criar-ranking-filmes-genero",
+        "act-normal-m7-criar-receita-secreta-familia",
+        "act-normal-m7-criar-regras-proprio-jogo",
+        "act-normal-m7-criar-ritual-domingo",
+        "act-normal-m7-criar-trailer-imaginario",
+        "act-normal-m7-degustacao-cafes-especiais",
+        "act-normal-m7-desafio-bolo-de-caneca",
+        "act-normal-m7-desafio-decoracao-de-mesa",
+        "act-normal-m7-desafio-decorar-cupcakes",
+        "act-normal-m7-desafio-desenho-coletivo",
+        "act-normal-m7-desafio-lanche-da-tarde-saudavel",
+        "act-normal-m7-desafio-omelete-criativo",
+        "act-normal-m7-desafio-organizacao-armario",
+        "act-normal-m7-desafio-photobooth-caseiro",
+        "act-normal-m7-desafio-receita-so-tres-ingredientes",
+        "act-normal-m7-desafio-sanduiche-gourmet",
+        "act-normal-m7-desafio-sem-celular-uma-tarde",
+        "act-normal-m7-descobrir-musica-ano-nascimento",
+        "act-normal-m7-desenhar-mapa-do-relacionamento",
+        "act-normal-m7-desenho-as-cegas",
+        "act-normal-m7-dia-de-camping-em-parque",
+        "act-normal-m7-dueto-caseiro",
+        "act-normal-m7-explorar-bairro-historico",
+        "act-normal-m7-explorar-centro-historico-cidade",
+        "act-normal-m7-explorar-mercado-municipal",
+        "act-normal-m7-explorar-parque-linear",
+        "act-normal-m7-explorar-rota-gastronomica-regional",
+        "act-normal-m7-harmonizacao-chocolate-bebida",
+        "act-normal-m7-jantar-as-escuras",
+        "act-normal-m7-jantar-com-musica-ao-vivo",
+        "act-normal-m7-jantar-inspirado-viagem",
+        "act-normal-m7-jantar-minimalista-elegante",
+        "act-normal-m7-jantar-picles-conservas",
+        "act-normal-m7-jogo-adedanha-casal",
+        "act-normal-m7-jogo-adivinhar-decada-musica",
+        "act-normal-m7-jogo-adivinhar-musica",
+        "act-normal-m7-jogo-de-cartas-classico",
+        "act-normal-m7-jogo-imitacao-personagens",
+        "act-normal-m7-jogo-perguntas-curiosas",
+        "act-normal-m7-jogo-perguntas-decisao-rapida",
+        "act-normal-m7-jogo-perguntas-e-respostas-engracadas",
+        "act-normal-m7-jogo-perguntas-hipoteses",
+        "act-normal-m7-jogo-perguntas-passado",
+        "act-normal-m7-jogo-perguntas-sobre-o-outro",
+        "act-normal-m7-jogo-tabuleiro-perguntas-caseiro",
+        "act-normal-m7-maratona-trilogia-favorita",
+        "act-normal-m7-mini-festival-street-food-caseiro",
+        "act-normal-m7-montar-mini-horta",
+        "act-normal-m7-montar-quebra-cabeca-3d",
+        "act-normal-m7-noite-comida-de-boteco",
+        "act-normal-m7-noite-filme-baseado-livro",
+        "act-normal-m7-noite-musica-ao-vivo-online",
+        "act-normal-m7-noite-taco-caseiro",
+        "act-normal-m7-passeio-cachoeira-proxima",
+        "act-normal-m7-passeio-de-canoa-caiaque",
+        "act-normal-m7-passeio-de-onibus-turistico",
+        "act-normal-m7-passeio-de-trem-historico",
+        "act-normal-m7-passeio-igreja-catedral-historica",
+        "act-normal-m7-passeio-orla-praia-lago",
+        "act-normal-m7-passeio-parque-aventura",
+        "act-normal-m7-passeio-parque-tematico",
+        "act-normal-m7-passeio-shopping-diferente",
+        "act-normal-m7-passeio-teleferico-mirante",
+        "act-normal-m7-planejar-arvore-genealogica",
+        "act-normal-m7-prova-cervejas-artesanais",
+        "act-normal-m7-prova-frutas-exoticas",
+        "act-normal-m7-prova-molhos-diferentes",
+        "act-normal-m7-receita-doce-sem-forno",
+        "act-normal-m7-receita-vegetariana-nova",
+        "act-normal-m7-reorganizar-fotos-celular",
+        "act-normal-m7-roteiro-arquitetura-cidade",
+        "act-normal-m7-roteiro-fotografico-cidade",
+        "act-normal-m7-sessao-artesanato-simples",
+        "act-normal-m7-sessao-de-alongamento",
+        "act-normal-m7-sessao-tarot-divertida",
+        "act-normal-m7-suco-detox-manha",
+        "act-normal-m7-visitar-fazenda-sitio",
+        "act-normal-m7-visitar-feira-livre-domingo",
+        "act-normal-m7-visitar-parque-com-animais-resgatados",
+        "act-normal-m7-visitar-parque-nacional-reserva",
+        "act-normal-m7-visitar-planetario-observatorio",
+        "act-normal-m7-visitar-zoologico-aquario",
+        "act-normal-m7-votacao-filme-da-noite"
+      ];
+    }
+
+    function isCatalogChallengeId(docId) {
+      return docId in [
+        "week-activities",
+        "week-adventure",
+        "week-appreciation",
+        "week-breakfast-bed",
+        "week-bucket-list",
+        "week-childhood",
+        "week-compliment-public",
+        "week-compliments",
+        "week-cooking",
+        "week-creative",
+        "week-dance",
+        "week-date-night",
+        "week-dreams",
+        "week-favorite-meal",
+        "week-favorite-things",
+        "week-future-talk",
+        "week-game",
+        "week-goals",
+        "week-gratitude",
+        "week-handwritten",
+        "week-laugh",
+        "week-learning",
+        "week-local-explore",
+        "week-love-language",
+        "week-m6-abraco-diario",
+        "week-m6-album-da-semana",
+        "week-m6-aprender-juntos",
+        "week-m6-ar-livre-3x",
+        "week-m6-bilhetes-de-amor",
+        "week-m6-brincadeira-do-dia",
+        "week-m6-cafe-manha-junto",
+        "week-m6-carta-reconhecimento",
+        "week-m6-check-in-diario",
+        "week-m6-contato-sem-pressa",
+        "week-m6-conversa-sem-julgamento",
+        "week-m6-convite-surpresa",
+        "week-m6-cuidado-mutuo",
+        "week-m6-danca-a-dois",
+        "week-m6-declaracao-da-semana",
+        "week-m6-desafio-de-coragem",
+        "week-m6-diario-de-casal",
+        "week-m6-elogio-diario-mensagem",
+        "week-m6-elogio-sincero",
+        "week-m6-exercicio-a-dois",
+        "week-m6-feedback-gentil",
+        "week-m6-gratidao-diaria",
+        "week-m6-hidratacao-em-dupla",
+        "week-m6-historia-inventada",
+        "week-m6-hobby-compartilhado",
+        "week-m6-hora-sagrada",
+        "week-m6-jogo-em-dupla",
+        "week-m6-livro-a-dois",
+        "week-m6-maratona-cultural",
+        "week-m6-meme-do-dia",
+        "week-m6-metas-do-casal",
+        "week-m6-momento-de-respirar",
+        "week-m6-musica-do-dia",
+        "week-m6-noite-de-jogos",
+        "week-m6-noite-romantica",
+        "week-m6-novo-lugar",
+        "week-m6-orcamento-a-dois",
+        "week-m6-piquenique-ao-ar-livre",
+        "week-m6-planejar-mes",
+        "week-m6-playlist-da-semana",
+        "week-m6-presente-inesperado",
+        "week-m6-projeto-criativo",
+        "week-m6-refeicao-saudavel",
+        "week-m6-reflexao-do-casal",
+        "week-m6-reforma-criativa",
+        "week-m6-relembrar-comeco",
+        "week-m6-reviver-primeiro-encontro",
+        "week-m6-rota-alternativa",
+        "week-m6-sem-distracoes-refeicao",
+        "week-m6-semana-sem-brigas",
+        "week-m6-show-em-casa",
+        "week-m6-show-ou-evento",
+        "week-m6-sono-em-dia",
+        "week-m6-surpresa-da-semana",
+        "week-m6-surpresa-romantica",
+        "week-m6-tarefa-em-dupla",
+        "week-m6-tres-atividades-novas",
+        "week-m6-tres-conversas-profundas",
+        "week-m6-tres-risadas-garantidas",
+        "week-m6-trilha-ou-caminhada",
+        "week-m7-agradecer-por-escrito",
+        "week-m7-alongamento-a-dois",
+        "week-m7-assistir-palestra-juntos",
+        "week-m7-assistir-stand-up",
+        "week-m7-atividade-ao-ar-livre-semana",
+        "week-m7-atividade-fora-da-zona-conforto",
+        "week-m7-caminhada-ativa-semana",
+        "week-m7-caminhada-diaria",
+        "week-m7-cantar-no-carro",
+        "week-m7-carta-romantica-semana",
+        "week-m7-contar-historia-favorita",
+        "week-m7-conversa-sem-interrupcao",
+        "week-m7-criar-algo-com-as-maos",
+        "week-m7-decorar-espaco-pequeno",
+        "week-m7-definir-valor-comum",
+        "week-m7-desafio-bobagem-controlada",
+        "week-m7-desafio-risada-diaria",
+        "week-m7-descobrir-genero-musical-novo",
+        "week-m7-dia-de-descanso-total",
+        "week-m7-dormir-abracados",
+        "week-m7-elogio-fisico-sincero",
+        "week-m7-encontro-em-casa",
+        "week-m7-encontro-marcado-as-cegas",
+        "week-m7-escrever-poema-a-dois",
+        "week-m7-escuta-ativa",
+        "week-m7-experimentar-comida-nova",
+        "week-m7-experimentar-hobby-novo",
+        "week-m7-expressar-necessidade",
+        "week-m7-flerte-diario",
+        "week-m7-gesto-de-cuidado-diario",
+        "week-m7-jogo-de-tabuleiro-longo",
+        "week-m7-jogo-diferente-semana",
+        "week-m7-ler-artigo-sobre-casais",
+        "week-m7-lista-qualidades",
+        "week-m7-momento-so-nos-dois",
+        "week-m7-mudanca-de-rotina",
+        "week-m7-noite-sem-tela",
+        "week-m7-observar-estrelas",
+        "week-m7-organizar-agenda-semanal",
+        "week-m7-passeio-parque-semanal",
+        "week-m7-pausa-para-descanso",
+        "week-m7-pergunta-do-dia",
+        "week-m7-planejar-data-especial",
+        "week-m7-planejar-proximo-passeio",
+        "week-m7-playlist-tematica-semana",
+        "week-m7-praticar-esporte-ao-ar-livre",
+        "week-m7-praticar-paciencia",
+        "week-m7-presente-simbolico",
+        "week-m7-projeto-em-equipe",
+        "week-m7-reconhecer-esforco-diario",
+        "week-m7-recriar-momento-marcante",
+        "week-m7-recriar-pedido-namoro",
+        "week-m7-refeicao-sem-processados",
+        "week-m7-repetir-atividade-favorita",
+        "week-m7-resolver-pendencia-conversa",
+        "week-m7-revisitar-fotos-antigas",
+        "week-m7-surpresa-no-trabalho",
+        "week-m7-teatro-ou-cinema",
+        "week-m7-toque-diario-consciente",
+        "week-m7-trajeto-diferente-trabalho",
+        "week-massage",
+        "week-meditation",
+        "week-memory",
+        "week-morning",
+        "week-movie",
+        "week-msg-5",
+        "week-music",
+        "week-no-tv",
+        "week-pet-names",
+        "week-phone-free",
+        "week-photo-album",
+        "week-photos",
+        "week-plan-weekend",
+        "week-planning",
+        "week-quality-time",
+        "week-random-kiss",
+        "week-silly-dance",
+        "week-stargazing",
+        "week-sunset",
+        "week-surprise",
+        "week-surprise-note",
+        "week-thank-you",
+        "week-touch",
+        "week-video-call",
+        "week-vision-board",
+        "week-walk",
+        "week-week-5-kisses-12",
+        "week-week-books-4",
+        "week-week-brunch-26",
+        "week-week-chef-25",
+        "week-week-coffee-date-11",
+        "week-week-compliment-family-18",
+        "week-week-couple-money-33",
+        "week-week-couple-quiz-8",
+        "week-week-dance-1-22",
+        "week-week-dinner-candle-14",
+        "week-week-early-5",
+        "week-week-favorite-song-7",
+        "week-week-future-letter-42",
+        "week-week-gift-mini-24",
+        "week-week-gratitude-5-0",
+        "week-week-handwritten-10",
+        "week-week-hug-30-13",
+        "week-week-hug-tree-39",
+        "week-week-hydration-3",
+        "week-week-kiss-o-clock-43",
+        "week-week-laugh-9",
+        "week-week-letters-future-28",
+        "week-week-memory-map-23",
+        "week-week-mini-date-31",
+        "week-week-music-album-40",
+        "week-week-neighbor-tour-41",
+        "week-week-new-hobby-15",
+        "week-week-no-sugar-2",
+        "week-week-no-tv-day-36",
+        "week-week-phone-free-17",
+        "week-week-photo-word-6",
+        "week-week-plan-trip-19",
+        "week-week-play-games-21",
+        "week-week-price-dinner-45",
+        "week-week-question-deck-44",
+        "week-week-redecorate-27",
+        "week-week-shared-playlist-1",
+        "week-week-sleep-early-35",
+        "week-week-slow-kiss-38",
+        "week-week-sport-34",
+        "week-week-stars-20",
+        "week-week-sunrise-30",
+        "week-week-thanks-letter-32",
+        "week-week-think-aloud-37",
+        "week-week-walk-1h-16",
+        "week-week-water-fight-29",
+        "week-workout"
+      ];
+    }
+    // CATALOG-ALLOWLIST:END
+
+    function isSafeProfileUpdate(userId) {
+      return isSignedIn() && request.auth.uid == userId &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'nickname', 'gender', 'birthDate', 'photoURL', 'avatar',
+          'onboardingSkipped', 'seenWishlistItems'
+        ]) &&
+        request.resource.data.get('uid', '') == resource.data.get('uid', '') &&
+        request.resource.data.get('email', '') == resource.data.get('email', '') &&
+        request.resource.data.get('partnerId', null) == resource.data.get('partnerId', null) &&
+        request.resource.data.get('coupleId', null) == resource.data.get('coupleId', null);
+    }
+
+    // Prova de consentimento do convite.
+    // O convite é o ÚNICO artefato que um atacante não consegue forjar: a
+    // regra de create de `inviteCodes` exige creatorId == request.auth.uid,
+    // logo um convite com creatorId == invitedUserId só pode ter sido criado
+    // pelo próprio usuário convidado. O documento do casal guarda o código
+    // usado (campo `inviteCode`) e aqui conferimos que esse convite existia
+    // ANTES da transação (get, não getAfter — o fluxo legítimo consome/apaga o
+    // convite na mesma transação), que aponta para ESTE casal e que foi criado
+    // por QUEM está sendo vinculado.
+    function hasInviteConsent(inviteCode, invitedUserId, coupleId) {
+      return inviteCode is string &&
+        inviteCode.size() > 0 &&
+        exists(/databases/$(database)/documents/inviteCodes/$(inviteCode)) &&
+        get(/databases/$(database)/documents/inviteCodes/$(inviteCode)).data.get('creatorId', '') == invitedUserId &&
+        get(/databases/$(database)/documents/inviteCodes/$(inviteCode)).data.get('coupleId', '') == coupleId &&
+        // ACHADO M-1: o convite tem validade explícita. Um convite sem
+        // expiresAt (formato antigo) ou já vencido não serve para vincular.
+        get(/databases/$(database)/documents/inviteCodes/$(inviteCode)).data.get('expiresAt', null) is timestamp &&
+        get(/databases/$(database)/documents/inviteCodes/$(inviteCode)).data.expiresAt > request.time;
+    }
+
+    function isLinkingUserUpdate(userId) {
+      return isSignedIn() &&
+        resource.data.get('partnerId', null) == null &&
+        resource.data.get('coupleId', null) == null &&
+        request.resource.data.get('partnerId', null) is string &&
+        request.resource.data.get('coupleId', null) is string &&
+        request.resource.data.get('partnerId', null) != null &&
+        request.resource.data.get('coupleId', null) != null &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'partnerId', 'coupleId'
+        ]) &&
+        getAfter(couplePath(request.resource.data.coupleId)).data.createdBy == request.auth.uid &&
+        getAfter(couplePath(request.resource.data.coupleId)).data.members.size() == 2 &&
+        request.auth.uid in getAfter(couplePath(request.resource.data.coupleId)).data.members &&
+        userId in getAfter(couplePath(request.resource.data.coupleId)).data.members &&
+        (
+          (userId == request.auth.uid &&
+            request.resource.data.partnerId == getAfter(couplePath(request.resource.data.coupleId)).data.invitedUserId) ||
+          (userId == getAfter(couplePath(request.resource.data.coupleId)).data.invitedUserId &&
+            request.resource.data.partnerId == request.auth.uid &&
+            getAfter(couplePath(request.resource.data.coupleId)).data.keys().hasAll(['inviteCode']) &&
+            hasInviteConsent(
+              getAfter(couplePath(request.resource.data.coupleId)).data.inviteCode,
+              userId,
+              request.resource.data.coupleId))
+        );
+    }
+
+    function isUnlinkingUserUpdate(userId) {
+      return isSignedIn() &&
+        (userId == request.auth.uid || resource.data.get('partnerId', null) == request.auth.uid) &&
+        resource.data.get('coupleId', null) != null &&
+        request.resource.data.get('partnerId', null) == null &&
+        request.resource.data.get('coupleId', null) == null &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'partnerId', 'coupleId', 'onboardingSkipped'
+        ]) &&
+        isCoupleMember(resource.data.coupleId);
+    }
+
+    // Regra para a coleção 'users' com a lógica de atualização corrigida
+    match /users/{userId} {
+      allow create: if isSignedIn() &&
+        request.auth.uid == userId &&
+        request.resource.data.get('uid', '') == userId &&
+        hasEmptyRelationship(request.resource.data) &&
+        request.resource.data.keys().hasOnly([
+          'uid', 'nickname', 'gender', 'email', 'createdAt', 'partnerId',
+          'coupleId', 'birthDate', 'photoURL', 'avatar', 'score',
+          'onboardingSkipped', 'seenWishlistItems'
+        ]);
+      allow get: if isSignedIn() &&
+        (request.auth.uid == userId ||
+          (resource.data.get('partnerId', null) == request.auth.uid &&
+            resource.data.get('coupleId', null) != null &&
+            isCoupleMember(resource.data.coupleId)));
+      allow list: if false;
+
+      // --- A REGRA CORRIGIDA ESTÁ AQUI ---
+      // Permite a atualização em duas condições:
+      // 1. O usuário está atualizando seu próprio perfil.
+      // 2. OU o usuário está se vinculando a um parceiro que ainda não está vinculado,
+      //    e está alterando APENAS os campos 'partnerId' e 'coupleId'.
+      allow update: if isSafeProfileUpdate(userId) ||
+        isLinkingUserUpdate(userId) ||
+        isUnlinkingUserUpdate(userId);
+      allow delete: if false;
+    }
+
+    // Regra para a coleção 'inviteCodes'
+    match /inviteCodes/{code} {
+      allow get: if isSignedIn();
+      allow list: if false;
+      // ACHADO M-1: todo convite passa a ter validade explícita (`expiresAt`).
+      // Sem isso o código — que antes era curto e previsível — valia para
+      // sempre e podia ser varrido/consumido por um terceiro. Teto de 48h
+      // impede que um cliente malicioso crie um convite "eterno" (o app usa 24h).
+      allow create: if isSignedIn() &&
+        request.resource.data.get('creatorId', '') == request.auth.uid &&
+        request.resource.data.get('coupleId', '') is string &&
+        request.resource.data.get('coupleId', '') != '' &&
+        request.resource.data.keys().hasOnly([
+          'creatorId', 'creatorNickname', 'coupleId', 'createdAt', 'expiresAt'
+        ]) &&
+        request.resource.data.keys().hasAll([
+          'creatorId', 'creatorNickname', 'coupleId', 'createdAt', 'expiresAt'
+        ]) &&
+        request.resource.data.expiresAt is timestamp &&
+        request.resource.data.expiresAt > request.time &&
+        request.resource.data.expiresAt <= request.time + duration.value(2, 'd');
+      allow update: if false;
+      allow delete: if isSignedIn() &&
+        (resource.data.get('creatorId', '') == request.auth.uid ||
+          (resource.data.get('coupleId', null) is string &&
+            resource.data.get('coupleId', '') != '' &&
+            getAfter(couplePath(resource.data.coupleId)).data.members.size() == 2 &&
+            getAfter(couplePath(resource.data.coupleId)).data.createdBy == request.auth.uid &&
+            getAfter(couplePath(resource.data.coupleId)).data.invitedUserId == resource.data.creatorId &&
+            request.auth.uid in getAfter(couplePath(resource.data.coupleId)).data.members &&
+            resource.data.creatorId in getAfter(couplePath(resource.data.coupleId)).data.members));
+    }
+
+    // Regra para os tokens de Web Push (FCM) — um doc por usuário, vários devices.
+    // O cliente grava via setDoc+merge: cria (se não existe) ou atualiza (se existe).
+    // As Cloud Functions usam o SDK admin e não passam por estas regras.
+    match /pushTokens/{uid} {
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      allow create, update: if isSignedIn() &&
+        request.auth.uid == uid &&
+        request.resource.data.get('uid', '') == uid &&
+        request.resource.data.keys().hasOnly(['uid', 'tokens', 'updatedAt']);
+      allow delete: if false;
+    }
+
+    // Regra principal para os dados do casal
+    match /duomatches/{coupleId} {
+      allow create: if isSignedIn() &&
+        request.auth.uid == request.resource.data.get('createdBy', '') &&
+        request.resource.data.get('members', []).size() == 2 &&
+        request.resource.data.members[0] != request.resource.data.members[1] &&
+        request.auth.uid in request.resource.data.members &&
+        request.resource.data.get('invitedUserId', '') in request.resource.data.members &&
+        request.resource.data.get('memberNicknames', {}).keys().hasAll(request.resource.data.members) &&
+        // Sem convite do usuário incluído não existe casal: o criador do doc
+        // não pode simplesmente "declarar" que a outra pessoa consentiu.
+        request.resource.data.keys().hasAll(['inviteCode', 'invitedUserId']) &&
+        hasInviteConsent(
+          request.resource.data.inviteCode,
+          request.resource.data.invitedUserId,
+          coupleId);
+      allow read: if isCoupleMember(coupleId);
+      allow update: if isCoupleMember(coupleId) &&
+        request.resource.data.members == resource.data.members &&
+        request.resource.data.get('memberNicknames', {}) == resource.data.get('memberNicknames', {}) &&
+        request.resource.data.get('createdBy', '') == resource.data.get('createdBy', '') &&
+        request.resource.data.get('invitedUserId', '') == resource.data.get('invitedUserId', '');
+      allow delete: if isCoupleMember(coupleId);
+
+      // Regra para todas as subcoleções (activities, rounds, etc.)
+      match /{subcollection}/{docId=**} {
+          allow read, write: if isCoupleMember(coupleId);
+      }
+    }
+
+    // Catálogo global de conteúdo (sugestões do dia/hot e desafios).
+    // Fonte de verdade plantada pelo cliente (ContentRepository, seed por
+    // upsert — grava só os id ausentes via create). Leitura liberada para
+    // qualquer usuário autenticado; escrita apenas via create (seed idempotente).
+    //
+    // ACHADO A-1: sem checagem de autoria, qualquer usuário autenticado podia
+    // injetar entradas arbitrárias no catálogo compartilhado (poluição global).
+    // Como o seed roda no cliente (não há backend), a mitigação mínima é exigir
+    // que o `docId` pertença ao conjunto de ids realmente publicados pelo app
+    // (allowlist gerada do contentCatalog) + validar o tipo/tamanho dos campos.
+    // Assim o seed legítimo continua passando, mas a injeção de itens novos é
+    // negada. Residual documentado em RELATORIO-SEGURANCA-2.md.
+    match /contentActivities/{docId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() &&
+        request.resource.data.get('id', '') == docId &&
+        isCatalogActivityId(docId) &&
+        request.resource.data.keys().hasOnly([
+          'id', 'name', 'category', 'points', 'description', 'flavor', 'active'
+        ]) &&
+        request.resource.data.name is string && request.resource.data.name.size() <= 80 &&
+        request.resource.data.category is string && request.resource.data.category.size() <= 40 &&
+        request.resource.data.description is string && request.resource.data.description.size() <= 400 &&
+        request.resource.data.points is int && request.resource.data.points >= 0 && request.resource.data.points <= 100 &&
+        request.resource.data.flavor is string && request.resource.data.flavor.size() <= 16 &&
+        request.resource.data.active is bool;
+      allow update, delete: if false;
+    }
+    match /contentChallenges/{docId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() &&
+        request.resource.data.get('id', '') == docId &&
+        isCatalogChallengeId(docId) &&
+        request.resource.data.keys().hasOnly([
+          'id', 'title', 'description', 'points', 'type', 'active'
+        ]) &&
+        request.resource.data.title is string && request.resource.data.title.size() <= 80 &&
+        request.resource.data.description is string && request.resource.data.description.size() <= 400 &&
+        request.resource.data.points is int && request.resource.data.points >= 0 && request.resource.data.points <= 100 &&
+        request.resource.data.type is string && request.resource.data.type.size() <= 32 &&
+        request.resource.data.active is bool;
+      allow update, delete: if false;
+    }
+  }
+}

@@ -28,12 +28,10 @@ const CATALOG_PATH = path.join(
 
 /** Extrai os ids literais de uma função `isCatalogXId` do arquivo de regras. */
 function extractIds(rules, fnName) {
-  const re = new RegExp(
-    "function\\s+" + fnName + "\\s*\\(docId\\)\\s*\\{[\\s\\S]*?docId in \\[([\\s\\S]*?)\\];"
-  );
+  const re = new RegExp('function\\s+' + fnName + '\\s*\\([^)]*\\)\\s*\\{[^}]*?"([^"]+)"\\.split');
   const m = rules.match(re);
   if (!m) throw new Error(`função ${fnName} não encontrada em firestore.rules`);
-  return [...m[1].matchAll(/"([^"]+)"/g)].map((x) => x[1]).sort();
+  return m[1].split(',').sort();
 }
 
 async function main() {
@@ -43,7 +41,7 @@ async function main() {
   const expectedActivities = mod.ACTIVITY_CATALOG.map((a) => a.id).sort();
   const expectedChallenges = mod.CHALLENGE_CATALOG.map((c) => c.id).sort();
 
-  const actualActivities = extractIds(rules, "isCatalogActivityId");
+  const actualActivities = extractIds(rules, "catalogActivityIds");
   const actualChallenges = extractIds(rules, "isCatalogChallengeId");
 
   let falhou = 0;
