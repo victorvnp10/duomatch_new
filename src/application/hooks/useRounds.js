@@ -1,3 +1,4 @@
+import { useOperationError } from "./useOperationError";
 import { useState, useEffect } from "react";
 import {
   db,
@@ -13,6 +14,7 @@ import {
 } from "../../infrastructure/firebase";
 
 export const useRounds = (userData) => {
+  const { operationError, reportOperationError, clearOperationError } = useOperationError();
   const [rounds, setRounds] = useState([]);
 
   useEffect(() => {
@@ -44,6 +46,7 @@ export const useRounds = (userData) => {
       alert("Rodada adicionada com sucesso!");
     } catch (error) {
       console.error("Erro ao adicionar rodada:", error);
+      reportOperationError("Não foi possível criar a rodada. Tente novamente.", error);
       alert("Ocorreu um erro ao criar a rodada.");
     }
   };
@@ -56,6 +59,7 @@ export const useRounds = (userData) => {
       alert("Rodada atualizada com sucesso!");
     } catch (error) {
       console.error("Erro ao atualizar rodada:", error);
+      reportOperationError("Não foi possível salvar as alterações da rodada. Tente novamente.", error);
       alert("Ocorreu um erro ao salvar as alterações.");
     }
   };
@@ -72,6 +76,8 @@ export const useRounds = (userData) => {
   };
 
   return {
+    operationError,
+    clearOperationError,
     rounds,
     handleAddRound,
     handleUpdateRound, // Exporta a nova função

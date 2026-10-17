@@ -1,3 +1,4 @@
+import { useOperationError } from "./useOperationError";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   db,
@@ -36,6 +37,7 @@ const buildRandomSuggestions = (pool, recentIds) => {
 };
 
 export const useSuggestions = (userData, _handleAddActivity, suggestionType) => {
+  const { operationError, reportOperationError, clearOperationError } = useOperationError();
   // O estado agora é um OBJETO, que é mais eficiente para o Firestore
   const [suggestions, setSuggestions] = useState({});
 
@@ -66,13 +68,15 @@ export const useSuggestions = (userData, _handleAddActivity, suggestionType) => 
         const flavor = suggestionType === "hot" ? "hot" : "normal";
         setActivityPool(catalog.filter((a) => a.flavor === flavor));
       })
-      .catch(() => {
-        if (active) setActivityPool([]);
+      .catch((error) => {
+        if (!active) return;
+        reportOperationError("Não foi possível carregar o catálogo de sugestões.", error);
+        setActivityPool([]);
       });
     return () => {
       active = false;
     };
-  }, [suggestionType]);
+  }, [suggestionType, reportOperationError]);
 
   // Objeto de configuração para tornar o hook dinâmico
   const config = useMemo(() => {
@@ -261,6 +265,7 @@ export const useSuggestions = (userData, _handleAddActivity, suggestionType) => 
         });
       } catch (error) {
         console.error("Erro ao selecionar sugestão:", error);
+        reportOperationError("Não foi possível registrar sua escolha de sugestão. Tente novamente.", error);
         alert("Não foi possível registrar sua escolha. Tente novamente.");
         return;
       }
@@ -289,8 +294,13 @@ export const useSuggestions = (userData, _handleAddActivity, suggestionType) => 
         }, 1500);
       }
     },
-    [userData, config.collectionName, config.pool, today]
+    [userData, config.collectionName, config.pool, today, reportOperationError]
   );
 
-  return { suggestions, handleSelectSuggestion };
+  return {
+    operationError,
+    clearOperationError,
+    suggestions,
+    handleSelectSuggestion,
+  };
 };
