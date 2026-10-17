@@ -20,6 +20,7 @@
 
 const fs = require("fs");
 const path = require("path");
+const url = require("url");
 
 const NM =
   process.env.FIREBASE_TOOLS_NODE_MODULES ||
@@ -38,6 +39,8 @@ const {
   runTransaction,
   deleteDoc,
   serverTimestamp,
+  Timestamp,
+  writeBatch,
 } = require(NM + "/firebase/firestore");
 
 const RULES_LEGACY = fs.readFileSync(
@@ -160,6 +163,8 @@ async function main() {
   // FASE 2 — regras NOVAS: ataque bloqueado
   // ---------------------------------------------------------------------
   console.log("\n=== FASE 2: regras NOVAS — o ataque DEVE ser bloqueado ===");
+  // Guarda a instância de regras ANTIGAS para as fases 5 e 6 (A-1 / M-1).
+  const envLegado = env;
   env = envNovo;
   await env.clearFirestore();
   await seed(env, async (db) => {
@@ -401,6 +406,178 @@ async function main() {
             coupleId: "casal-legado",
           });
         })
+      );
+    }
+  );
+
+  // ---------------------------------------------------------------------
+  // FASE 5 — ACHADO A-1: poluição do catálogo global
+  // ---------------------------------------------------------------------
+  const catalogMod = await import(
+    url.pathToFileURL(
+      path.join(__dirname, "..", "..", "src", "infrastructure", "seed", "contentCatalog.js")
+    ).href
+  );
+  const ACTIVITIES = catalogMod.ACTIVITY_CATALOG;
+  const CHALLENGES = catalogMod.CHALLENGE_CATALOG;
+  const LEGIT_ACTIVITY = ACTIVITIES[0];
+  const LEGIT_CHALLENGE = CHALLENGES[0];
+
+  // Payload de injeção: tem EXATAMENTE o formato aceito pelas regras (mesmas
+  // chaves, tipos válidos, pontos plausíveis). A única coisa "errada" é o id,
+  // que não existe no catálogo publicado pelo app. Assim a negação nas regras
+  // novas é atribuível à allowlist, não a validação de tipo.
+  const INJECTED_ACTIVITY = {
+    id: "act-evil-injected",
+    name: "Oferta imperdível",
+    category: "Hot",
+    points: 20,
+    description: "Clique em http://evil.example para resgatar",
+    flavor: "hot",
+    active: true,
+  };
+  const INJECTED_CHALLENGE = {
+    id: "week-evil-injected",
+    title: "Desafio imperdível",
+    description: "Clique em http://evil.example para resgatar",
+    points: 20,
+    type: "communication",
+    active: true,
+  };
+
+  console.log(
+    "\n=== FASE 5 (A-1): regras ANTIGAS — injeção no catálogo DEVE passar ==="
+  );
+  await envLegado.clearFirestore();
+  await seed(envLegado, async (db) => {
+    await setDoc(doc(db, "users", "injetor"), perfil("injetor", "Injetor"));
+  });
+  const dbInjetorAntigo = envLegado.authenticatedContext("injetor").firestore();
+
+  await teste(
+    "ANTIGAS: usuário injeta atividade falsa no catálogo global (PASSA)",
+    async () => {
+      await assertSucceeds(
+        setDoc(
+          doc(dbInjetorAntigo, "contentActivities", INJECTED_ACTIVITY.id),
+          INJECTED_ACTIVITY
+        )
+      );
+    }
+  );
+
+  await teste(
+    "ANTIGAS: usuário injeta desafio falso no catálogo global (PASSA)",
+    async () => {
+      await assertSucceeds(
+        setDoc(
+          doc(dbInjetorAntigo, "contentChallenges", INJECTED_CHALLENGE.id),
+          INJECTED_CHALLENGE
+        )
+      );
+    }
+  );
+
+  console.log(
+    "\n=== FASE 5 (A-1): regras NOVAS — injeção DEVE ser bloqueada ==="
+  );
+  await env.clearFirestore();
+  await seed(env, async (db) => {
+    await setDoc(doc(db, "users", "injetor"), perfil("injetor", "Injetor"));
+  });
+  const dbInjetorNovo = env.authenticatedContext("injetor").firestore();
+
+  await teste(
+    "NOVAS: injeção de atividade com id fora do catálogo é NEGADA",
+    async () => {
+      await assertFails(
+        setDoc(
+          doc(dbInjetorNovo, "contentActivities", INJECTED_ACTIVITY.id),
+          INJECTED_ACTIVITY
+        )
+      );
+    }
+  );
+
+  await teste(
+    "NOVAS: injeção de desafio com id fora do catálogo é NEGADA",
+    async () => {
+      await assertFails(
+        setDoc(
+          doc(dbInjetorNovo, "contentChallenges", INJECTED_CHALLENGE.id),
+          INJECTED_CHALLENGE
+        )
+      );
+    }
+  );
+
+  await teste(
+    "NOVAS: o catálogo NÃO contém as entradas injetadas (leitura do app)",
+    async () => {
+      const dbLeitor = env.authenticatedContext("injetor").firestore();
+      const act = await getDoc(
+        doc(dbLeitor, "contentActivities", INJECTED_ACTIVITY.id)
+      );
+      const chal = await getDoc(
+        doc(dbLeitor, "contentChallenges", INJECTED_CHALLENGE.id)
+      );
+      if (act.exists() || chal.exists()) {
+        throw new Error("entrada injetada ficou visível no catálogo global");
+      }
+    }
+  );
+
+  console.log(
+    "\n=== FASE 5 (A-1): regras NOVAS — o SEED legítimo continua funcionando ==="
+  );
+  await teste(
+    "NOVAS: seed do catálogo (batch de ids reais) é PERMITIDO",
+    async () => {
+      await assertSucceeds(
+        (async () => {
+          const batch = writeBatch(dbInjetorNovo);
+          batch.set(
+            doc(dbInjetorNovo, "contentActivities", LEGIT_ACTIVITY.id),
+            LEGIT_ACTIVITY
+          );
+          batch.set(
+            doc(dbInjetorNovo, "contentChallenges", LEGIT_CHALLENGE.id),
+            LEGIT_CHALLENGE
+          );
+          ACTIVITIES.slice(1, 4).forEach((it) => {
+            batch.set(doc(dbInjetorNovo, "contentActivities", it.id), it);
+          });
+          CHALLENGES.slice(1, 3).forEach((it) => {
+            batch.set(doc(dbInjetorNovo, "contentChallenges", it.id), it);
+          });
+          await batch.commit();
+        })()
+      );
+    }
+  );
+
+  await teste(
+    "NOVAS: os itens semeados são legíveis e idênticos ao catálogo do app",
+    async () => {
+      const dbLeitor = env.authenticatedContext("injetor").firestore();
+      const snap = await getDoc(
+        doc(dbLeitor, "contentActivities", LEGIT_ACTIVITY.id)
+      );
+      if (!snap.exists()) throw new Error("seed não gravou a atividade legítima");
+      if (snap.data().name !== LEGIT_ACTIVITY.name) {
+        throw new Error("conteúdo semeado diverge do catálogo");
+      }
+    }
+  );
+
+  await teste(
+    "NOVAS: re-seed é idempotente (create sobre id já existente é NEGADO)",
+    async () => {
+      await assertFails(
+        setDoc(
+          doc(dbInjetorNovo, "contentActivities", LEGIT_ACTIVITY.id),
+          LEGIT_ACTIVITY
+        )
       );
     }
   );
