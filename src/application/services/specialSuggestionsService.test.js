@@ -64,4 +64,22 @@ describe("getSortedSpecialSuggestions", () => {
     };
     expect(run(map).map((s) => s.name)).toEqual(["Cinema", "Praia", "Zoo"]);
   });
+
+  // Fonte única compartilhada por MainView (Sugestões Especiais) e HotZone
+  // (Sugestões Picantes): o mesmo contrato serve os dois mapas. O teste abaixo
+  // trava a propriedade de que a função é pura — não muta o mapa de entrada,
+  // que é o objeto de estado vindo do Firestore em ambos os consumidores.
+  it("não muta o mapa de entrada (pura)", () => {
+    const map = {
+      c: suggestion("z", "Zoo"),
+      a: suggestion("a", "Cinema", {
+        selections: { userA: "selected", userB: null },
+      }),
+      b: suggestion("b", "Praia", { matched: true }),
+    };
+    const snapshot = JSON.parse(JSON.stringify(map));
+    run(map);
+    expect(map).toEqual(snapshot);
+    expect(Object.keys(map)).toEqual(["c", "a", "b"]);
+  });
 });

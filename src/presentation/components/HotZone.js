@@ -8,6 +8,7 @@ import IntimateMemoriesSection from "./hotzone/IntimateMemoriesSection";
 import HotSuggestionsSection from "./hotzone/HotSuggestionsSection";
 import SecretWishesSection from "./hotzone/SecretWishesSection";
 import IntimacyMeter from "./hotzone/IntimacyMeter";
+import { getSortedSpecialSuggestions } from "../../application/services/specialSuggestionsService";
 
 // --- COMPONENTE PRINCIPAL APRIMORADO ---
 export default function HotZone(props) {
@@ -98,21 +99,15 @@ export default function HotZone(props) {
     (item) => !finalizedHotItems.some((finalized) => finalized.id === item.id)
   ), [hotItems, finalizedHotItems]);
 
-  const sortedHotSuggestions = useMemo(() => {
-    if (!hotSuggestions) return [];
-    return Object.values(hotSuggestions)
-      .filter((activity) => {
-        if (!activity || !activity.name) return false;
-        // Se já teve match, não mostrar
-        if (activity.matched) return false;
-        // Se ambos selecionaram (mas ainda não processou o match), não mostrar
-        const mySelection = activity.selections?.[user.uid];
-        const partnerSelection = activity.selections?.[userData.partnerId];
-        if (mySelection === "selected" && partnerSelection === "selected") return false;
-        return true;
-      })
-      .sort((a, b) => a.name.localeCompare(b.name));
-  }, [hotSuggestions, user.uid, userData.partnerId]);
+  // Fonte única: mesma função usada por MainView para as Sugestões Especiais.
+  const sortedHotSuggestions = useMemo(
+    () =>
+      getSortedSpecialSuggestions(hotSuggestions, {
+        userId: user.uid,
+        partnerId: userData.partnerId,
+      }),
+    [hotSuggestions, user.uid, userData.partnerId]
+  );
 
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-black via-red-950 to-black text-white overflow-hidden">
