@@ -228,7 +228,7 @@ export default function MainView(props) {
   // entre snapshots (os hooks só setam estado em mudança real), e depender
   // só do comprimento mascarava trocas de STATUS (ex.: reward vira
   // "purchased" sem mudar tamanho), deixando conquistas presas.
-  useAchievements({
+  const { operationError: achievementsOperationError } = useAchievements({
     userData: memoizedUserData,
     coupleData: memoizedCoupleData,
     allActivities,
@@ -467,6 +467,7 @@ export default function MainView(props) {
 
       <main className="max-w-4xl mx-auto p-4 md:p-6 space-y-8 pb-24">
         {selectionError && <p role="alert" className="text-red-400 text-sm">{selectionError}</p>}
+        {achievementsOperationError && <p role="alert" className="text-red-400 text-sm">{achievementsOperationError.message}</p>}
         <div
           data-tour-id="rounds-card"
           className="bg-gray-800/50 border border-gray-700/50 rounded-2xl shadow-lg p-6 backdrop-blur-sm"

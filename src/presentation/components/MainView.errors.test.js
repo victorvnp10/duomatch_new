@@ -46,6 +46,14 @@ beforeEach(() => {
 });
 afterEach(() => { act(() => root.unmount()); container.remove(); jest.restoreAllMocks(); });
 
+test('shows achievement persistence errors without hiding the feed or exposing diagnostics', async () => {
+  useAchievements.mockReturnValue({ operationError: Object.assign(new Error('Não foi possível salvar as conquistas do casal.'), { cause: new Error('permission-denied') }) });
+  await render();
+  expect(container.querySelector('[role="alert"]')?.textContent).toBe('Não foi possível salvar as conquistas do casal.');
+  expect(container.textContent).toContain('Escolher esta atividade');
+  expect(container.textContent).not.toContain('permission-denied');
+});
+
 test.each(['activity', 'suggestion'])('%s selection observes streak rejection and displays a safe failure without undoing selection', async (kind) => {
   if (kind === 'suggestion') { props.allActivities = []; props.dailySuggestions = { special: { id: 'special', name: 'Jantar', category: 'Lazer' } }; }
   let observed = false;
