@@ -10,7 +10,7 @@ import {
 import {
   ACTIVITY_CATALOG,
   CHALLENGE_CATALOG,
-} from "../../../shared/contentCatalog";
+} from "../../seed/contentCatalog";
 
 /**
  * ContentRepository — catálogo global de conteúdo (atividades e desafios).
