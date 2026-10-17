@@ -63,6 +63,7 @@ export default function DuoMatchApp({ user, userData }) {
 
   const {
     coupleData,
+    operationError: coupleOperationError,
     error: coupleError,
     handleUpdateCoupleData,
     handleUnlinkCouple,
@@ -87,41 +88,44 @@ export default function DuoMatchApp({ user, userData }) {
       setIsTourOpen(true);
     }
   }, [coupleData, user?.uid]);
-  const { rounds, handleAddRound, handleUpdateRound, handleDeleteRound } =
+  const { rounds, operationError: roundsOperationError, handleAddRound, handleUpdateRound, handleDeleteRound } =
     useRounds(userData);
   const {
     allActivities,
     mySelections,
     partnerSelections,
     matches,
+    operationError: activitiesOperationError,
     ...activityHandlers
   } = useActivities(user, userData, coupleData, rounds);
 
-  useRoundRules({ user, userData, rounds, allActivities });
+  const { operationError: rulesOperationError } = useRoundRules({ user, userData, rounds, allActivities });
 
 
   const {
+    operationError: hotSuggestionsOperationError,
     suggestions: hotSuggestions,
     handleSelectSuggestion: handleSelectHotSuggestion,
   } = useSuggestions(userData, activityHandlers.handleAddActivity, "hot");
   const {
+    operationError: dailySuggestionsOperationError,
     suggestions: dailySuggestions,
     handleSelectSuggestion: handleSelectDailySuggestion,
   } = useSuggestions(userData, activityHandlers.handleAddActivity, "daily");
 
-  const { wishlistItems, ...wishlistHandlers } = useWishlist(
+  const { wishlistItems, operationError: wishlistOperationError, ...wishlistHandlers } = useWishlist(
     user,
     userData,
     coupleData,
     rounds
   );
-  const { rewards, ...rewardHandlers } = useRewards(
+  const { rewards, operationError: rewardsOperationError, ...rewardHandlers } = useRewards(
     user,
     userData,
     coupleData,
     rounds
   );
-  const { activeChatActivity: chatActivity, setActiveChatActivity: setChatActivity, ...chatHandlers } =
+  const { operationError: chatOperationError, activeChatActivity: chatActivity, setActiveChatActivity: setChatActivity, ...chatHandlers } =
     useChat(user, userData, allActivities);
 
   // Derivação única da Central de Notificações no nível do app: alimenta o
@@ -318,7 +322,21 @@ export default function DuoMatchApp({ user, userData }) {
   return (
     <div className="relative min-h-screen bg-gray-900">
       {isTourOpen && <OnboardingView onFinish={handleFinishOnboarding} setView={setView} />}
-      <div className="pb-24 md:pb-0">{renderCurrentView()}
+      <div className="pb-24 md:pb-0">
+        {[
+          ["couple", coupleOperationError],
+          ["activities", activitiesOperationError],
+          ["rounds", roundsOperationError],
+          ["rules", rulesOperationError],
+          ["hotSuggestions", hotSuggestionsOperationError],
+          ["dailySuggestions", dailySuggestionsOperationError],
+          ["wishlist", wishlistOperationError],
+          ["rewards", rewardsOperationError],
+          ["chat", chatOperationError],
+        ].map(([source, error]) => error && (
+          <p key={source} role="alert" className="text-red-400 text-sm">{error.message}</p>
+        ))}
+        {renderCurrentView()}
         {/* Overlay global de hot match — cobre todas as views EXCETO "hot",
             onde o HotZone já exibe o seu próprio overlay temático. */}
         {showHotMatchNotification && view !== "hot" && (
