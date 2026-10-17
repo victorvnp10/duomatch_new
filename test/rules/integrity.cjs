@@ -36,7 +36,7 @@ module.exports = async ({ env, seed, teste, host, port }) => {
     await assertSucceeds(fn(ref));
     assert((await getDoc(ref)).exists());
   });
-  const group = Number(process.env.INTEGRITY_GROUP || 1);
+  const group = Number(process.env.INTEGRITY_GROUP || 2);
   console.log('\n=== FASE 7: integridade — baseline local f5f29a9 versus regras novas ===');
   try {
     await attack('streak', 'salto para 999999', { streak: 4 }, { streak: 999999 });
