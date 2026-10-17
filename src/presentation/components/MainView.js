@@ -21,9 +21,10 @@ import StreakTracker from "./StreakTracker";
 import DailyChallenge from "./DailyChallenge";
 import AchievementSystem from "./AchievementSystem";
 import MatchNotification from "./MatchNotification";
-import { isActivityForToday, getTodayDateString, getDateString } from "../../shared/lib/dateUtils";
+import { getTodayDateString, getDateString } from "../../shared/lib/dateUtils";
 import { updateStreak } from "../../application/services/streakService";
 import { getRoundCountdownInfo } from "../../application/services/roundCountdownService";
+import { filterAvailableActivities } from "../../application/services/activityFeedService";
 import { buildRoundRulesProgress } from "../../domain/services/RoundRulesEvaluator";
 import CountdownTimer from "./CountdownTimer";
 import { useAchievements } from "../../application/hooks/useAchievements";
@@ -154,31 +155,10 @@ export default function MainView(props) {
 
   const availableActivities = useMemo(
     () =>
-      allActivities.filter((activity) => {
-        if (
-          !isActivityForToday(activity) ||
-          matches.some((m) => m.id === activity.id) ||
-          activity.category === "Hot"
-        )
-          return false;
-        
-        const isChallenge = activity.type?.startsWith("desafio");
-        if (isChallenge)
-          return activity.challengeState === "pending_acceptance";
-        
-        // Para atividades criadas pelo sistema (não sugestões especiais), aplicar a mesma lógica
-        if (activity.createdBy === "SYSTEM") return false;
-        
-        // Para atividades normais, verificar se já houve match
-        const mySelection = activity.selections?.[user.uid];
-        const partnerSelection = activity.selections?.[userData.partnerId];
-        
-        // Se ambos confirmaram, não mostrar (será exibido em "Matches de Hoje")
-        if (mySelection?.status === "confirmed" && partnerSelection?.status === "confirmed") {
-          return false;
-        }
-        
-        return true;
+      filterAvailableActivities(allActivities, {
+        matches,
+        userId: user.uid,
+        partnerId: userData.partnerId,
       }),
     [allActivities, matches, user.uid, userData.partnerId]
   );
