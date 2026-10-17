@@ -41,6 +41,14 @@ import ErrorScreen from "./ErrorScreen";
 import CycleView from "./CycleView";
 import { PlusIcon } from "./Icons";
 
+import { useMatchNotification } from "../../application/hooks/useMatchNotification";
+
+// Preserve o contrato estrito do listener global, inclusive para payloads legados.
+const extractHotMatchActivityName = (event) => {
+  const { activityName } = event.detail;
+  return activityName;
+};
+
 export default function DuoMatchApp({ user, userData }) {
   const validViews = ["main", "wishlist", "wallet", "shop", "hot", "all", "rounds", "profile", "cycle"];
   const initialView = new URLSearchParams(window.location.search).get("view");
@@ -51,8 +59,6 @@ export default function DuoMatchApp({ user, userData }) {
   const [isAddRoundModalOpen, setIsAddRoundModalOpen] = useState(false);
   const [isTourOpen, setIsTourOpen] = useState(false);
   const hasAutoOpenedTour = useRef(false);
-  const [showHotMatchNotification, setShowHotMatchNotification] = useState(false);
-  const [hotMatchedActivityName, setHotMatchedActivityName] = useState("");
   const [achievementToShow, setAchievementToShow] = useState(null);
 
   const partnerNickname = useMemo(
@@ -267,15 +273,14 @@ export default function DuoMatchApp({ user, userData }) {
     return () => navigator.serviceWorker?.removeEventListener("message", handleSwMessage);
   }, []);
 
+  // Mesmo evento do HotZone; estado por instância e exclusão do overlay em "hot" preservados.
+  const {
+    showMatchNotification: showHotMatchNotification,
+    matchedActivityName: hotMatchedActivityName,
+    hideMatchNotification: hideHotMatchNotification,
+  } = useMatchNotification(["hotActivityMatch"], extractHotMatchActivityName);
+
   useEffect(() => {
-    const handleHotMatchEvent = (event) => {
-      const { activityName } = event.detail;
-      setHotMatchedActivityName(activityName);
-      setShowHotMatchNotification(true);
-    };
-
-    window.addEventListener('hotActivityMatch', handleHotMatchEvent);
-
     // Tornar a função dispatchHotMatchEvent acessível globalmente
     window.dispatchHotMatchEvent = (activityName) => {
       const event = new CustomEvent('hotActivityMatch', { detail: { activityName } });
@@ -284,7 +289,6 @@ export default function DuoMatchApp({ user, userData }) {
 
     return () => {
       delete window.dispatchHotMatchEvent;
-      window.removeEventListener('hotActivityMatch', handleHotMatchEvent);
     };
   }, []);
 
@@ -344,7 +348,7 @@ export default function DuoMatchApp({ user, userData }) {
             isVisible={showHotMatchNotification}
             activityName={hotMatchedActivityName}
             isHot={true}
-            onComplete={() => setShowHotMatchNotification(false)}
+            onComplete={() => hideHotMatchNotification()}
           />
         )}
 

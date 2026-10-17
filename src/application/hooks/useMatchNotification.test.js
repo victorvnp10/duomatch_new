@@ -17,9 +17,9 @@ import {
   extractMatchActivityName,
 } from "./useMatchNotification";
 
-const Probe = ({ eventNames }) => {
+const Probe = ({ eventNames, extractActivityName }) => {
   const { showMatchNotification, matchedActivityName, hideMatchNotification } =
-    useMatchNotification(eventNames);
+    useMatchNotification(eventNames, extractActivityName);
   return (
     <div>
       <span data-testid="show">{String(showMatchNotification)}</span>
@@ -69,6 +69,23 @@ describe("extractMatchActivityName — parsing do detail (fonte única)", () => 
 });
 
 describe("useMatchNotification — listener de match", () => {
+  it("preserva o parser estrito do App sem ampliar o contrato legado", () => {
+    const extractActivityName = (event) => {
+      const { activityName } = event.detail;
+      return activityName;
+    };
+    withRoot((root, container) => {
+      act(() => root.render(<Probe eventNames={["hotActivityMatch"]} extractActivityName={extractActivityName} />));
+      dispatch("activityMatch", { activityName: "Ignorado" });
+      expect(text(container, "show")).toBe("false");
+      dispatch("hotActivityMatch", "Não era aceito pelo App");
+      expect(text(container, "show")).toBe("true");
+      expect(text(container, "name")).toBe("");
+      dispatch("hotActivityMatch", { activityName: "Sinal quente" });
+      expect(text(container, "name")).toBe("Sinal quente");
+    });
+  });
+
   it("começa oculto e sem nome", () => {
     withRoot((root, container) => {
       act(() => root.render(<Probe />));
