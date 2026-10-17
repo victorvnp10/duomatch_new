@@ -188,29 +188,33 @@ service cloud.firestore {
 
     // Integrity checks apply only when a field changes: unrelated writes must
     // not strand couples containing legacy data. Missing numeric counters = 0.
-    function changed(field) {
-      return request.resource.data.diff(resource.data).affectedKeys().hasAny([field]);
+    function validAggregates() {
+      let fields = request.resource.data.diff(resource.data).affectedKeys();
+      return validCounters(fields) && validLists(fields) && validMaps(fields);
     }
 
-    function validCounters() {
+    function validCounters(fields) {
       let next = request.resource.data;
       let old = resource.data;
-      return (!changed('streak') ||
+      let intimacy = old.get('intimacyPoints', null) == null ? 0 : old.intimacyPoints;
+      let messages = old.get('messageCount', null) == null ? 0 : old.messageCount;
+      return (!fields.hasAny(['streak']) ? true :
           (next.streak is int && next.streak >= 1 &&
             (next.streak == 1 || next.streak == old.get('streak', 0) + 1))) &&
-        (!changed('intimacyPoints') ||
+        (!fields.hasAny(['intimacyPoints']) ? true :
           (next.intimacyPoints is int && next.intimacyPoints >= 0 &&
-            next.intimacyPoints == old.get('intimacyPoints', 0) + 1)) &&
+            next.intimacyPoints == intimacy + 1)) &&
         // Deletion is a separate client write; legacy counters can go negative.
-        (!changed('messageCount') ||
+        (!fields.hasAny(['messageCount']) ? true :
           (next.messageCount is int &&
-            (next.messageCount == old.get('messageCount', 0) + 1 ||
-             next.messageCount == old.get('messageCount', 0) - 1)));
+            (next.messageCount == messages + 1 ||
+             next.messageCount == messages - 1)));
     }
 
     function validAchievements() {
       let next = request.resource.data.achievements;
-      let old = resource.data.get('achievements', []);
+      let previous = resource.data.get('achievements', null);
+      let old = previous == null ? [] : previous;
       return next is list && next.size() <= 12 &&
         next.toSet().size() == next.size() && next.hasAll(old) &&
         next.hasOnly([
@@ -222,7 +226,8 @@ service cloud.firestore {
 
     function validRecentActivities() {
       let next = request.resource.data.recentActivityIds;
-      let old = resource.data.get('recentActivityIds', []);
+      let previous = resource.data.get('recentActivityIds', null);
+      let old = previous == null ? [] : previous;
       let added = next.removeAll(old);
       return next is list && next.hasAll(old) &&
         next.toSet().size() == next.size() && added.size() <= 5 &&
@@ -231,22 +236,96 @@ service cloud.firestore {
 
     function validRecentChallenges() {
       let next = request.resource.data.recentChallengeIds;
-      let old = resource.data.get('recentChallengeIds', []);
+      let previous = resource.data.get('recentChallengeIds', null);
+      let old = previous == null ? [] : previous;
       let added = next.removeAll(old);
       return next is list && next.hasAll(old) &&
         next.toSet().size() == next.size() && added.size() <= 1 &&
         (added.size() == 0 || isCatalogChallengeId(added[0]));
     }
 
-    function validLists() {
-      return (!changed('achievements') || validAchievements()) &&
-        (!changed('recentActivityIds') || validRecentActivities()) &&
-        (!changed('recentChallengeIds') || validRecentChallenges());
+    function validLists(fields) {
+      return (!fields.hasAny(['achievements']) ? true : validAchievements()) &&
+        (!fields.hasAny(['recentActivityIds']) ? true : validRecentActivities()) &&
+        (!fields.hasAny(['recentChallengeIds']) ? true : validRecentChallenges());
+    }
+
+    function isDate(value) {
+      return value is string && value.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$');
+    }
+
+    function validSignals() {
+      let next = request.resource.data.dailySignals;
+      let previous = resource.data.get('dailySignals', null);
+      let old = previous is map ? previous : {};
+      let oldDate = old.get('date', '');
+      return next is map && next.keys().hasOnly(['date', 'signals']) &&
+        isDate(next.date) && next.signals is map &&
+        next.signals.keys().hasOnly(resource.data.members) &&
+        next.signals.get(request.auth.uid, '') in ['willing', 'unsure', 'resting'] &&
+        (next.date == oldDate
+          ? next.signals.diff(old.get('signals', {})).affectedKeys().hasOnly([request.auth.uid])
+          : (next.date > oldDate && next.signals.keys().hasOnly([request.auth.uid])));
+    }
+
+    function validPeriod(p) {
+      return p is map && p.keys().hasOnly(['startDate', 'periodLength']) &&
+        p.startDate is string && p.startDate.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$') &&
+        p.periodLength is number && p.periodLength >= 1 && p.periodLength <= 10;
+    }
+
+    function validCycle() {
+      let next = request.resource.data.cycleTracking;
+      let previous = resource.data.get('cycleTracking', null);
+      let old = previous is map ? previous : {};
+      return next is map &&
+        next.keys().hasOnly(['ownerId', 'periods', 'cycleLengthOverride']) &&
+        next.ownerId == request.auth.uid &&
+        (old.get('ownerId', null) == null || next.ownerId == old.ownerId) &&
+        next.periods is list && next.periods.size() <= 12 &&
+        (next.cycleLengthOverride == null ||
+          (next.cycleLengthOverride is number && next.cycleLengthOverride >= 15 &&
+            next.cycleLengthOverride <= 60)) &&
+        (next.periods.size() <= 0 || validPeriod(next.periods[0])) &&
+        (next.periods.size() <= 1 || validPeriod(next.periods[1])) &&
+        (next.periods.size() <= 2 || validPeriod(next.periods[2])) &&
+        (next.periods.size() <= 3 || validPeriod(next.periods[3])) &&
+        (next.periods.size() <= 4 || validPeriod(next.periods[4])) &&
+        (next.periods.size() <= 5 || validPeriod(next.periods[5])) &&
+        (next.periods.size() <= 6 || validPeriod(next.periods[6])) &&
+        (next.periods.size() <= 7 || validPeriod(next.periods[7])) &&
+        (next.periods.size() <= 8 || validPeriod(next.periods[8])) &&
+        (next.periods.size() <= 9 || validPeriod(next.periods[9])) &&
+        (next.periods.size() <= 10 || validPeriod(next.periods[10])) &&
+        (next.periods.size() <= 11 || validPeriod(next.periods[11]));
+    }
+
+    // Partial validation only: the client rewrites one dynamically keyed week.
+    // Nested confirmations/points still require authoritative backend writes.
+    function validWeeklyEnvelope() {
+      let next = request.resource.data.weeklyChallenge;
+      let previous = resource.data.get('weeklyChallenge', null);
+      let old = previous is map ? previous : {};
+      return next is map && next.keys().hasAll(old.keys()) &&
+        next.diff(old).affectedKeys().size() <= 1;
+    }
+
+    function validMaps(fields) {
+      return (!fields.hasAny(['dailySignals']) ? true : validSignals()) &&
+        (!fields.hasAny(['cycleTracking']) ? true :
+          (request.resource.data.keys().hasAll(['cycleTracking']) ? validCycle() : false)) &&
+        (!fields.hasAny(['weeklyChallenge']) ? true : validWeeklyEnvelope());
     }
 
     // Regra principal para os dados do casal
     match /duomatches/{coupleId} {
       allow create: if isSignedIn() &&
+        // linkingService creates no aggregates; seed them only via validated updates.
+        !request.resource.data.keys().hasAny([
+          'streak', 'intimacyPoints', 'messageCount', 'achievements',
+          'recentActivityIds', 'recentChallengeIds', 'dailySignals',
+          'cycleTracking', 'weeklyChallenge'
+        ]) &&
         request.auth.uid == request.resource.data.get('createdBy', '') &&
         request.resource.data.get('members', []).size() == 2 &&
         request.resource.data.members[0] != request.resource.data.members[1] &&
@@ -261,7 +340,7 @@ service cloud.firestore {
           request.resource.data.invitedUserId,
           coupleId);
       allow read: if isCoupleMember(coupleId);
-      allow update: if isCoupleMember(coupleId) && validCounters() && validLists() &&
+      allow update: if isCoupleMember(coupleId) && validAggregates() &&
         request.resource.data.members == resource.data.members &&
         request.resource.data.get('memberNicknames', {}) == resource.data.get('memberNicknames', {}) &&
         request.resource.data.get('createdBy', '') == resource.data.get('createdBy', '') &&

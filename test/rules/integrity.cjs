@@ -36,7 +36,7 @@ module.exports = async ({ env, seed, teste, host, port }) => {
     await assertSucceeds(fn(ref));
     assert((await getDoc(ref)).exists());
   });
-  const group = Number(process.env.INTEGRITY_GROUP || 2);
+  const group = Number(process.env.INTEGRITY_GROUP || 3);
   console.log('\n=== FASE 7: integridade — baseline local f5f29a9 versus regras novas ===');
   try {
     await attack('streak', 'salto para 999999', { streak: 4 }, { streak: 999999 });
@@ -122,11 +122,40 @@ module.exports = async ({ env, seed, teste, host, port }) => {
       await updateDoc(ref, { [`weeklyChallenge.${date}`]: weekly, recentChallengeIds: arrayUnion('week-walk') });
       const claimed = { ...weekly, state: 'pending_confirmations', confirmations: { alice: { claimed: true, claimedAt: new Date(), status: 'pending_partner_confirmation' } } };
       await updateDoc(ref, { [`weeklyChallenge.${date}`]: claimed });
-      await updateDoc(ref, { [`weeklyChallenge.${date}`]: { ...claimed, confirmations: { alice: { ...claimed.confirmations.alice, status: 'confirmed', confirmedBy: 'bob', confirmedAt: new Date(), pointsAwarded: 20 } } } });
-      await updateDoc(ref, { [`weeklyChallenge.${date}.confirmations.alice.status`]: 'denied' });
+      const bobRef = doc(env.authenticatedContext('bob').firestore(), ref.path);
+      await updateDoc(bobRef, { [`weeklyChallenge.${date}`]: { ...claimed, confirmations: { alice: { ...claimed.confirmations.alice, status: 'confirmed', confirmedBy: 'bob', confirmedAt: new Date(), pointsAwarded: 20 } } } });
+      await updateDoc(bobRef, { [`weeklyChallenge.${date}.confirmations.alice.status`]: 'denied' });
       await updateDoc(ref, { 'weeklyChallenge.2026-10-19': { ...weekly, weekStartDate: '2026-10-19' } });
       assert.equal(Object.keys((await getDoc(ref)).data().weeklyChallenge).length, 2);
     });
+    for (const field of ['streak', 'intimacyPoints', 'messageCount']) {
+      await legit(field, 'inicializacao de campo legado null', { [field]: null }, ref => updateDoc(ref, { [field]: field === 'streak' ? 1 : increment(1) }));
+    }
+    for (const [field, value] of [['achievements', 'first_activity'], ['recentActivityIds', a[0]], ['recentChallengeIds', 'week-walk']]) {
+      await legit(field, 'arrayUnion sobre campo legado null', { [field]: null }, ref => updateDoc(ref, { [field]: arrayUnion(value) }));
+    }
+    await legit('dailySignals', 'segundo parceiro adiciona sinal sem apagar primeiro', { dailySignals: { date, signals: { alice: 'willing' } } }, async ref => {
+      await updateDoc(ref, { 'dailySignals.signals.bob': 'unsure' });
+      assert.deepEqual((await getDoc(ref)).data().dailySignals.signals, { alice: 'willing', bob: 'unsure' });
+    }, 'bob');
+    await legit('cycleTracking', 'limite real de 12 entradas', {}, ref => updateDoc(ref, { cycleTracking: { ...cycle, periods: Array.from({ length: 12 }, (_, i) => ({ startDate: `2025-${String(i + 1).padStart(2, '0')}-01`, periodLength: 5 })) } }));
+    await teste('RESIDUAL DOCUMENTADO: weeklyChallenge pontos internos forjados ainda PASSAM (nao alegar integridade completa)', async () => {
+      const ref = await fresh(env, { weeklyChallenge: { [date]: weekly } });
+      await assertSucceeds(updateDoc(ref, { [`weeklyChallenge.${date}.confirmations.alice`]: { status: 'confirmed', pointsAwarded: 999999 } }));
+      assert.equal((await getDoc(ref)).data().weeklyChallenge[date].confirmations.alice.pointsAwarded, 999999);
+    });
+    // Mesmo um convite real não deve habilitar o bypass dos validadores via create.
+    for (const field of ['streak', 'intimacyPoints', 'messageCount', 'achievements', 'recentActivityIds', 'recentChallengeIds', 'dailySignals', 'cycleTracking', 'weeklyChallenge']) {
+      for (const [target, label, expectation] of [[before, 'ANTES PASSA', assertSucceeds], [env, 'NOVAS NEGADO', assertFails]]) {
+        await teste(`INTEGRIDADE CREATE: ${field} pre-inflado ${label}`, async () => {
+          const key = `create-${++id}`;
+          const code = `invite-${id}`;
+          await seed(target, db => setDoc(doc(db, 'inviteCodes', code), { creatorId: 'bob', coupleId: key, expiresAt: new Date(Date.now() + 3600000) }));
+          const ref = doc(target.authenticatedContext('alice').firestore(), 'duomatches', key);
+          await expectation(setDoc(ref, { ...base, inviteCode: code, [field]: 999999 }));
+        });
+      }
+    }
     await legit('outros campos', 'atualizacao nao relacionada preserva legado invalido', { intimacyPoints: 'legacy', weeklyChallenge: null }, ref => updateDoc(ref, { confirmationTime: '22:30' }));
     for (const field of ['streak', 'intimacyPoints', 'messageCount', 'achievements', 'recentActivityIds', 'recentChallengeIds', 'dailySignals', 'cycleTracking', 'weeklyChallenge']) {
       const values = { streak: 1, intimacyPoints: 1, messageCount: 1, achievements: ['first_activity'], recentActivityIds: a, recentChallengeIds: ['week-walk'], dailySignals: { date, signals: { alice: 'willing' } }, cycleTracking: cycle, weeklyChallenge: { [date]: weekly } };
