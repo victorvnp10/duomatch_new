@@ -57,6 +57,26 @@ beforeEach(() => {
 });
 afterEach(() => { act(() => root.unmount()); container.remove(); jest.restoreAllMocks(); });
 
+test.each(['main', 'hot'])('hot match keeps one visible overlay in %s and closes on completion', async (view) => {
+  jest.useFakeTimers();
+  const previousUrl = window.location.href;
+  window.history.replaceState({}, '', `?view=${view}`);
+  couple.coupleData.onboardingCompletedBy = ['me'];
+  try {
+    await render();
+    act(() => window.dispatchEvent(new CustomEvent('activityMatch', { detail: 'Match comum' })));
+    expect(container.textContent.includes('MATCH HOT!')).toBe(view === 'hot');
+    act(() => window.dispatchHotMatchEvent('Sinal quente'));
+    expect([...container.querySelectorAll('h2')].filter((node) => node.textContent === 'MATCH HOT!')).toHaveLength(1);
+    expect(container.textContent).toContain('Sinal quente');
+    act(() => jest.advanceTimersByTime(3500));
+    expect(container.textContent).not.toContain('MATCH HOT!');
+  } finally {
+    window.history.replaceState({}, '', previousUrl);
+    jest.useRealTimers();
+  }
+});
+
 test.each([
   ['casal', useCouple], ['atividades', useActivities], ['rodadas', useRounds],
   ['desejos', useWishlist], ['recompensas', useRewards], ['chat', useChat], ['regras', useRoundRules],

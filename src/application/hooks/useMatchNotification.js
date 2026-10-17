@@ -26,8 +26,12 @@ export const extractMatchActivityName = (event) => {
  * o seu), não é compartilhado nem movido entre componentes.
  *
  * @param {string[]} eventNames eventos a escutar (default: ["activityMatch"]).
+ * @param {Function} extractActivityName parser estável; permite preservar contratos legados.
  */
-export function useMatchNotification(eventNames = ["activityMatch"]) {
+export function useMatchNotification(
+  eventNames = ["activityMatch"],
+  extractActivityName = extractMatchActivityName
+) {
   const [matchedActivityName, setMatchedActivityName] = useState("");
   const [showMatchNotification, setShowMatchNotification] = useState(false);
 
@@ -37,7 +41,7 @@ export function useMatchNotification(eventNames = ["activityMatch"]) {
 
   useEffect(() => {
     const handleMatchEvent = (event) => {
-      setMatchedActivityName(extractMatchActivityName(event));
+      setMatchedActivityName(extractActivityName(event));
       setShowMatchNotification(true);
     };
 
@@ -48,7 +52,7 @@ export function useMatchNotification(eventNames = ["activityMatch"]) {
         window.removeEventListener(name, handleMatchEvent)
       );
     };
-  }, [eventNamesKey]);
+  }, [eventNamesKey, extractActivityName]);
 
   const hideMatchNotification = () => setShowMatchNotification(false);
 
