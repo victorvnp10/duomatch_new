@@ -23,6 +23,7 @@ import AchievementSystem from "./AchievementSystem";
 import MatchNotification from "./MatchNotification";
 import { isActivityForToday, getTodayDateString, getDateString } from "../../shared/lib/dateUtils";
 import { updateStreak } from "../../application/services/streakService";
+import { getRoundCountdownInfo } from "../../application/services/roundCountdownService";
 import { buildRoundRulesProgress } from "../../domain/services/RoundRulesEvaluator";
 import CountdownTimer from "./CountdownTimer";
 import { useAchievements } from "../../application/hooks/useAchievements";
@@ -149,32 +150,7 @@ export default function MainView(props) {
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [dailySuggestions, user.uid, userData.partnerId]);
 
-  const getRoundCountdownInfo = () => {
-    const baseClasses = "text-center text-sm mt-4";
-    if (!activeRound) return { text: null, className: baseClasses };
-    // B2-40: o fim da rodada é INCLUSIVO e `Math.ceil` sobre
-    // `endDate + T23:59:59` nunca produzia `diffDays === 0` — o aviso
-    // "acaba hoje" de fato nunca aparecia e o ramo `diffDays === 1`
-    // do fallback era inalcançável (o `<= 1` pegava antes). Comparar a
-    // data-string do fim (YYY-MM-DD) com hoje é exato.
-    if (todayStr >= activeRound.endDate)
-      return {
-        text: "A rodada acaba hoje!",
-        className: `${baseClasses} text-yellow-400 font-bold`,
-      };
-    const diffDays = Math.ceil(
-      (new Date(activeRound.endDate).getTime() -
-        new Date(todayStr).getTime()) /
-        (1000 * 60 * 60 * 24)
-    );
-    const text =
-      diffDays === 1
-        ? "Falta 1 dia para acabar a rodada."
-        : `Faltam ${diffDays} dias para acabar a rodada.`;
-    return { text, className: `${baseClasses} text-gray-400 italic` };
-  };
-
-  const countdownInfo = getRoundCountdownInfo();
+  const countdownInfo = getRoundCountdownInfo(activeRound, todayStr);
 
   const availableActivities = useMemo(
     () =>
