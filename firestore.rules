@@ -33,6 +33,23 @@ service cloud.firestore {
         request.resource.data.get('coupleId', null) == resource.data.get('coupleId', null);
     }
 
+    // Prova de consentimento do convite.
+    // O convite é o ÚNICO artefato que um atacante não consegue forjar: a
+    // regra de create de `inviteCodes` exige creatorId == request.auth.uid,
+    // logo um convite com creatorId == invitedUserId só pode ter sido criado
+    // pelo próprio usuário convidado. O documento do casal guarda o código
+    // usado (campo `inviteCode`) e aqui conferimos que esse convite existia
+    // ANTES da transação (get, não getAfter — o fluxo legítimo consome/apaga o
+    // convite na mesma transação), que aponta para ESTE casal e que foi criado
+    // por QUEM está sendo vinculado.
+    function hasInviteConsent(inviteCode, invitedUserId, coupleId) {
+      return inviteCode is string &&
+        inviteCode.size() > 0 &&
+        exists(/databases/$(database)/documents/inviteCodes/$(inviteCode)) &&
+        get(/databases/$(database)/documents/inviteCodes/$(inviteCode)).data.get('creatorId', '') == invitedUserId &&
+        get(/databases/$(database)/documents/inviteCodes/$(inviteCode)).data.get('coupleId', '') == coupleId;
+    }
+
     function isLinkingUserUpdate(userId) {
       return isSignedIn() &&
         resource.data.get('partnerId', null) == null &&
@@ -52,7 +69,12 @@ service cloud.firestore {
           (userId == request.auth.uid &&
             request.resource.data.partnerId == getAfter(couplePath(request.resource.data.coupleId)).data.invitedUserId) ||
           (userId == getAfter(couplePath(request.resource.data.coupleId)).data.invitedUserId &&
-            request.resource.data.partnerId == request.auth.uid)
+            request.resource.data.partnerId == request.auth.uid &&
+            getAfter(couplePath(request.resource.data.coupleId)).data.keys().hasAll(['inviteCode']) &&
+            hasInviteConsent(
+              getAfter(couplePath(request.resource.data.coupleId)).data.inviteCode,
+              userId,
+              request.resource.data.coupleId))
         );
     }
 
@@ -140,7 +162,14 @@ service cloud.firestore {
         request.resource.data.members[0] != request.resource.data.members[1] &&
         request.auth.uid in request.resource.data.members &&
         request.resource.data.get('invitedUserId', '') in request.resource.data.members &&
-        request.resource.data.get('memberNicknames', {}).keys().hasAll(request.resource.data.members);
+        request.resource.data.get('memberNicknames', {}).keys().hasAll(request.resource.data.members) &&
+        // Sem convite do usuário incluído não existe casal: o criador do doc
+        // não pode simplesmente "declarar" que a outra pessoa consentiu.
+        request.resource.data.keys().hasAll(['inviteCode', 'invitedUserId']) &&
+        hasInviteConsent(
+          request.resource.data.inviteCode,
+          request.resource.data.invitedUserId,
+          coupleId);
       allow read: if isCoupleMember(coupleId);
       allow update: if isCoupleMember(coupleId) &&
         request.resource.data.members == resource.data.members &&
