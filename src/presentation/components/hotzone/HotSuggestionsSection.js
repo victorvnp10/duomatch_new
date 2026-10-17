@@ -25,6 +25,14 @@ const HotSuggestionsSection = ({ sortedHotSuggestions, user, handleSelectHotSugg
                   return (
                     <li
                       key={activity.id}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          handleSelectHotSuggestion(activity.id);
+                        }
+                      }}
                       onClick={() => handleSelectHotSuggestion(activity.id)}
                       className="group cursor-pointer relative overflow-hidden rounded-xl bg-gradient-to-r from-pink-900/60 to-red-900/60 border-2 border-pink-500/70 backdrop-blur-sm hover:shadow-[0_0_30px_rgba(236,72,153,0.6)] transition-all duration-300"
                     >
@@ -58,6 +66,14 @@ const HotSuggestionsSection = ({ sortedHotSuggestions, user, handleSelectHotSugg
                 return (
                   <li
                     key={activity.id}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        handleSelectHotSuggestion(activity.id);
+                      }
+                    }}
                     onClick={() => handleSelectHotSuggestion(activity.id)}
                     className="group cursor-pointer relative overflow-hidden rounded-xl bg-gradient-to-r from-gray-900/70 to-gray-800/70 border border-gray-600/50 hover:border-pink-500/70 backdrop-blur-sm hover:shadow-[0_0_20px_rgba(236,72,153,0.3)] transition-all duration-300"
                   >
