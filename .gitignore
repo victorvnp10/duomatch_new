@@ -8,3 +8,6 @@ npm-debug.log*
 firebase-debug.log
 firebase-debug.*.log
 .vercel
+
+# log do emulador do Firestore
+firestore-debug.log
