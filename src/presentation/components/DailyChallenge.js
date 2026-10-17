@@ -11,6 +11,7 @@ import { ChallengeIcon, TrophyIcon } from './Icons';
 import { getTodayDateString, getDateString } from '../../shared/lib/dateUtils';
 import { CATEGORY_STYLES, DEFAULT_CATEGORY_STYLE } from "./dailychallenge/categoryStyles";
 import WeeklyChallengeHeader from "./dailychallenge/WeeklyChallengeHeader";
+import WeeklyChallengeInfo from "./dailychallenge/WeeklyChallengeInfo";
 
 /**
  * Retorna a SEGUNDA-FEIRA que inicia a semana da data informada.
@@ -384,40 +385,11 @@ export const DailyChallenge = ({ userData, coupleData, rounds, onAcceptChallenge
       />
 
       <div className="bg-black/20 rounded-lg p-4 mb-4">
-        <p className={`text-xs uppercase tracking-wide font-bold ${categoryStyle.text} mb-1`}>
-          {categoryStyle.label}
-        </p>
-        <h4 className="font-semibold text-white text-lg mb-2">
-          🎯 {selectedChallenge.title}
-        </h4>
-        <p className="text-gray-300 text-sm mb-3 leading-relaxed">
-          {selectedChallenge.description}
-        </p>
-
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center text-yellow-400">
-            <TrophyIcon className="h-4 w-4 mr-1" />
-            <span className="font-bold text-sm">+{selectedChallenge.points} pontos</span>
-          </div>
-
-          {/* Status de aceitação independente */}
-          <div className="text-xs text-gray-300 text-right">
-            <div className="mb-1">
-              {challengeState?.myAccepted ? (
-                <span className="text-green-400">✅ Você: Aceito</span>
-              ) : (
-                <span className="text-gray-400">❌ Você: Não aceito</span>
-              )}
-            </div>
-            <div>
-              {challengeState?.partnerAccepted ? (
-                <span className="text-green-400">✅ Parceiro: Aceito</span>
-              ) : (
-                <span className="text-gray-400">❌ Parceiro: Não aceito</span>
-              )}
-            </div>
-          </div>
-        </div>
+        <WeeklyChallengeInfo
+          categoryStyle={categoryStyle}
+          selectedChallenge={selectedChallenge}
+          challengeState={challengeState}
+        />
 
         {/* Botões de ação */}
         <div className="space-y-3">
