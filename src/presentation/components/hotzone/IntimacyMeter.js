@@ -1,14 +1,15 @@
 import React from "react";
+import { POINTS_PER_LEVEL, getIntimacyLevel } from "../../../domain/services/intimacyLevels";
 
 // --- COMPONENTE DE NÍVEL DE INTIMIDADE ---
 const IntimacyMeter = ({ user, userData, coupleData }) => {
   const currentPoints = coupleData?.intimacyPoints || 0;
 
-  // Cada nível requer 4 pontos (matches hot)
-  const pointsPerLevel = 4;
-  const currentLevel = Math.floor(currentPoints / pointsPerLevel);
-  const pointsInCurrentLevel = currentPoints % pointsPerLevel;
-  const progressPercentage = (pointsInCurrentLevel / pointsPerLevel) * 100;
+  // Cada nível requer POINTS_PER_LEVEL pontos (matches hot) — fonte única
+  // em domain/services/intimacyLevels.js.
+  const currentLevel = getIntimacyLevel(currentPoints);
+  const pointsInCurrentLevel = currentPoints % POINTS_PER_LEVEL;
+  const progressPercentage = (pointsInCurrentLevel / POINTS_PER_LEVEL) * 100;
 
   const getLevelName = (level) => {
     if (level >= 4) return "🔥 Ardente";
@@ -18,7 +19,7 @@ const IntimacyMeter = ({ user, userData, coupleData }) => {
     return "💖 Começando";
   };
 
-  const pointsToNextLevel = pointsPerLevel - pointsInCurrentLevel;
+  const pointsToNextLevel = POINTS_PER_LEVEL - pointsInCurrentLevel;
 
   return (
     <div className="bg-gradient-to-r from-red-900/40 to-pink-900/40 p-4 rounded-xl border border-red-500/30 backdrop-blur-sm">
@@ -40,7 +41,7 @@ const IntimacyMeter = ({ user, userData, coupleData }) => {
           {currentPoints} pontos totais
         </p>
         <p className="text-xs text-pink-400">
-          {pointsToNextLevel === pointsPerLevel ? `${pointsPerLevel} matches para próximo nível` : `${pointsToNextLevel} matches restantes`}
+          {pointsToNextLevel === POINTS_PER_LEVEL ? `${POINTS_PER_LEVEL} matches para próximo nível` : `${pointsToNextLevel} matches restantes`}
         </p>
       </div>
     </div>

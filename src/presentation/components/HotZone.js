@@ -9,6 +9,7 @@ import HotSuggestionsSection from "./hotzone/HotSuggestionsSection";
 import SecretWishesSection from "./hotzone/SecretWishesSection";
 import IntimacyMeter from "./hotzone/IntimacyMeter";
 import { getSortedSpecialSuggestions } from "../../application/services/specialSuggestionsService";
+import { getIntimacyLevel } from "../../domain/services/intimacyLevels";
 
 // --- COMPONENTE PRINCIPAL APRIMORADO ---
 export default function HotZone(props) {
@@ -42,7 +43,7 @@ export default function HotZone(props) {
 
   useEffect(() => {
     const currentPoints = coupleData?.intimacyPoints || 0;
-    const currentLevel = Math.floor(currentPoints / 4);
+    const currentLevel = getIntimacyLevel(currentPoints);
 
     // Inicializar referência na primeira execução
     if (previousLevelRef.current === null) {
