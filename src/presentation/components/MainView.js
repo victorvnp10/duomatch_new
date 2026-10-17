@@ -23,10 +23,7 @@ import AchievementSystem from "./AchievementSystem";
 import MatchNotification from "./MatchNotification";
 import { isActivityForToday, getTodayDateString, getDateString } from "../../shared/lib/dateUtils";
 import { updateStreak } from "../../application/services/streakService";
-import {
-  countMarkedActivitiesInRound,
-  countChallengesCreatedInRound,
-} from "../../domain/services/RoundRulesEvaluator";
+import { buildRoundRulesProgress } from "../../domain/services/RoundRulesEvaluator";
 import CountdownTimer from "./CountdownTimer";
 import { useAchievements } from "../../application/hooks/useAchievements";
 import { useMenstrualCycle } from "../../application/hooks/useMenstrualCycle";
@@ -252,109 +249,20 @@ export default function MainView(props) {
     setDailyActivities(uniqueActivities);
   }, [availableActivities, todayStr]);
 
-  const roundRulesProgress = useMemo(() => {
-    if (!activeRound || !activeRound.rules) return {};
-
-    const result = {};
-    const activitiesRule = activeRound.rules.minActivities;
-    const challengesRule = activeRound.rules.minChallenges;
-
-    if (activitiesRule) {
-      // Period-aware: conta apenas atividades marcadas DENTRO da janela de
-      // avaliação corrente (desde rulesLastChecked), alinhado ao avaliador.
-      const activitiesPeriodStart =
-        activeRound.rulesLastChecked?.activities || activeRound.startDate;
-      const myCount = countMarkedActivitiesInRound(
-        allActivities,
-        user.uid,
+  // Progresso das regras cíclicas: derivação delegada ao domínio
+  // (RoundRulesEvaluator.buildRoundRulesProgress) — fonte única de verdade
+  // compartilhada com o avaliador (evaluateCyclicalRules).
+  const roundRulesProgress = useMemo(
+    () =>
+      buildRoundRulesProgress({
         activeRound,
+        allActivities,
+        userId: user.uid,
+        partnerId: userData.partnerId,
         todayStr,
-        activitiesPeriodStart
-      );
-      const partnerCount = countMarkedActivitiesInRound(
-        allActivities,
-        userData.partnerId,
-        activeRound,
-        todayStr,
-        activitiesPeriodStart
-      );
-
-      // B2-40: alinhar o painel com o avaliador. O avaliador (evaluateGoal)
-      // avalia quando `daysBetween(today, reference) >= rule.days`, com
-      // `reference = rulesLastChecked?.X || startDate`.
-      const activitiesDaysSinceCheck = Math.max(
-        0,
-        Math.floor(
-          (new Date(todayStr).getTime() -
-            new Date(activitiesPeriodStart).getTime()) /
-            (1000 * 60 * 60 * 24)
-        )
-      );
-      const activitiesDaysRemaining = Math.max(
-        0,
-        activitiesRule.days - activitiesDaysSinceCheck
-      );
-
-      result.activitiesRule = {
-        myProgress: { count: myCount, target: activitiesRule.quantity },
-        partnerProgress: { count: partnerCount, target: activitiesRule.quantity },
-        penalty: activitiesRule.penalty,
-        daysRemaining: activitiesDaysRemaining,
-      };
-    }
-
-    if (challengesRule) {
-      // Period-aware: conta apenas desafios lançados DENTRO da janela de
-      // avaliação corrente, alinhado ao avaliador.
-      const challengesPeriodStart =
-        activeRound.rulesLastChecked?.challenges || activeRound.startDate;
-      const myChallengesCount = countChallengesCreatedInRound(
-        allActivities,
-        user.uid,
-        activeRound,
-        challengesPeriodStart,
-        todayStr
-      );
-      const partnerChallengesCount = countChallengesCreatedInRound(
-        allActivities,
-        userData.partnerId,
-        activeRound,
-        challengesPeriodStart,
-        todayStr
-      );
-
-      // B2-40: mesma correção da regra de atividades — dias até a próxima
-      // checagem contando a partir de `rulesLastChecked?.challenges ||
-      // startDate`, sem o bug do módulo no dia 0.
-      const challengesDaysSinceCheck = Math.max(
-        0,
-        Math.floor(
-          (new Date(todayStr).getTime() -
-            new Date(challengesPeriodStart).getTime()) /
-            (1000 * 60 * 60 * 24)
-        )
-      );
-      const challengesDaysRemaining = Math.max(
-        0,
-        challengesRule.days - challengesDaysSinceCheck
-      );
-
-      result.challengesRule = {
-        myProgress: { count: myChallengesCount, target: challengesRule.quantity },
-        partnerProgress: { count: partnerChallengesCount, target: challengesRule.quantity },
-        penalty: challengesRule.penalty,
-        daysRemaining: challengesDaysRemaining,
-      };
-    }
-
-    return result;
-  }, [
-    activeRound,
-    allActivities,
-    user.uid,
-    userData.partnerId,
-    todayStr,
-  ]);
+      }),
+    [activeRound, allActivities, user.uid, userData.partnerId, todayStr]
+  );
   // Separar matches de hoje dos da jornada do casal
   const todayMatches = useMemo(() => {
     const today = getTodayDateString();
