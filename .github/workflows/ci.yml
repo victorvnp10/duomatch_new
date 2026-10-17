@@ -1,0 +1,65 @@
+name: CI
+
+# Roda em push e pull_request para a branch main.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancela execuções antigas do mesmo ref quando um novo commit chega.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    name: Lint, testes e build
+    runs-on: ubuntu-latest
+
+    # Node 20 LTS: é a linha "conhecida boa" do react-scripts 5.0.1 (CRA 5).
+    # O ambiente local usa Node 26, que o CRA não garante suportar; 20 é a
+    # versão estável com melhor compatibilidade comprovada com o CRA 5.
+    strategy:
+      matrix:
+        node-version: [20]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Node ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+
+      # LINT — NÃO bloqueante por enquanto.
+      # O projeto tem débito de lint pré-existente (ver RELATORIO-CI-LINT.md).
+      # `continue-on-error: true` faz o passo reportar os problemas sem
+      # derrubar o pipeline. Quando o débito for zerado, remova esta linha
+      # para o lint passar a bloquear o CI.
+      - name: Lint (não bloqueante)
+        continue-on-error: true
+        run: npm run lint
+
+      - name: Testes
+        run: CI=true npx react-scripts test --watchAll=false
+
+      # BUILD — sem secrets reais.
+      # O CRA inlina as REACT_APP_* em tempo de build. Os valores abaixo são
+      # placeholders SÓ para o smoke-build do CI (o artefato do CI não é
+      # publicado); em produção os valores reais vêm das env vars da Vercel.
+      # Ver a justificativa completa no relatório.
+      - name: Build
+        env:
+          REACT_APP_FIREBASE_API_KEY: ci-placeholder-api-key
+          REACT_APP_FIREBASE_AUTH_DOMAIN: ci-placeholder.firebaseapp.com
+          REACT_APP_FIREBASE_PROJECT_ID: ci-placeholder
+          REACT_APP_FIREBASE_STORAGE_BUCKET: ci-placeholder.appspot.com
+          REACT_APP_FIREBASE_MESSAGING_SENDER_ID: "000000000000"
+          REACT_APP_FIREBASE_APP_ID: "1:000000000000:web:ciplaceholder"
+        run: CI=true npx react-scripts build
