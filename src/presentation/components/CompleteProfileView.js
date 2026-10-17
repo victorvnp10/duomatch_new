@@ -1,22 +1,9 @@
 import React, { useState, useMemo } from "react";
-import { signOut } from "firebase/auth";
-import { auth, db } from "../../infrastructure/firebase";
-import { doc, updateDoc } from "firebase/firestore";
+import { endSession } from "../../application/services/sessionService";
+import { completeUserProfile } from "../../application/services/completeProfileService";
+import { calculateAge, MIN_AGE } from "../../domain/services/ProfileAge";
 import { HeartIcon } from "./Icons";
 import { Avatar, getAvatarOptionsForGender } from "./avatars/AvatarCatalog";
-
-const MIN_AGE = 18;
-
-function calculateAge(birthDateStr) {
-  const birth = new Date(birthDateStr + "T00:00:00");
-  const today = new Date();
-  let age = today.getFullYear() - birth.getFullYear();
-  const monthDiff = today.getMonth() - birth.getMonth();
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
-    age--;
-  }
-  return age;
-}
 
 /**
  * Mostrada quando `userData.gender` ainda não foi preenchido — hoje isso
@@ -66,11 +53,11 @@ function CompleteProfileView({ user, userData }) {
     setError("");
     setLoading(true);
     try {
-      await updateDoc(doc(db, "users", user.uid), {
-        nickname: nickname.trim(),
+      await completeUserProfile(user.uid, {
+        nickname,
         gender,
         birthDate,
-        photoURL: selectedAvatar,
+        selectedAvatar,
       });
     } catch (err) {
       setError("Não foi possível salvar. Tente novamente.");
@@ -168,7 +155,7 @@ function CompleteProfileView({ user, userData }) {
             </button>
 
             <button
-              onClick={() => signOut(auth)}
+              onClick={() => endSession()}
               className="w-full text-sm text-center text-gray-500 hover:text-accent-light transition-colors"
             >
               Sair
