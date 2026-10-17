@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { Timestamp, serverTimestamp } from "../../infrastructure/firebase";
+import { buildNewActivity } from "../../application/services/newActivityService";
 import PeriodicityInputs from "./PeriodicityInputs";
 import { categoryIcons } from "./Icons";
 import { getTodayDateString } from "../../shared/lib/dateUtils";
@@ -81,43 +81,18 @@ export default function AddItemModal({
       }
     }
 
-    const dataToAdd = {
-      name: newActivityName.trim(),
-      description: newActivityDescription.trim(),
-      type: newActivityType,
-      category: newActivityType === "desafio_hot" ? "Hot" : newActivityCategory,
-      points: Number(newActivityPoints) || 0,
-      createdBy: user.uid,
-      createdAt: serverTimestamp(),
-      selections: {},
-      completionStatus: null,
-      challengeState: newActivityType.startsWith("desafio")
-        ? "pending_acceptance"
-        : null,
-    };
-
-    if (newActivityType.startsWith("desafio")) {
-      const durationInMillis =
-        newActivityDurationDays * 86400000 +
-        newActivityDurationHours * 3600000 +
-        newActivityDurationMinutes * 60000;
-      if (durationInMillis > 0)
-        dataToAdd.expiresAt = Timestamp.fromDate(
-          new Date(Date.now() + durationInMillis)
-        );
-      dataToAdd.selections[user.uid] = {
-        status: "confirmed",
-        date: getTodayDateString(),
-      };
-    } else {
-      dataToAdd.periodicity =
-        newActivityPeriodicityType !== "none"
-          ? {
-              type: newActivityPeriodicityType,
-              value: newActivityPeriodicityValue,
-            }
-          : null;
-    }
+    const dataToAdd = buildNewActivity({
+      newActivityName,
+      newActivityDescription,
+      newActivityType,
+      newActivityCategory,
+      newActivityPoints,
+      newActivityPeriodicityType,
+      newActivityPeriodicityValue,
+      newActivityDurationDays,
+      newActivityDurationHours,
+      newActivityDurationMinutes
+    }, user);
 
     handleAddActivity(dataToAdd);
     onClose();
