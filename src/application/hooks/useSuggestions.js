@@ -12,7 +12,7 @@ import {
   getActivityCatalog,
   pickVaried,
 } from "../../infrastructure/firebase/repositories/ContentRepository";
-import { getTodayDateString } from "../../shared/utils";
+import { getTodayDateString } from "../../shared/lib/dateUtils";
 
 // Gera um objeto de sugestões aleatórias no formato persistido, evitando
 // itens usados recentemente (anti-repetição). Devolve também os ids

@@ -12,7 +12,7 @@ import {
   orderBy,
   runTransaction,
 } from "../../infrastructure/firebase";
-import { getTodayDateString } from "../../shared/utils";
+import { getTodayDateString } from "../../shared/lib/dateUtils";
 import {
   isActivityCompletedByBoth,
   isChallengeCompleted,

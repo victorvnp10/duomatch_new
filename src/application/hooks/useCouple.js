@@ -13,7 +13,7 @@ import {
 } from "../../infrastructure/firebase"; // Funções existentes do seu ficheiro central
 import { signOut } from "firebase/auth";
 import { arrayUnion } from "firebase/firestore";
-import { getTodayDateString } from "../../shared/utils"; // <-- MUDANÇA: Importação direta da função em falta
+import { getTodayDateString } from "../../shared/lib/dateUtils"; // <-- MUDANÇA: Importação direta da função em falta
 
 /**
  * Hook para gerir os dados do documento do Casal e ações globais.

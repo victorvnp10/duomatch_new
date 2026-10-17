@@ -1,7 +1,7 @@
 import {
   formatPeriodicity as formatPeriodicityDomain,
   isActivityForToday as isActivityForTodayDomain,
-} from "../domain/valueObjects/Periodicity";
+} from "../../domain/valueObjects/Periodicity";
 
 export const getTodayDateString = () => getDateString(new Date());
 
@@ -16,7 +16,7 @@ export const getDateString = (date) => {
 
 // Re-exportados a partir do domínio (src/domain/valueObjects/Periodicity.js)
 // para manter compatibilidade com os imports existentes em todo o app
-// (`import { isActivityForToday } from "../../shared/utils"`), sem
+// (`import { isActivityForToday } from "../../shared/lib/dateUtils"`), sem
 // espalhar a mudança de camada por dezenas de arquivos.
 export const formatPeriodicity = formatPeriodicityDomain;
 export const isActivityForToday = (activity) =>

@@ -1,5 +1,5 @@
 import React from "react";
-import { getTodayDateString } from "../../shared/utils";
+import { getTodayDateString } from "../../shared/lib/dateUtils";
 
 function PeriodicityInputs({ type, value, setValue }) {
   switch (type) {

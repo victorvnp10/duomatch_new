@@ -21,7 +21,7 @@ import StreakTracker from "./StreakTracker";
 import DailyChallenge from "./DailyChallenge";
 import AchievementSystem from "./AchievementSystem";
 import MatchNotification from "./MatchNotification";
-import { isActivityForToday, getTodayDateString, getDateString } from "../../shared/utils";
+import { isActivityForToday, getTodayDateString, getDateString } from "../../shared/lib/dateUtils";
 import { updateStreak } from "../../shared/utils/streakUtils";
 import {
   countMarkedActivitiesInRound,

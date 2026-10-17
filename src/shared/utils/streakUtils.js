@@ -1,7 +1,7 @@
 
 import { doc, runTransaction, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../infrastructure/firebase';
-import { getTodayDateString, getDateString } from '../utils';
+import { getTodayDateString, getDateString } from '../lib/dateUtils';
 
 export const updateStreak = async (coupleId, userData, allActivities, dailySuggestions, hotSuggestions) => {
   if (!coupleId || !userData) return;

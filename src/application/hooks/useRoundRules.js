@@ -1,6 +1,6 @@
 import { useEffect, useCallback, useRef } from "react";
 import { db, doc, increment, runTransaction } from "../../infrastructure/firebase";
-import { getTodayDateString } from "../../shared/utils";
+import { getTodayDateString } from "../../shared/lib/dateUtils";
 import {
   findActiveRound,
   evaluateCyclicalRules,

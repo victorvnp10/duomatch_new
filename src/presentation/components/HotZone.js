@@ -5,7 +5,7 @@ import LevelUpAnimation from "./LevelUpAnimation";
 import MatchNotification from "./MatchNotification";
 import DailyTipCard from "./DailyTipCard";
 import { useMenstrualCycle } from "../../application/hooks/useMenstrualCycle";
-import { isActivityForToday, getTodayDateString } from "../../shared/utils";
+import { isActivityForToday, getTodayDateString } from "../../shared/lib/dateUtils";
 
 // --- COMPONENTE DE NÍVEL DE INTIMIDADE ---
 const IntimacyMeter = ({ user, userData, coupleData }) => {

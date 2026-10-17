@@ -8,7 +8,7 @@ import {
   mergeWeeklyClaim,
 } from '../../domain/services/WeeklyChallengeState';
 import { ChallengeIcon, TrophyIcon } from './Icons';
-import { getTodayDateString, getDateString } from '../../shared/utils';
+import { getTodayDateString, getDateString } from '../../shared/lib/dateUtils';
 
 /**
  * Retorna a SEGUNDA-FEIRA que inicia a semana da data informada.

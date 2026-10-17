@@ -1,6 +1,6 @@
 import { useMemo, useCallback } from "react";
 import { doc, runTransaction, db } from "../../infrastructure/firebase";
-import { getTodayDateString } from "../../shared/utils";
+import { getTodayDateString } from "../../shared/lib/dateUtils";
 import {
   summarizeCycle,
   computeCycleStatistics,

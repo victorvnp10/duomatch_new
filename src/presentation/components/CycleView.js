@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { ArrowLeftIcon, DropletIcon, TrashIcon } from "./Icons";
 import { useMenstrualCycle } from "../../application/hooks/useMenstrualCycle";
 import { getPhaseLabel } from "../../domain/services/CycleInsightService";
-import { getTodayDateString } from "../../shared/utils";
+import { getTodayDateString } from "../../shared/lib/dateUtils";
 import DailyTipCard from "./DailyTipCard";
 import CycleHealthInfo from "./CycleHealthInfo";
 

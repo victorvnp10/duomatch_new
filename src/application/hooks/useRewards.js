@@ -14,7 +14,7 @@ import {
   orderBy,
   runTransaction,
 } from "../../infrastructure/firebase";
-import { getTodayDateString } from "../../shared/utils"; // Importar a função de data
+import { getTodayDateString } from "../../shared/lib/dateUtils"; // Importar a função de data
 
 // --- MUDANÇA 1: Adicionar 'rounds' como um parâmetro para o hook ---
 export const useRewards = (user, userData, coupleData, rounds) => {

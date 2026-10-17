@@ -2,7 +2,7 @@ import React, { useState, useMemo } from "react";
 import { Timestamp, serverTimestamp } from "../../infrastructure/firebase";
 import PeriodicityInputs from "./PeriodicityInputs";
 import { categoryIcons } from "./Icons";
-import { getTodayDateString } from "../../shared/utils";
+import { getTodayDateString } from "../../shared/lib/dateUtils";
 
 export default function AddItemModal({
   isOpen,

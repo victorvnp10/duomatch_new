@@ -14,7 +14,7 @@ import {
   serverTimestamp,
   runTransaction,
 } from "../../infrastructure/firebase";
-import { getTodayDateString } from "../../shared/utils";
+import { getTodayDateString } from "../../shared/lib/dateUtils";
 import { arrayUnion } from "firebase/firestore"; // 2. Adicione esta nova linha
 
 /**

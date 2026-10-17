@@ -1,7 +1,7 @@
 import React, { useState, useRef, useMemo } from "react";
 import { signOut } from "firebase/auth";
 import { auth } from "../../infrastructure/firebase";
-import { getTodayDateString } from "../../shared/utils";
+import { getTodayDateString } from "../../shared/lib/dateUtils";
 import { toggleActivitySelection } from "../../domain/services/ActivitySelectionEvaluator";
 import {
   DEMO_PARTNER_UID,
