@@ -22,6 +22,7 @@ import DailyChallenge from "./DailyChallenge";
 import AchievementSystem from "./AchievementSystem";
 import MatchNotification from "./MatchNotification";
 import { getTodayDateString, getDateString } from "../../shared/lib/dateUtils";
+import { seededHash } from "../../shared/lib/seededHash";
 import { updateStreak } from "../../application/services/streakService";
 import { getRoundCountdownInfo } from "../../application/services/roundCountdownService";
 import { filterAvailableActivities } from "../../application/services/activityFeedService";
@@ -177,15 +178,6 @@ export default function MainView(props) {
     );
     let randomBaseActivities = [];
     if (activitiesFromBeforeToday.length > 5) {
-      const seededHash = (str) => {
-        let hash = 0;
-        for (let i = 0; i < str.length; i++) {
-          const char = str.charCodeAt(i);
-          hash = (hash << 5) - hash + char;
-          hash &= hash;
-        }
-        return hash;
-      };
       const shuffled = [...activitiesFromBeforeToday].sort(
         (a, b) => seededHash(a.id + todayStr) - seededHash(b.id + todayStr)
       );
