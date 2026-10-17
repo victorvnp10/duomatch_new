@@ -9,7 +9,7 @@ guia extenso antigo, que estava desatualizado e duplicado.
 DuoMatch — app web para casais planejarem atividades, desafios e recompensas
 juntos, com sincronização em tempo real (Firebase) e PWA (funciona offline).
 
-**Stack:** React 18 + Create React App (`react-scripts`), Firebase
+**Stack:** React 18 + Vite (build) + Jest (testes), Firebase
 (Auth + Firestore com cache offline persistente), Tailwind CSS, Workbox.
 
 ## Estrutura do código (`src/`)
@@ -54,6 +54,6 @@ npm run build    # build de produção (PWA)
 
 ## Regras
 
-- Não editar `build/`, `node_modules/`.
+- Não editar `dist/`, `build/`, `node_modules/`.
 - Configs de plataforma (`firebase.json`, `firestore.rules`, `vercel.json`,
   `.replit`, `opencode.json`) só mudam por motivo explícito.
