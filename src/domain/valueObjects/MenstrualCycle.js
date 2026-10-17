@@ -183,14 +183,28 @@ export const computeAveragePeriodLength = (periods, fallback = 5) => {
   );
 };
 
+/**
+ * Comparador de períodos por `startDate` ascendente.
+ *
+ * Precisa devolver 0 no empate: o comparador anterior era
+ * `a.startDate < b.startDate ? -1 : 1`, que devolvia 1 para (a, b) E para
+ * (b, a) quando as datas eram iguais — contradizendo o contrato de
+ * `Array.prototype.sort` (se compare(a, b) > 0, então compare(b, a) < 0).
+ * Com um comparador inconsistente, a ordem relativa de datas iguais fica
+ * definida pela implementação do sort em vez do dado.
+ */
+export const byStartDateAsc = (a, b) => {
+  if (a.startDate < b.startDate) return -1;
+  if (a.startDate > b.startDate) return 1;
+  return 0;
+};
+
 /** Início da menstruação mais recente registrada. */
 export const getLastPeriodStart = (periods) => {
   if (!periods || periods.length === 0) return null;
   // B2-38: `.at(-1)` precisa de polyfill em Safari/iOS < 15.4 — usar
   // indexação clássica (app é PWA usado em qualquer navegador de casal).
-  const sorted = [...periods].sort((a, b) =>
-    a.startDate < b.startDate ? -1 : 1
-  );
+  const sorted = [...periods].sort(byStartDateAsc);
   return sorted[sorted.length - 1].startDate;
 };
 export const summarizeCycle = ({

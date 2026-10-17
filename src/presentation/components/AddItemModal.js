@@ -28,8 +28,10 @@ export default function AddItemModal({
     useState(0);
   const [searchQuery, setSearchQuery] = useState("");
 
-  if (!isOpen) return null;
-
+  // O hook precisa ser declarado ANTES do early return abaixo: se ele ficasse
+  // depois de `if (!isOpen) return null`, o número de hooks variaria entre
+  // renderizações (fechado → aberto) e o React abortaria com "Rendered more
+  // hooks than during the previous render".
   const searchResults = useMemo(() => {
     if (!searchQuery) return [];
     return [
@@ -42,6 +44,8 @@ export default function AddItemModal({
       ).values(),
     ].slice(0, 5);
   }, [searchQuery, allActivities]);
+
+  if (!isOpen) return null;
 
   const handleSelectPastActivity = (activity) => {
     setNewActivityName(activity.name);

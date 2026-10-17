@@ -18,14 +18,12 @@ import { PHASES, getFertileWindow } from "../valueObjects/MenstrualCycle";
 
 const buildMessage = (icon, title, tone) => ({ icon, title, tone });
 
-/** Escolhe uma variação de forma estável a partir do dia do mês corrente. */
-const pickByDay = (variants) => {
-  const dayOfMonth = new Date().getDate(); // 1–31
-  return variants[dayOfMonth % variants.length];
-};
+/** Escolhe uma variação de forma estável a partir do dia do mês. */
+const pickByDay = (variants, dayOfMonth = new Date().getDate()) =>
+  variants[dayOfMonth % variants.length];
 
-const buildFromVariants = (variants, tone) => {
-  const [icon, title] = pickByDay(variants);
+const buildFromVariants = (variants, tone, dayOfMonth) => {
+  const [icon, title] = pickByDay(variants, dayOfMonth);
   return buildMessage(icon, title, tone);
 };
 
@@ -136,9 +134,16 @@ const LUTEAL_NEUTRAL = [
 
 /**
  * @param {object} cycleSummary - resultado de `summarizeCycle(...)`
+ * @param {number} [dayOfMonth] - dia do mês (1–31) usado para escolher a
+ *   variação do texto. Parametrizado para tornar o resultado determinístico
+ *   e independente do relógio/fuso em testes; o padrão preserva o
+ *   comportamento anterior (dia corrente).
  * @returns {{icon: string, title: string, tone: 'great'|'good'|'neutral'|'caution'}}
  */
-export const getDailyInsight = (cycleSummary) => {
+export const getDailyInsight = (
+  cycleSummary,
+  dayOfMonth = new Date().getDate()
+) => {
   const { phase, cycleDay, periodLength, fertileWindow, daysUntilFertileWindow, daysUntilNextPeriod } =
     cycleSummary;
   const { start: fertileStart, end: fertileEnd, ovulationDay } = fertileWindow;
@@ -147,34 +152,37 @@ export const getDailyInsight = (cycleSummary) => {
     case PHASES.MENSTRUATION: {
       const daysLeftInPeriod = periodLength - cycleDay;
       if (daysLeftInPeriod <= 1) {
-        return buildFromVariants(MENSTRUATION_ENDING_SOON, "neutral");
+        return buildFromVariants(MENSTRUATION_ENDING_SOON, "neutral", dayOfMonth);
       }
-      return buildFromVariants(MENSTRUATION_CAUTION, "caution");
+      return buildFromVariants(MENSTRUATION_CAUTION, "caution", dayOfMonth);
     }
 
     case PHASES.FOLLICULAR: {
       if (daysUntilFertileWindow === 1) {
-        return buildFromVariants(FOLLICULAR_ONE_DAY_LEFT, "good");
+        return buildFromVariants(FOLLICULAR_ONE_DAY_LEFT, "good", dayOfMonth);
       }
       if (daysUntilFertileWindow <= 3) {
-        const [icon, title] = pickByDay(FOLLICULAR_FEW_DAYS_LEFT)(daysUntilFertileWindow);
+        const [icon, title] = pickByDay(
+          FOLLICULAR_FEW_DAYS_LEFT,
+          dayOfMonth
+        )(daysUntilFertileWindow);
         return buildMessage(icon, title, "good");
       }
-      return buildFromVariants(FOLLICULAR_NEUTRAL, "neutral");
+      return buildFromVariants(FOLLICULAR_NEUTRAL, "neutral", dayOfMonth);
     }
 
     case PHASES.FERTILE: {
       if (cycleDay === fertileStart) {
-        return buildFromVariants(FERTILE_START, "great");
+        return buildFromVariants(FERTILE_START, "great", dayOfMonth);
       }
       if (cycleDay === ovulationDay || cycleDay === ovulationDay - 1) {
-        return buildFromVariants(FERTILE_OVULATION, "great");
+        return buildFromVariants(FERTILE_OVULATION, "great", dayOfMonth);
       }
       const daysLeft = fertileEnd - cycleDay;
       if (daysLeft <= 0) {
-        return buildFromVariants(FERTILE_LAST_DAY, "great");
+        return buildFromVariants(FERTILE_LAST_DAY, "great", dayOfMonth);
       }
-      const [icon, title] = pickByDay(FERTILE_DAYS_LEFT)(daysLeft);
+      const [icon, title] = pickByDay(FERTILE_DAYS_LEFT, dayOfMonth)(daysLeft);
       return buildMessage(icon, title, "great");
     }
 
@@ -182,12 +190,16 @@ export const getDailyInsight = (cycleSummary) => {
     default: {
       const daysSinceFertileEnd = cycleDay - fertileEnd;
       if (daysSinceFertileEnd <= 3) {
-        return buildFromVariants(LUTEAL_JUST_ENDED_FERTILE, "neutral");
+        return buildFromVariants(
+          LUTEAL_JUST_ENDED_FERTILE,
+          "neutral",
+          dayOfMonth
+        );
       }
       if (daysUntilNextPeriod <= 2) {
-        return buildFromVariants(LUTEAL_CAUTION_SOON, "caution");
+        return buildFromVariants(LUTEAL_CAUTION_SOON, "caution", dayOfMonth);
       }
-      return buildFromVariants(LUTEAL_NEUTRAL, "neutral");
+      return buildFromVariants(LUTEAL_NEUTRAL, "neutral", dayOfMonth);
     }
   }
 };

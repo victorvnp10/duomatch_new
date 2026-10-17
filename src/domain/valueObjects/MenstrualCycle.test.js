@@ -20,6 +20,7 @@ import {
   computeCycleStatistics,
   computeAveragePeriodLength,
   getLastPeriodStart,
+  byStartDateAsc,
   summarizeCycle,
 } from "./MenstrualCycle";
 
@@ -258,6 +259,55 @@ describe("getLastPeriodStart (MenstrualCycle.js:187-195)", () => {
         { startDate: "2026-01-01" },
       ])
     ).toBe("2026-02-01");
+  });
+});
+
+describe("byStartDateAsc (MenstrualCycle.js:186-195)", () => {
+  it("devolve 0 quando as datas são iguais (comparador consistente)", () => {
+    // O comparador antigo era `a.startDate < b.startDate ? -1 : 1`, que
+    // devolvia 1 para (a, b) E para (b, a) quando as datas empatavam —
+    // contradizendo o contrato de Array.prototype.sort (compare(a,b) > 0
+    // deve implicar compare(b,a) < 0). A ordem relativa de datas iguais
+    // ficava então definida pela implementação do sort, não pelo dado.
+    const a = { startDate: "2026-01-01" };
+    const b = { startDate: "2026-01-01" };
+
+    expect(byStartDateAsc(a, b)).toBe(0);
+    expect(byStartDateAsc(b, a)).toBe(0);
+  });
+
+  it("ordena por startDate ascendente", () => {
+    const early = { id: "A", startDate: "2026-01-01" };
+    const late = { id: "C", startDate: "2026-02-01" };
+
+    expect(byStartDateAsc(early, late)).toBeLessThan(0);
+    expect(byStartDateAsc(late, early)).toBeGreaterThan(0);
+  });
+
+  it("mantém determinística a ordem de registros com a mesma data", () => {
+    const first = { id: "A", startDate: "2026-01-01" };
+    const second = { id: "B", startDate: "2026-01-01" };
+    const third = { id: "C", startDate: "2026-02-01" };
+
+    // Com um comparador consistente, o sort é estável: o empate preserva a
+    // ordem de inserção e o resultado é reprodutível.
+    const once = [third, first, second].sort(byStartDateAsc).map((p) => p.id);
+    const twice = [third, first, second].sort(byStartDateAsc).map((p) => p.id);
+
+    expect(once).toEqual(["A", "B", "C"]);
+    expect(twice).toEqual(once);
+  });
+
+  it("é o comparador usado por getLastPeriodStart", () => {
+    // getLastPeriodStart com empate na data mais recente continua devolvendo
+    // essa data, de forma reprodutível.
+    const periods = [
+      { startDate: "2026-01-01" },
+      { startDate: "2026-02-01" },
+      { startDate: "2026-02-01" },
+    ];
+    expect(getLastPeriodStart(periods)).toBe("2026-02-01");
+    expect(getLastPeriodStart([...periods].reverse())).toBe("2026-02-01");
   });
 });
 

@@ -12,8 +12,6 @@
 import { getDailyInsight, getPhaseLabel } from "./CycleInsightService";
 import { PHASES } from "../valueObjects/MenstrualCycle";
 
-const titles = (variants) => variants.map(([, title]) => title);
-
 // Listas de variações copiadas de CycleInsightService.js:34-135.
 const MENSTRUATION_ENDING_SOON = [
   "Os dias difíceis estão acabando",
@@ -152,6 +150,47 @@ describe("getDailyInsight — forma da mensagem", () => {
     expect(insight.icon.length).toBeGreaterThan(0);
     expect(typeof insight.title).toBe("string");
     expect(insight.title.length).toBeGreaterThan(0);
+  });
+});
+
+describe("getDailyInsight — dia do mês injetável (CycleInsightService.js:22-30)", () => {
+  it("escolhe a variação pelo dia do mês informado, não pelo relógio", () => {
+    // pickByDay usava `new Date().getDate()` (relógio real), o que tornava a
+    // "dica do dia" não-determinística e dependente do fuso. Com o dia
+    // parametrizado, o mesmo resumo em dias diferentes dá títulos diferentes
+    // de forma reprodutível: variants[day % variants.length].
+    const day1 = getDailyInsight(
+      baseSummary({ phase: PHASES.FERTILE, cycleDay: 9 }),
+      1
+    );
+    const day3 = getDailyInsight(
+      baseSummary({ phase: PHASES.FERTILE, cycleDay: 9 }),
+      3
+    );
+
+    expect(day1.title).toBe(FERTILE_START[1]);
+    expect(day3.title).toBe(FERTILE_START[3]);
+    expect(day1.title).not.toBe(day3.title);
+  });
+
+  it("aplica o dia injetado também nas variações com contagem de dias", () => {
+    // FERTILE_DAYS_LEFT[2] = (n) => ["✨", `Faltam ${n} dias de fase especial`];
+    // cycleDay 10 na janela [9, 15] → daysLeft = 5.
+    const insight = getDailyInsight(
+      baseSummary({ phase: PHASES.FERTILE, cycleDay: 10 }),
+      2
+    );
+    expect(insight.title).toBe("Faltam 5 dias de fase especial");
+  });
+
+  it("sem o dia informado mantém o comportamento atual (dia corrente)", () => {
+    // Retrocompatível: quem chama com um argumento só continua recebendo a
+    // variação do dia de hoje.
+    const today = new Date().getDate();
+    const insight = getDailyInsight(
+      baseSummary({ phase: PHASES.FERTILE, cycleDay: 9 })
+    );
+    expect(insight.title).toBe(FERTILE_START[today % FERTILE_START.length]);
   });
 });
 
