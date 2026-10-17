@@ -20,7 +20,12 @@ const WeeklyChallengeInfo = ({ categoryStyle, selectedChallenge, challengeState 
           </div>
 
           {/* Status de aceitação independente */}
-          <div className="text-xs text-gray-300 text-right">
+          <div
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+            className="text-xs text-gray-300 text-right"
+          >
             <div className="mb-1">
               {challengeState?.myAccepted ? (
                 <span className="text-green-400">✅ Você: Aceito</span>
