@@ -4,6 +4,11 @@ import { createRoot } from 'react-dom/client';
 import { act } from 'react-dom/test-utils';
 import DailyChallenge from './DailyChallenge';
 import { useDailyChallenge } from '../../application/hooks/useDailyChallenge';
+
+// Sem este mock, importar o componente alcança o getAuth() real, que lança
+// auth/invalid-api-key quando as REACT_APP_* não estão no ambiente (é o caso do CI).
+jest.mock('../../infrastructure/firebase', () => ({ db: {}, auth: {} }));
+
 jest.mock('../../application/hooks/useDailyChallenge');
 let container, root, value;
 const render = async () => { await act(async () => root.render(<DailyChallenge userData={{ uid: 'me' }} coupleData={{}} rounds={[]} />)); };

@@ -67,7 +67,9 @@ jobs:
         run: |
           mkdir -p /tmp/fb-tools && cd /tmp/fb-tools
           npm init -y >/dev/null
-          npm i --silent firebase@13 firebase-tools @firebase/rules-unit-testing
+          # Sem --silent de propósito: com ele, uma falha aqui morre com exit 1
+          # SEM imprimir nada, e o log do CI não diz o motivo.
+          npm i --no-audit --no-fund --loglevel=error firebase@13 firebase-tools @firebase/rules-unit-testing
           cd "$GITHUB_WORKSPACE"
           FIREBASE_TOOLS_NODE_MODULES=/tmp/fb-tools/node_modules \
             /tmp/fb-tools/node_modules/.bin/firebase emulators:exec \

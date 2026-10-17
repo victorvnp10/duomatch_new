@@ -9,6 +9,11 @@ import { useMenstrualCycle } from '../../application/hooks/useMenstrualCycle';
 import { useNotificationCenter } from '../../application/hooks/useNotificationCenter';
 import { useMatchNotification } from '../../application/hooks/useMatchNotification';
 
+// Sem este mock, importar o componente alcança o getAuth() real, que lança
+// auth/invalid-api-key quando as REACT_APP_* não estão no ambiente (é o caso do CI).
+jest.mock('../../infrastructure/firebase', () => ({ db: {}, auth: {} }));
+
+
 jest.mock('../../application/services/streakService');
 jest.mock('../../application/services/sessionService', () => ({ endSession: jest.fn() }));
 jest.mock('../../application/hooks/useAchievements');
