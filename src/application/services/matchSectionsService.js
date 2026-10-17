@@ -39,3 +39,33 @@ export const getTodayMatches = (
 
     return isNormalMatch || isChallengeMatch;
   });
+
+/**
+ * Jornada do casal: matches normais de dias PASSADOS (ambos confirmados e a
+ * data da seleção anterior a hoje) e desafios encerrados (concluído, não
+ * cumprido, recusado ou expirado).
+ */
+export const getCoupleJourneyMatches = (
+  allActivities,
+  { userId, partnerId, todayStr }
+) =>
+  allActivities.filter((activity) => {
+    // Atividades normais do passado
+    const selectionDateStr = activity.selections?.[userId]?.date;
+    if (selectionDateStr && selectionDateStr < todayStr) {
+      const isNormalMatch =
+        activity.selections?.[userId]?.status === "confirmed" &&
+        activity.selections?.[partnerId]?.status === "confirmed" &&
+        !isChallenge(activity);
+      if (isNormalMatch) return true;
+    }
+
+    // Desafios concluídos, não cumpridos, recusados ou expirados
+    const isChallengeFinished =
+      isChallenge(activity) &&
+      ["completed", "not_completed", "declined", "expired"].includes(
+        activity.challengeState
+      );
+
+    return isChallengeFinished;
+  });

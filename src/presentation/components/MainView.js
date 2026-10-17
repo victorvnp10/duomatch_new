@@ -28,7 +28,10 @@ import {
   filterAvailableActivities,
   selectDailyActivities,
 } from "../../application/services/activityFeedService";
-import { getTodayMatches } from "../../application/services/matchSectionsService";
+import {
+  getTodayMatches,
+  getCoupleJourneyMatches,
+} from "../../application/services/matchSectionsService";
 import { buildRoundRulesProgress } from "../../domain/services/RoundRulesEvaluator";
 import CountdownTimer from "./CountdownTimer";
 import { useAchievements } from "../../application/hooks/useAchievements";
@@ -196,32 +199,15 @@ export default function MainView(props) {
     [allActivities, user.uid, userData.partnerId, todayStr]
   );
 
-  const coupleJourneyMatches = useMemo(() => {
-    // B2-16: data LOCAL (convenção do projeto) — toISOString() é UTC e à
-    // noite vira "amanhã", escondendo as atividades de hoje da jornada.
-    const today = getTodayDateString();
-
-    return allActivities.filter((activity) => {
-      // Atividades normais do passado
-      const selectionDateStr = activity.selections?.[user.uid]?.date;
-      if (selectionDateStr && selectionDateStr < today) {
-        const isNormalMatch =
-          activity.selections?.[user.uid]?.status === "confirmed" &&
-          activity.selections?.[userData.partnerId]?.status === "confirmed" &&
-          !activity.type?.startsWith("desafio");
-        if (isNormalMatch) return true;
-      }
-
-      // Desafios concluídos, não cumpridos, recusados ou expirados
-      const isChallengeFinished =
-        activity.type?.startsWith("desafio") &&
-        ["completed", "not_completed", "declined", "expired"].includes(
-          activity.challengeState
-        );
-
-      return isChallengeFinished;
-    });
-  }, [allActivities, user.uid, userData.partnerId]);
+  const coupleJourneyMatches = useMemo(
+    () =>
+      getCoupleJourneyMatches(allActivities, {
+        userId: user.uid,
+        partnerId: userData.partnerId,
+        todayStr,
+      }),
+    [allActivities, user.uid, userData.partnerId, todayStr]
+  );
 
   const { coupleData, handleSelectHotSuggestion } = props;
 
