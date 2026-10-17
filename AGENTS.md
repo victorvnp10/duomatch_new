@@ -20,17 +20,18 @@ Organização em camadas (DDD/Clean Architecture):
 src/
   domain/          # Regras de negócio puras — sem Firestore/React
     entities/  services/  valueObjects/
-  application/     # Orquestração: hooks React que usam o domínio
-    hooks/
-  infrastructure/  # Firestore, PWA, integrações externas
-    firebase/
+  application/     # Orquestração: hooks React e serviços que usam o domínio
+    hooks/  services/
+  infrastructure/  # Firestore, seed de conteúdo, integrações externas
+    firebase/  seed/
   presentation/    # Componentes e telas
-    components/  pwa/
-  shared/          # Utilitários e catálogo de conteúdo
-    utils/  contentCatalog.js
+    components/  components/preview/  pwa/
+  shared/          # Utilitários puros, sem regra de negócio
+    lib/
 ```
 
-O catálogo de conteúdo do app vive em `src/shared/contentCatalog.js`.
+O catálogo de conteúdo do app vive em `src/infrastructure/seed/contentCatalog.js`
+(é seed de infraestrutura, consumido por `ContentRepository`).
 
 ## Documentação
 

@@ -18,7 +18,7 @@ import {
  * Fonte de verdade em produção: coleções raiz do Firestore
  * (`contentActivities` / `contentChallenges`). Como o app é um PWA sem
  * backend, este repositório é responsável por "plantar" (seed) o catálogo
- * a partir do módulo `shared/contentCatalog.js`; a leitura em produção vem
+ * a partir do módulo `infrastructure/seed/contentCatalog.js`; a leitura em produção vem
  * do Firestore, o que permite editar o conteúdo no banco sem novo build.
  *
  * - Seed por upsert: grava apenas os itens cujo `id` ainda não existe,

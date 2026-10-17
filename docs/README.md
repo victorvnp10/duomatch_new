@@ -21,11 +21,11 @@ são documentos de referência, planos e dados históricos.
 
 | Documento | O que é | Estado |
 |---|---|---|
-| [`conteudo/duomatch_content_batch_m6.json`](./conteudo/duomatch_content_batch_m6.json) | Lote de conteúdo m6: 150 atividades + 60 desafios. | **Consumido** — todos os 210 `id` já estão em `src/shared/contentCatalog.js`. Guardado como fonte/registro do lote. |
-| [`conteudo/duomatch_content_batch_m7.json`](./conteudo/duomatch_content_batch_m7.json) | Lote de conteúdo m7: 150 atividades + 60 desafios. | **Consumido** — todos os 210 `id` já estão em `src/shared/contentCatalog.js`. |
+| [`conteudo/duomatch_content_batch_m6.json`](./conteudo/duomatch_content_batch_m6.json) | Lote de conteúdo m6: 150 atividades + 60 desafios. | **Consumido** — todos os 210 `id` já estão em `src/infrastructure/seed/contentCatalog.js`. Guardado como fonte/registro do lote. |
+| [`conteudo/duomatch_content_batch_m7.json`](./conteudo/duomatch_content_batch_m7.json) | Lote de conteúdo m7: 150 atividades + 60 desafios. | **Consumido** — todos os 210 `id` já estão em `src/infrastructure/seed/contentCatalog.js`. |
 
 > Os lotes ficam em `docs/conteudo/` (e não em `data/`) porque **não são lidos
-> em runtime** — o app consome `src/shared/contentCatalog.js`. São registro de
+> em runtime** — o app consome `src/infrastructure/seed/contentCatalog.js`. São registro de
 > origem dos dados, não dado de aplicação.
 
 ## Histórico / material antigo
