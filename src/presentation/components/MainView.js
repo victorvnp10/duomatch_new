@@ -21,11 +21,13 @@ import StreakTracker from "./StreakTracker";
 import DailyChallenge from "./DailyChallenge";
 import AchievementSystem from "./AchievementSystem";
 import MatchNotification from "./MatchNotification";
-import { getTodayDateString, getDateString } from "../../shared/lib/dateUtils";
-import { seededHash } from "../../shared/lib/seededHash";
+import { getTodayDateString } from "../../shared/lib/dateUtils";
 import { updateStreak } from "../../application/services/streakService";
 import { getRoundCountdownInfo } from "../../application/services/roundCountdownService";
-import { filterAvailableActivities } from "../../application/services/activityFeedService";
+import {
+  filterAvailableActivities,
+  selectDailyActivities,
+} from "../../application/services/activityFeedService";
 import { buildRoundRulesProgress } from "../../domain/services/RoundRulesEvaluator";
 import CountdownTimer from "./CountdownTimer";
 import { useAchievements } from "../../application/hooks/useAchievements";
@@ -165,36 +167,7 @@ export default function MainView(props) {
   );
 
   useEffect(() => {
-    const creationDateOf = (act) =>
-      act.createdAt?.toDate ? getDateString(act.createdAt.toDate()) : null;
-    const activitiesFromToday = availableActivities.filter(
-      (act) => creationDateOf(act) === todayStr
-    );
-    const activitiesFromBeforeToday = availableActivities.filter(
-      (act) => creationDateOf(act) !== todayStr
-    );
-    const pendingChallenges = availableActivities.filter((act) =>
-      act.type?.startsWith("desafio")
-    );
-    let randomBaseActivities = [];
-    if (activitiesFromBeforeToday.length > 5) {
-      const shuffled = [...activitiesFromBeforeToday].sort(
-        (a, b) => seededHash(a.id + todayStr) - seededHash(b.id + todayStr)
-      );
-      randomBaseActivities = shuffled.slice(0, 5);
-    } else {
-      randomBaseActivities = activitiesFromBeforeToday;
-    }
-    const combinedList = [
-      ...randomBaseActivities,
-      ...activitiesFromToday,
-      ...pendingChallenges,
-    ];
-    const uniqueActivities = combinedList.filter(
-      (activity, index, self) =>
-        index === self.findIndex((a) => a.id === activity.id)
-    );
-    setDailyActivities(uniqueActivities);
+    setDailyActivities(selectDailyActivities(availableActivities, todayStr));
   }, [availableActivities, todayStr]);
 
   // Progresso das regras cíclicas: derivação delegada ao domínio

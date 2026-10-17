@@ -1,4 +1,7 @@
-import { filterAvailableActivities } from "./activityFeedService";
+import {
+  filterAvailableActivities,
+  selectDailyActivities,
+} from "./activityFeedService";
 
 // Comportamento derivado do filtro original embutido em MainView.js.
 describe("filterAvailableActivities", () => {
@@ -72,5 +75,62 @@ describe("filterAvailableActivities", () => {
       selections: { userA: { status: "confirmed" }, userB: { status: null } },
     });
     expect(run([one]).map((a) => a.id)).toEqual(["a1"]);
+  });
+});
+
+// Comportamento derivado da lógica que vivia no useEffect de MainView.js.
+describe("selectDailyActivities", () => {
+  const TODAY = "2026-09-10";
+  const onDate = (dateStr) => ({
+    createdAt: { toDate: () => new Date(`${dateStr}T12:00:00`) },
+  });
+  const oldActivity = (id, overrides = {}) => ({
+    id,
+    createdAt: { toDate: () => new Date("2026-09-01T12:00:00") },
+    ...overrides,
+  });
+  const todayActivity = (id, overrides = {}) => ({
+    id,
+    ...onDate(TODAY),
+    ...overrides,
+  });
+  const ids = (list) => list.map((a) => a.id);
+
+  it("keeps all older activities when there are five or fewer", () => {
+    const list = [oldActivity("a"), oldActivity("b"), oldActivity("c")];
+    expect(ids(selectDailyActivities(list, TODAY))).toEqual(["a", "b", "c"]);
+  });
+
+  it("places today's activities after older ones", () => {
+    const list = [oldActivity("old"), todayActivity("new")];
+    expect(ids(selectDailyActivities(list, TODAY))).toEqual(["old", "new"]);
+  });
+
+  it("treats activities without createdAt as older", () => {
+    const list = [{ id: "no-date" }, todayActivity("new")];
+    expect(ids(selectDailyActivities(list, TODAY))).toEqual(["no-date", "new"]);
+  });
+
+  it("limits older activities to five when there are more", () => {
+    const list = Array.from({ length: 7 }, (_, i) => oldActivity(`act-${i}`));
+    expect(selectDailyActivities(list, TODAY)).toHaveLength(5);
+  });
+
+  it("is deterministic regardless of the input order", () => {
+    const list = Array.from({ length: 7 }, (_, i) => oldActivity(`act-${i}`));
+    const forward = ids(selectDailyActivities(list, TODAY));
+    const reversed = ids(selectDailyActivities([...list].reverse(), TODAY));
+    expect(reversed).toEqual(forward);
+  });
+
+  it("dedupes repeated activities and keeps a pending challenge", () => {
+    const list = [
+      oldActivity("a"),
+      todayActivity("b"),
+      todayActivity("challenge", { type: "desafio" }),
+    ];
+    const result = selectDailyActivities(list, TODAY);
+    expect(ids(result)).toEqual(["a", "b", "challenge"]);
+    expect(new Set(ids(result)).size).toBe(result.length);
   });
 });
