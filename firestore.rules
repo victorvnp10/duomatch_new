@@ -874,6 +874,28 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Integrity checks apply only when a field changes: unrelated writes must
+    // not strand couples containing legacy data. Missing numeric counters = 0.
+    function changed(field) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasAny([field]);
+    }
+
+    function validCounters() {
+      let next = request.resource.data;
+      let old = resource.data;
+      return (!changed('streak') ||
+          (next.streak is int && next.streak >= 1 &&
+            (next.streak == 1 || next.streak == old.get('streak', 0) + 1))) &&
+        (!changed('intimacyPoints') ||
+          (next.intimacyPoints is int && next.intimacyPoints >= 0 &&
+            next.intimacyPoints == old.get('intimacyPoints', 0) + 1)) &&
+        // Deletion is a separate client write; legacy counters can go negative.
+        (!changed('messageCount') ||
+          (next.messageCount is int &&
+            (next.messageCount == old.get('messageCount', 0) + 1 ||
+             next.messageCount == old.get('messageCount', 0) - 1)));
+    }
+
     // Regra principal para os dados do casal
     match /duomatches/{coupleId} {
       allow create: if isSignedIn() &&
@@ -891,7 +913,7 @@ service cloud.firestore {
           request.resource.data.invitedUserId,
           coupleId);
       allow read: if isCoupleMember(coupleId);
-      allow update: if isCoupleMember(coupleId) &&
+      allow update: if isCoupleMember(coupleId) && validCounters() &&
         request.resource.data.members == resource.data.members &&
         request.resource.data.get('memberNicknames', {}) == resource.data.get('memberNicknames', {}) &&
         request.resource.data.get('createdBy', '') == resource.data.get('createdBy', '') &&

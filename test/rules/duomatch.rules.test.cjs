@@ -773,8 +773,9 @@ async function main() {
     }
   );
 
+  await require('./integrity.cjs')({ env, seed, teste, host: EMU_HOST, port: Number(EMU_PORT) });
+  await envLegado.cleanup();
   await env.cleanup();
-  await envNovo.cleanup();
 
   console.log(
     `\n=== RESULTADO: ${passou} passaram, ${falhou} falharam (de ${
