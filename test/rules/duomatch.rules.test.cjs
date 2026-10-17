@@ -20,6 +20,7 @@
 
 const fs = require("fs");
 const path = require("path");
+const url = require("url");
 
 const NM =
   process.env.FIREBASE_TOOLS_NODE_MODULES ||
@@ -38,6 +39,8 @@ const {
   runTransaction,
   deleteDoc,
   serverTimestamp,
+  Timestamp,
+  writeBatch,
 } = require(NM + "/firebase/firestore");
 
 const RULES_LEGACY = fs.readFileSync(
@@ -160,6 +163,8 @@ async function main() {
   // FASE 2 — regras NOVAS: ataque bloqueado
   // ---------------------------------------------------------------------
   console.log("\n=== FASE 2: regras NOVAS — o ataque DEVE ser bloqueado ===");
+  // Guarda a instância de regras ANTIGAS para as fases 5 e 6 (A-1 / M-1).
+  const envLegado = env;
   env = envNovo;
   await env.clearFirestore();
   await seed(env, async (db) => {
@@ -255,6 +260,8 @@ async function main() {
       creatorNickname: "Convidador",
       coupleId: LEGIT,
       createdAt: new Date(),
+      // M-1: as regras novas exigem validade explícita no convite.
+      expiresAt: Timestamp.fromDate(new Date(Date.now() + 60 * 60 * 1000)),
     });
   });
 
@@ -375,6 +382,7 @@ async function main() {
       creatorNickname: "Convidador",
       coupleId: "casal-legado",
       createdAt: new Date(),
+      expiresAt: Timestamp.fromDate(new Date(Date.now() + 60 * 60 * 1000)),
     });
   });
   const dbLegado = env.authenticatedContext("entrante").firestore();
@@ -402,6 +410,366 @@ async function main() {
           });
         })
       );
+    }
+  );
+
+  // ---------------------------------------------------------------------
+  // FASE 5 — ACHADO A-1: poluição do catálogo global
+  // ---------------------------------------------------------------------
+  const catalogMod = await import(
+    url.pathToFileURL(
+      path.join(__dirname, "..", "..", "src", "infrastructure", "seed", "contentCatalog.js")
+    ).href
+  );
+  const ACTIVITIES = catalogMod.ACTIVITY_CATALOG;
+  const CHALLENGES = catalogMod.CHALLENGE_CATALOG;
+  const LEGIT_ACTIVITY = ACTIVITIES[0];
+  const LEGIT_CHALLENGE = CHALLENGES[0];
+
+  // Payload de injeção: tem EXATAMENTE o formato aceito pelas regras (mesmas
+  // chaves, tipos válidos, pontos plausíveis). A única coisa "errada" é o id,
+  // que não existe no catálogo publicado pelo app. Assim a negação nas regras
+  // novas é atribuível à allowlist, não a validação de tipo.
+  const INJECTED_ACTIVITY = {
+    id: "act-evil-injected",
+    name: "Oferta imperdível",
+    category: "Hot",
+    points: 20,
+    description: "Clique em http://evil.example para resgatar",
+    flavor: "hot",
+    active: true,
+  };
+  const INJECTED_CHALLENGE = {
+    id: "week-evil-injected",
+    title: "Desafio imperdível",
+    description: "Clique em http://evil.example para resgatar",
+    points: 20,
+    type: "communication",
+    active: true,
+  };
+
+  console.log(
+    "\n=== FASE 5 (A-1): regras ANTIGAS — injeção no catálogo DEVE passar ==="
+  );
+  await envLegado.clearFirestore();
+  await seed(envLegado, async (db) => {
+    await setDoc(doc(db, "users", "injetor"), perfil("injetor", "Injetor"));
+  });
+  const dbInjetorAntigo = envLegado.authenticatedContext("injetor").firestore();
+
+  await teste(
+    "ANTIGAS: usuário injeta atividade falsa no catálogo global (PASSA)",
+    async () => {
+      await assertSucceeds(
+        setDoc(
+          doc(dbInjetorAntigo, "contentActivities", INJECTED_ACTIVITY.id),
+          INJECTED_ACTIVITY
+        )
+      );
+    }
+  );
+
+  await teste(
+    "ANTIGAS: usuário injeta desafio falso no catálogo global (PASSA)",
+    async () => {
+      await assertSucceeds(
+        setDoc(
+          doc(dbInjetorAntigo, "contentChallenges", INJECTED_CHALLENGE.id),
+          INJECTED_CHALLENGE
+        )
+      );
+    }
+  );
+
+  console.log(
+    "\n=== FASE 5 (A-1): regras NOVAS — injeção DEVE ser bloqueada ==="
+  );
+  await env.clearFirestore();
+  await seed(env, async (db) => {
+    await setDoc(doc(db, "users", "injetor"), perfil("injetor", "Injetor"));
+  });
+  const dbInjetorNovo = env.authenticatedContext("injetor").firestore();
+
+  await teste(
+    "NOVAS: injeção de atividade com id fora do catálogo é NEGADA",
+    async () => {
+      await assertFails(
+        setDoc(
+          doc(dbInjetorNovo, "contentActivities", INJECTED_ACTIVITY.id),
+          INJECTED_ACTIVITY
+        )
+      );
+    }
+  );
+
+  await teste(
+    "NOVAS: injeção de desafio com id fora do catálogo é NEGADA",
+    async () => {
+      await assertFails(
+        setDoc(
+          doc(dbInjetorNovo, "contentChallenges", INJECTED_CHALLENGE.id),
+          INJECTED_CHALLENGE
+        )
+      );
+    }
+  );
+
+  await teste(
+    "NOVAS: o catálogo NÃO contém as entradas injetadas (leitura do app)",
+    async () => {
+      const dbLeitor = env.authenticatedContext("injetor").firestore();
+      const act = await getDoc(
+        doc(dbLeitor, "contentActivities", INJECTED_ACTIVITY.id)
+      );
+      const chal = await getDoc(
+        doc(dbLeitor, "contentChallenges", INJECTED_CHALLENGE.id)
+      );
+      if (act.exists() || chal.exists()) {
+        throw new Error("entrada injetada ficou visível no catálogo global");
+      }
+    }
+  );
+
+  console.log(
+    "\n=== FASE 5 (A-1): regras NOVAS — o SEED legítimo continua funcionando ==="
+  );
+  await teste(
+    "NOVAS: seed do catálogo (batch de ids reais) é PERMITIDO",
+    async () => {
+      await assertSucceeds(
+        (async () => {
+          const batch = writeBatch(dbInjetorNovo);
+          batch.set(
+            doc(dbInjetorNovo, "contentActivities", LEGIT_ACTIVITY.id),
+            LEGIT_ACTIVITY
+          );
+          batch.set(
+            doc(dbInjetorNovo, "contentChallenges", LEGIT_CHALLENGE.id),
+            LEGIT_CHALLENGE
+          );
+          ACTIVITIES.slice(1, 4).forEach((it) => {
+            batch.set(doc(dbInjetorNovo, "contentActivities", it.id), it);
+          });
+          CHALLENGES.slice(1, 3).forEach((it) => {
+            batch.set(doc(dbInjetorNovo, "contentChallenges", it.id), it);
+          });
+          await batch.commit();
+        })()
+      );
+    }
+  );
+
+  await teste(
+    "NOVAS: os itens semeados são legíveis e idênticos ao catálogo do app",
+    async () => {
+      const dbLeitor = env.authenticatedContext("injetor").firestore();
+      const snap = await getDoc(
+        doc(dbLeitor, "contentActivities", LEGIT_ACTIVITY.id)
+      );
+      if (!snap.exists()) throw new Error("seed não gravou a atividade legítima");
+      if (snap.data().name !== LEGIT_ACTIVITY.name) {
+        throw new Error("conteúdo semeado diverge do catálogo");
+      }
+    }
+  );
+
+  await teste(
+    "NOVAS: re-seed é idempotente (create sobre id já existente é NEGADO)",
+    async () => {
+      await assertFails(
+        setDoc(
+          doc(dbInjetorNovo, "contentActivities", LEGIT_ACTIVITY.id),
+          LEGIT_ACTIVITY
+        )
+      );
+    }
+  );
+
+  // ---------------------------------------------------------------------
+  // FASE 6 — ACHADO M-1: convites adivinháveis / sem expiração
+  // ---------------------------------------------------------------------
+  const TTL_H = 60 * 60 * 1000;
+
+  console.log(
+    "\n=== FASE 6 (M-1): regras ANTIGAS — convite sem validade NUNCA expira ==="
+  );
+  await envLegado.clearFirestore();
+  await seed(envLegado, async (db) => {
+    await setDoc(doc(db, "users", "vitima2"), perfil("vitima2", "Vítima 2"));
+    await setDoc(doc(db, "users", "atacante2"), perfil("atacante2", "Atacante 2"));
+    // Convite criado há 30 dias, sem expiresAt (exatamente o que o app antigo
+    // gravava). O atacante que adivinhar/obter o código ainda o consome hoje.
+    await setDoc(doc(db, "inviteCodes", "AAAAAA"), {
+      creatorId: "vitima2",
+      creatorNickname: "Vítima 2",
+      coupleId: "casal-m1",
+      createdAt: new Date(Date.now() - 30 * 24 * TTL_H),
+    });
+  });
+  const dbAtacante2Antigo = envLegado.authenticatedContext("atacante2").firestore();
+
+  await teste(
+    "ANTIGAS: convite de 30 dias (sem expiresAt) ainda é consumível — sequestro PASSA",
+    async () => {
+      await assertSucceeds(
+        runTransaction(dbAtacante2Antigo, async (transaction) => {
+          const inviteRef = doc(dbAtacante2Antigo, "inviteCodes", "AAAAAA");
+          const snap = await transaction.get(inviteRef);
+          if (!snap.exists()) throw new Error("convite inexistente");
+          const inv = snap.data();
+          const coupleRef = doc(dbAtacante2Antigo, "duomatches", "casal-m1");
+          transaction.set(coupleRef, {
+            members: ["atacante2", inv.creatorId],
+            memberNicknames: {
+              atacante2: "Atacante 2",
+              [inv.creatorId]: inv.creatorNickname,
+            },
+            createdAt: serverTimestamp(),
+            createdBy: "atacante2",
+            invitedUserId: inv.creatorId,
+            inviteCode: "AAAAAA",
+            confirmationTime: "22:00",
+          });
+          transaction.update(doc(dbAtacante2Antigo, "users", "atacante2"), {
+            partnerId: inv.creatorId,
+            coupleId: "casal-m1",
+          });
+          transaction.update(doc(dbAtacante2Antigo, "users", inv.creatorId), {
+            partnerId: "atacante2",
+            coupleId: "casal-m1",
+          });
+          transaction.delete(inviteRef);
+        })
+      );
+    }
+  );
+
+  console.log(
+    "\n=== FASE 6 (M-1): regras NOVAS — convite exige validade e expira ==="
+  );
+  await env.clearFirestore();
+  await seed(env, async (db) => {
+    await setDoc(doc(db, "users", "vitima2"), perfil("vitima2", "Vítima 2"));
+    await setDoc(doc(db, "users", "atacante2"), perfil("atacante2", "Atacante 2"));
+    // Convite legado (pré-deploy), sem expiresAt: não pode mais ser consumido.
+    await setDoc(doc(db, "inviteCodes", "SEMEXP"), {
+      creatorId: "vitima2",
+      creatorNickname: "Vítima 2",
+      coupleId: "casal-m1-semexp",
+      createdAt: new Date(Date.now() - 30 * 24 * TTL_H),
+    });
+    // Convite já expirado.
+    await setDoc(doc(db, "inviteCodes", "EXPIRD"), {
+      creatorId: "vitima2",
+      creatorNickname: "Vítima 2",
+      coupleId: "casal-m1-expird",
+      createdAt: new Date(Date.now() - 2 * TTL_H),
+      expiresAt: Timestamp.fromDate(new Date(Date.now() - TTL_H)),
+    });
+    // Convite válido para o fluxo legítimo.
+    await setDoc(doc(db, "inviteCodes", "VAL123"), {
+      creatorId: "vitima2",
+      creatorNickname: "Vítima 2",
+      coupleId: "casal-m1-val",
+      createdAt: new Date(),
+      expiresAt: Timestamp.fromDate(new Date(Date.now() + TTL_H)),
+    });
+  });
+  const dbVitima2 = env.authenticatedContext("vitima2").firestore();
+  const dbAtacante2Novo = env.authenticatedContext("atacante2").firestore();
+
+  const transacaoVinculo = (db, code) =>
+    runTransaction(db, async (transaction) => {
+      const inviteRef = doc(db, "inviteCodes", code);
+      const snap = await transaction.get(inviteRef);
+      if (!snap.exists()) throw new Error("convite inexistente");
+      const inv = snap.data();
+      const coupleRef = doc(db, "duomatches", inv.coupleId);
+      transaction.set(coupleRef, {
+        members: ["atacante2", inv.creatorId],
+        memberNicknames: {
+          atacante2: "Atacante 2",
+          [inv.creatorId]: inv.creatorNickname,
+        },
+        createdAt: serverTimestamp(),
+        createdBy: "atacante2",
+        invitedUserId: inv.creatorId,
+        inviteCode: code,
+        confirmationTime: "22:00",
+      });
+      transaction.update(doc(db, "users", "atacante2"), {
+        partnerId: inv.creatorId,
+        coupleId: inviteRef.id && coupleRef.id,
+      });
+      transaction.update(doc(db, "users", inv.creatorId), {
+        partnerId: "atacante2",
+        coupleId: coupleRef.id,
+      });
+      transaction.delete(inviteRef);
+    });
+
+  await teste(
+    "NOVAS: criar convite SEM expiresAt é NEGADO (campo obrigatório)",
+    async () => {
+      await assertFails(
+        setDoc(doc(dbVitima2, "inviteCodes", "NEW001"), {
+          creatorId: "vitima2",
+          creatorNickname: "Vítima 2",
+          coupleId: "casal-novo",
+          createdAt: serverTimestamp(),
+        })
+      );
+    }
+  );
+
+  await teste(
+    "NOVAS: criar convite com validade acima do teto (3 dias) é NEGADO",
+    async () => {
+      await assertFails(
+        setDoc(doc(dbVitima2, "inviteCodes", "NEW002"), {
+          creatorId: "vitima2",
+          creatorNickname: "Vítima 2",
+          coupleId: "casal-novo",
+          createdAt: serverTimestamp(),
+          expiresAt: Timestamp.fromDate(new Date(Date.now() + 3 * 24 * TTL_H)),
+        })
+      );
+    }
+  );
+
+  await teste(
+    "NOVAS: criar convite válido (expira em 24h) é PERMITIDO — fluxo do app",
+    async () => {
+      await assertSucceeds(
+        setDoc(doc(dbVitima2, "inviteCodes", "NEW003"), {
+          creatorId: "vitima2",
+          creatorNickname: "Vítima 2",
+          coupleId: "casal-novo",
+          createdAt: serverTimestamp(),
+          expiresAt: Timestamp.fromDate(new Date(Date.now() + 24 * TTL_H)),
+        })
+      );
+    }
+  );
+
+  await teste(
+    "NOVAS: convite legado sem expiresAt NÃO pode ser consumido (atacante bloqueado)",
+    async () => {
+      await assertFails(transacaoVinculo(dbAtacante2Novo, "SEMEXP"));
+    }
+  );
+
+  await teste(
+    "NOVAS: convite expirado NÃO pode ser consumido (atacante bloqueado)",
+    async () => {
+      await assertFails(transacaoVinculo(dbAtacante2Novo, "EXPIRD"));
+    }
+  );
+
+  await teste(
+    "NOVAS: convite válido e não expirado continua consumível — fluxo legítimo",
+    async () => {
+      await assertSucceeds(transacaoVinculo(dbAtacante2Novo, "VAL123"));
     }
   );
 

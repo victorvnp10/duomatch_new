@@ -10,7 +10,12 @@ import {
   serverTimestamp,
   writeBatch,
   runTransaction,
+  Timestamp,
 } from "../../infrastructure/firebase";
+
+// ACHADO M-1: geração de código e validade ficam em módulo sem dependências
+// (testável isoladamente). Ver src/presentation/components/inviteCode.js.
+import { generateInviteCode, INVITE_CODE_TTL_MS } from "./inviteCode";
 
 function LinkingPage({ user, userData, onSkip, onBack }) {
   const [inviteCode, setInviteCode] = useState("");
@@ -52,9 +57,6 @@ function LinkingPage({ user, userData, onSkip, onBack }) {
     return err;
   };
 
-  const generateRandomCode = () =>
-    Math.random().toString(36).substring(2, 8).toUpperCase();
-
   // B2-32a: reserva o código de forma ATÔMICA. Antes era `setDoc` sem
   // checagem — numa colisão (rara) o código de um usuário sobrescrevia o
   // convite ATIVO de outro. Agora: transação que aborta se o código já
@@ -62,8 +64,14 @@ function LinkingPage({ user, userData, onSkip, onBack }) {
   // janela de corrida entre "verificar" e "reservar".
   const reserveInviteCode = async (creatorId, creatorNickname) => {
     for (let attempt = 0; attempt < 5; attempt++) {
-      const code = generateRandomCode();
+      const code = generateInviteCode();
       const coupleId = doc(collection(db, duomatchesPath)).id;
+      // M-1: validade explícita gravada pelo CLIENTE (as regras passam a
+      // exigi-la e a recusar convites vencidos). Publicar o app antes das
+      // regras: sem este campo o create do convite é negado pelas regras novas.
+      const expiresAt = Timestamp.fromDate(
+        new Date(Date.now() + INVITE_CODE_TTL_MS)
+      );
       try {
         await runTransaction(db, async (transaction) => {
           const inviteRef = doc(db, inviteCodesPath, code);
@@ -74,6 +82,7 @@ function LinkingPage({ user, userData, onSkip, onBack }) {
             creatorNickname,
             coupleId,
             createdAt: serverTimestamp(),
+            expiresAt,
           });
         });
         return code;
@@ -143,6 +152,16 @@ function LinkingPage({ user, userData, onSkip, onBack }) {
           throw validationError(
             "Este cÃ³digo Ã© antigo. PeÃ§a um novo convite ao seu parceiro."
           );
+        }
+
+        // M-1: recusa no cliente antes de qualquer escrita. As regras também
+        // recusam (defesa em profundidade); isto só evita um erro genérico.
+        if (
+          !inviteData.expiresAt ||
+          typeof inviteData.expiresAt.toDate !== "function" ||
+          inviteData.expiresAt.toDate().getTime() <= Date.now()
+        ) {
+          throw validationError("Código de convite inválido ou expirado.");
         }
 
         const coupleRef = doc(db, duomatchesPath, inviteData.coupleId);
