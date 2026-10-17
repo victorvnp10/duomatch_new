@@ -10,6 +10,7 @@ import SecretWishesSection from "./hotzone/SecretWishesSection";
 import IntimacyMeter from "./hotzone/IntimacyMeter";
 import { getSortedSpecialSuggestions } from "../../application/services/specialSuggestionsService";
 import { getIntimacyLevel } from "../../domain/services/intimacyLevels";
+import { useMatchNotification } from "../../application/hooks/useMatchNotification";
 
 // --- COMPONENTE PRINCIPAL APRIMORADO ---
 export default function HotZone(props) {
@@ -35,8 +36,6 @@ export default function HotZone(props) {
   // `IntimateMemoriesSection` (linha ~438). Este estado nunca era usado.
   const [showLevelUpAnimation, setShowLevelUpAnimation] = useState(false);
   const [newLevel, setNewLevel] = useState(0);
-  const [showMatchNotification, setShowMatchNotification] = useState(false);
-  const [matchedActivityName, setMatchedActivityName] = useState('');
 
   // Controle de animação de level up
   const previousLevelRef = useRef(null);
@@ -60,22 +59,10 @@ export default function HotZone(props) {
     previousLevelRef.current = currentLevel;
   }, [coupleData?.intimacyPoints]);
 
-  // Sistema de eventos para notificação de match (igual ao MainView)
-  useEffect(() => {
-    const handleMatchEvent = (event) => {
-      const name = typeof event.detail === "string" ? event.detail : event.detail?.activityName;
-      setMatchedActivityName(name || "");
-      setShowMatchNotification(true);
-    };
-
-    window.addEventListener('activityMatch', handleMatchEvent);
-    window.addEventListener('hotActivityMatch', handleMatchEvent);
-
-    return () => {
-      window.removeEventListener('activityMatch', handleMatchEvent);
-      window.removeEventListener('hotActivityMatch', handleMatchEvent);
-    };
-  }, []);
+  // Sistema de eventos para notificação de match (fonte única, igual ao
+  // MainView). HotZone também escuta `hotActivityMatch`.
+  const { showMatchNotification, matchedActivityName, hideMatchNotification } =
+    useMatchNotification(["activityMatch", "hotActivityMatch"]);
 
   const hotItems = useMemo(() => allActivities.filter(
     (activity) => activity.category === "Hot" && isActivityForToday(activity)
@@ -196,7 +183,7 @@ export default function HotZone(props) {
           activityName={matchedActivityName}
           isHot={true}
           onComplete={() => {
-            setShowMatchNotification(false);
+            hideMatchNotification();
           }}
         />
       )}

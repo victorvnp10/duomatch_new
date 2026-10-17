@@ -39,6 +39,7 @@ import { useAchievements } from "../../application/hooks/useAchievements";
 import { useMenstrualCycle } from "../../application/hooks/useMenstrualCycle";
 import DailyTipCard from "./DailyTipCard";
 import { useNotificationCenter } from "../../application/hooks/useNotificationCenter";
+import { useMatchNotification } from "../../application/hooks/useMatchNotification";
 import NotificationCenter from "./NotificationCenter";
 import { Avatar } from "./avatars/AvatarCatalog";
 
@@ -128,8 +129,6 @@ export default function MainView(props) {
 
   const [isLoading, setIsLoading] = useState(false);
   const [dailyActivities, setDailyActivities] = useState([]);
-  const [showMatchNotification, setShowMatchNotification] = useState(false);
-  const [matchedActivityName, setMatchedActivityName] = useState('');
 
   // Data LOCAL (convenção do projeto) — toISOString() é UTC e, no fuso
   // brasileiro, viraria "amanhã" entre 21h e 23:59, quebrando rodada ativa,
@@ -253,19 +252,9 @@ export default function MainView(props) {
   // Sistema de eventos para notificações de match.
   // Matches HOT não são tratados aqui: o overlay temático fica no
   // DuoMatchApp (global) e no HotZone — evita overlay duplicado/errado.
-  useEffect(() => {
-    const handleMatchEvent = (event) => {
-      const name = typeof event.detail === "string" ? event.detail : event.detail?.activityName;
-      setMatchedActivityName(name || "");
-      setShowMatchNotification(true);
-    };
-
-    window.addEventListener('activityMatch', handleMatchEvent);
-
-    return () => {
-      window.removeEventListener('activityMatch', handleMatchEvent);
-    };
-  }, []);
+  // Listener+parsing agora vivem na fonte única useMatchNotification.
+  const { showMatchNotification, matchedActivityName, hideMatchNotification } =
+    useMatchNotification();
 
   // Usar as funções já existentes do useActivities
   const handleSelectActivityAndUpdateStreak = async (activityId) => {
@@ -851,7 +840,7 @@ export default function MainView(props) {
         isVisible={showMatchNotification}
         activityName={matchedActivityName}
         isHot={false}
-        onComplete={() => setShowMatchNotification(false)}
+        onComplete={() => hideMatchNotification()}
       />
     </div>
   );
