@@ -1,12 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
-import { db, doc } from "../../infrastructure/firebase";
-import {
-  getAuth,
-  EmailAuthProvider,
-  reauthenticateWithCredential,
-  updatePassword,
-} from "firebase/auth";
-import { updateDoc } from "firebase/firestore";
+import { changeAccountPassword, updateUserProfile } from "../../application/services/accountService";
 
 // HOOKS
 import { useCouple } from "../../application/hooks/useCouple";
@@ -161,10 +154,7 @@ export default function DuoMatchApp({ user, userData }) {
   const handleOpenTour = () => setIsTourOpen(true);
   const handleChangePassword = async (currentPassword, newPassword) => {
     try {
-      const auth = getAuth();
-      const credential = EmailAuthProvider.credential(user.email, currentPassword);
-      await reauthenticateWithCredential(auth.currentUser, credential);
-      await updatePassword(auth.currentUser, newPassword);
+      await changeAccountPassword(user.email, currentPassword, newPassword);
       alert("Senha alterada com sucesso!");
     } catch (error) {
       console.error("Erro ao alterar senha:", error);
@@ -178,8 +168,7 @@ export default function DuoMatchApp({ user, userData }) {
       return;
     }
     try {
-      const userRef = doc(db, "users", user.uid);
-      await updateDoc(userRef, updatedData);
+      await updateUserProfile(user.uid, updatedData);
       alert("Perfil atualizado com sucesso!");
     } catch (error) {
       console.error("Erro ao atualizar perfil:", error);
