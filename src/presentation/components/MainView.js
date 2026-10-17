@@ -21,7 +21,8 @@ import DailyChallenge from "./DailyChallenge";
 import AchievementSystem from "./AchievementSystem";
 import MatchNotification from "./MatchNotification";
 import { getTodayDateString } from "../../shared/lib/dateUtils";
-import { recordActivitySelectionStreak, recordSuggestionSelectionStreak } from "../../application/services/mainViewService";
+import { updateStreak } from "../../application/services/streakService";
+import { withActivitySelection } from "../../domain/services/activitySelectionSnapshot";
 import { getRoundCountdownInfo } from "../../application/services/roundCountdownService";
 import {
   filterAvailableActivities,
@@ -127,6 +128,7 @@ export default function MainView(props) {
   } = props;
 
   const [isLoading, setIsLoading] = useState(false);
+  const [selectionError, setSelectionError] = useState(null);
   const [dailyActivities, setDailyActivities] = useState([]);
 
   // Data LOCAL (convenção do projeto) — toISOString() é UTC e, no fuso
@@ -262,11 +264,20 @@ export default function MainView(props) {
       const selectionResult = await handleSelectActivity(activityId);
 
       // Atualizar sequência após seleção
-      recordActivitySelectionStreak(activityId, selectionResult, {
-        user, userData, coupleData, allActivities, dailySuggestions, hotSuggestions,
-      });
+      // mainViewService discards the Promise, so consume the rejecting service
+      // directly while preserving its selection projection and eligibility.
+      if (userData?.coupleId && selectionResult?.nextSelection?.status === "confirmed") {
+        await updateStreak(
+          userData.coupleId,
+          { ...userData, coupleData },
+          withActivitySelection(allActivities, activityId, user.uid, selectionResult.nextSelection),
+          dailySuggestions,
+          hotSuggestions
+        );
+      }
     } catch (error) {
       console.error("Erro ao selecionar atividade:", error);
+      setSelectionError("Não foi possível atualizar a sequência de atividades do casal.");
     } finally {
       setIsLoading(false);
     }
@@ -278,11 +289,12 @@ export default function MainView(props) {
       await handleSelectSuggestion(suggestionId);
 
       // Atualizar sequência após seleção de sugestão especial
-      recordSuggestionSelectionStreak({
-        userData, coupleData, allActivities, dailySuggestions, hotSuggestions,
-      });
+      if (userData?.coupleId) {
+        await updateStreak(userData.coupleId, { ...userData, coupleData }, allActivities, dailySuggestions, hotSuggestions);
+      }
     } catch (error) {
       console.error("Erro ao selecionar sugestão:", error);
+      setSelectionError("Não foi possível atualizar a sequência de atividades do casal.");
     } finally {
       setIsLoading(false);
     }
@@ -294,11 +306,12 @@ export default function MainView(props) {
       await handleSelectHotSuggestion(hotId);
 
       // Atualizar sequência após seleção de sugestão picante
-      recordSuggestionSelectionStreak({
-        userData, coupleData, allActivities, dailySuggestions, hotSuggestions,
-      });
+      if (userData?.coupleId) {
+        await updateStreak(userData.coupleId, { ...userData, coupleData }, allActivities, dailySuggestions, hotSuggestions);
+      }
     } catch (error) {
       console.error("Erro ao selecionar hot suggestion:", error);
+      setSelectionError("Não foi possível atualizar a sequência de atividades do casal.");
     } finally {
       setIsLoading(false);
     }
@@ -453,6 +466,7 @@ export default function MainView(props) {
       </header>
 
       <main className="max-w-4xl mx-auto p-4 md:p-6 space-y-8 pb-24">
+        {selectionError && <p role="alert" className="text-red-400 text-sm">{selectionError}</p>}
         <div
           data-tour-id="rounds-card"
           className="bg-gray-800/50 border border-gray-700/50 rounded-2xl shadow-lg p-6 backdrop-blur-sm"

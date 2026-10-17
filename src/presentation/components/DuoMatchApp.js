@@ -139,11 +139,17 @@ export default function DuoMatchApp({ user, userData }) {
     dailyActivities: [],
   });
 
-  const handleFinishOnboarding = () => {
+  const handleFinishOnboarding = async () => {
     if (userData?.coupleId) {
-      setIsTourOpen(false);
-      handleCompleteOnboarding();
-      setView("rounds");
+      try {
+        await handleCompleteOnboarding();
+        setIsTourOpen(false);
+        setView("rounds");
+      } catch (error) {
+        console.error("Erro ao finalizar apresentação inicial:", error);
+        // The tour overlay would hide an inline message; reuse the app's alert.
+        alert("Não foi possível salvar a conclusão da apresentação inicial. Tente novamente.");
+      }
     } else {
       console.error(
         "Não foi possível finalizar o onboarding: coupleId não encontrado."
