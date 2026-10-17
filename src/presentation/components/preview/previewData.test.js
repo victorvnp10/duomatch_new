@@ -1,5 +1,5 @@
 /**
- * Testes de src/shared/previewData.js
+ * Testes de src/presentation/components/preview/previewData.js
  *
  * Dados de exemplo usados SÓ na pré-visualização solo (quem não vinculou
  * parceiro) — nada é persistido (previewData.js:1-6). Os builders alimentam a

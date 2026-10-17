@@ -1,5 +1,5 @@
 /**
- * Testes de integridade de src/shared/contentCatalog.js
+ * Testes de integridade de src/infrastructure/seed/contentCatalog.js
  *
  * Este arquivo é a FONTE DE SEED do Firestore (contentActivities /
  * contentChallenges) — ver cabeçalho contentCatalog.js:1-8. Um id duplicado
