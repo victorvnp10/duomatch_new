@@ -26,6 +26,7 @@ test.each([true, false])('shows weekly challenge operationError, including absen
   await render();
   expect(container.querySelector('[role="alert"]')?.textContent).toBe(value.operationError.message);
   expect(container.textContent).not.toContain('permission-denied');
+  // eslint-disable-next-line jest/no-conditional-expect -- parâmetro da tabela (selected=true/false) determina o ramo, sempre executado
   if (selected) expect(container.textContent).toContain('Passear juntos');
 });
 

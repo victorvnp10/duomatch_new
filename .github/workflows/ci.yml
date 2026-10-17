@@ -35,13 +35,14 @@ jobs:
       - name: Instalar dependências
         run: npm ci
 
-      # LINT — NÃO bloqueante por enquanto.
-      # O projeto tem débito de lint pré-existente (ver RELATORIO-CI-LINT.md).
-      # `continue-on-error: true` faz o passo reportar os problemas sem
-      # derrubar o pipeline. Quando o débito for zerado, remova esta linha
-      # para o lint passar a bloquear o CI.
-      - name: Lint (não bloqueante)
-        continue-on-error: true
+      # LINT — BLOQUEANTE.
+      # Antes isto era `continue-on-error` por causa de débito pré-existente,
+      # mas o débito era em boa parte FALSO POSITIVO de configuração (globalThis
+      # não declarado, globais de service worker, comentários em JSON), o que
+      # escondia erro real no meio de 24 acusações erradas. Com a configuração
+      # corrigida e os 10 erros reais resolvidos, o lint fica em 0 erro e pode
+      # bloquear: pipeline que vive vermelho ensina a ignorar o vermelho.
+      - name: Lint
         run: npm run lint
 
       - name: Testes

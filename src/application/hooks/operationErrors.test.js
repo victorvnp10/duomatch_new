@@ -125,7 +125,9 @@ test.each(handlers)('%s exposes contextual operationError instead of an unobserv
   (dependency === 'commit' ? commit : firebase[dependency]).mockRejectedValueOnce(failure);
   await flush(() => read()[method](...args));
   assertError(read(), message);
+  // eslint-disable-next-line jest/no-conditional-expect -- asserção dirigida pela tabela de casos: cada caso executa exatamente um ramo
   if (method === 'handlePurchaseReward') expect(read().purchaseNotification.visible).toBe(false);
+  // eslint-disable-next-line jest/no-conditional-expect -- asserção dirigida pela tabela de casos: cada caso executa exatamente um ramo
   if (method === 'handleResolveChallenge') expect(read().pointsMessage).toBe('');
 });
 

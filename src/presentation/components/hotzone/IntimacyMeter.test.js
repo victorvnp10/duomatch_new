@@ -8,8 +8,8 @@ it("depends only on coupleData and never reads unused user props", () => {
     user: { get: readUnused },
     userData: { get: readUnused },
   });
-  const markup = renderToStaticMarkup(IntimacyMeter(props));
+  const view = renderToStaticMarkup(IntimacyMeter(props));
   expect(readUnused).not.toHaveBeenCalled();
-  expect(markup).toBe(renderToStaticMarkup(IntimacyMeter({ coupleData: props.coupleData })));
-  expect(markup).toContain("7 pontos totais");
+  expect(view).toBe(renderToStaticMarkup(IntimacyMeter({ coupleData: props.coupleData })));
+  expect(view).toContain("7 pontos totais");
 });

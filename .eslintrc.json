@@ -1,3 +1,25 @@
 {
-  "extends": ["react-app", "react-app/jest"]
+  "extends": ["react-app", "react-app/jest"],
+  "env": {
+    "browser": true,
+    "es2021": true,
+    "serviceworker": true,
+    "jest": true
+  },
+  "overrides": [
+    {
+      "files": ["src/service-worker.js"],
+      "globals": {
+        "clients": "readonly",
+        "importScripts": "readonly",
+        "firebase": "readonly",
+        "self": "readonly",
+        "registration": "readonly"
+      }
+    },
+    {
+      "files": ["src/**/*.test.js", "src/**/*.spec.js"],
+      "env": { "jest": true, "es2021": true }
+    }
+  ]
 }
