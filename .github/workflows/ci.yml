@@ -49,6 +49,31 @@ jobs:
       - name: Testes
         run: CI=true npx react-scripts test --watchAll=false
 
+      # REGRAS DO FIRESTORE — a suíte de test/rules prova, dos dois lados, que
+      # os ataques são bloqueados E que o fluxo legítimo continua funcionando.
+      # Sem este passo o CI fica verde com uma regressão de segurança reaberta:
+      # as regras vivem em firestore.rules, fora do bundle, e nenhum teste do
+      # app as exercita.
+      - name: Configurar Java (exigido pelo emulador do Firestore)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      # As dependências do harness vão para um diretório isolado: o teste as
+      # carrega de FIREBASE_TOOLS_NODE_MODULES de propósito, para não instalar
+      # nada no repositório. Aqui apontamos a variável para o diretório do CI.
+      - name: Testes das regras do Firestore (emulador)
+        run: |
+          mkdir -p /tmp/fb-tools && cd /tmp/fb-tools
+          npm init -y >/dev/null
+          npm i --silent firebase@13 firebase-tools @firebase/rules-unit-testing
+          cd "$GITHUB_WORKSPACE"
+          FIREBASE_TOOLS_NODE_MODULES=/tmp/fb-tools/node_modules \
+            /tmp/fb-tools/node_modules/.bin/firebase emulators:exec \
+            --only firestore --project demo-duomatch \
+            "node test/rules/duomatch.rules.test.cjs"
+
       # BUILD — sem secrets reais.
       # O CRA inlina as REACT_APP_* em tempo de build. Os valores abaixo são
       # placeholders SÓ para o smoke-build do CI (o artefato do CI não é
