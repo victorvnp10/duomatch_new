@@ -14,3 +14,4 @@ firestore-debug.log
 firestore.rules.bak
 
 /dist
+# log do emulador do Firestore
