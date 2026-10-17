@@ -155,6 +155,12 @@ function LinkingPage({ user, userData, onSkip, onBack }) {
           createdAt: serverTimestamp(),
           createdBy: user.uid,
           invitedUserId: inviteData.creatorId,
+          // Prova de consentimento exigida pelas regras do Firestore: o convite
+          // é o único artefato que ninguém consegue forjar, porque criar um
+          // convite exige creatorId == auth.uid. Guardamos o código no documento
+          // do casal para a regra conferir que o vínculo nasceu de um convite
+          // real do parceiro (firestore.rules, hasInviteConsent).
+          inviteCode,
           confirmationTime: "22:00",
         });
 
