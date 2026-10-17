@@ -7,8 +7,11 @@ import {
   mergeWeeklyAcceptance,
   mergeWeeklyClaim,
 } from '../../domain/services/WeeklyChallengeState';
-import { ChallengeIcon, TrophyIcon } from './Icons';
 import { getTodayDateString, getDateString } from '../../shared/lib/dateUtils';
+import { CATEGORY_STYLES, DEFAULT_CATEGORY_STYLE } from "./dailychallenge/categoryStyles";
+import WeeklyChallengeHeader from "./dailychallenge/WeeklyChallengeHeader";
+import WeeklyChallengeInfo from "./dailychallenge/WeeklyChallengeInfo";
+import WeeklyChallengeActions from "./dailychallenge/WeeklyChallengeActions";
 
 /**
  * Retorna a SEGUNDA-FEIRA que inicia a semana da data informada.
@@ -23,26 +26,6 @@ const getStartOfWeek = (date) => {
   start.setHours(0, 0, 0, 0);
   return start;
 };
-
-/**
- * Cada desafio semanal já vem com um `type` (romance, connection,
- * appreciation...). Antes disso, o card inteiro era pintado com
- * purple/pink fixos, sem relação com a paleta de marca (accent/gold/sage)
- * usada no resto do app. Agora a cor do card reflete a categoria real do
- * desafio, usando só cores que já existem na paleta.
- */
-const CATEGORY_STYLES = {
-  romance: { label: "Romance", card: "from-accent/20 to-accent-dark/20 border-accent/40", text: "text-accent-light", track: "bg-accent-dark/40", bar: "from-accent to-accent-dark" },
-  surprise: { label: "Surpresa", card: "from-accent/20 to-accent-dark/20 border-accent/40", text: "text-accent-light", track: "bg-accent-dark/40", bar: "from-accent to-accent-dark" },
-  together: { label: "Juntos", card: "from-accent/20 to-accent-dark/20 border-accent/40", text: "text-accent-light", track: "bg-accent-dark/40", bar: "from-accent to-accent-dark" },
-  touch: { label: "Carinho", card: "from-accent/20 to-accent-dark/20 border-accent/40", text: "text-accent-light", track: "bg-accent-dark/40", bar: "from-accent to-accent-dark" },
-  connection: { label: "Conexão", card: "from-sage/20 to-sage-light/10 border-sage/40", text: "text-sage-light", track: "bg-sage/40", bar: "from-sage to-sage-light" },
-  communication: { label: "Comunicação", card: "from-sage/20 to-sage-light/10 border-sage/40", text: "text-sage-light", track: "bg-sage/40", bar: "from-sage to-sage-light" },
-  planning: { label: "Planejamento", card: "from-sage/20 to-sage-light/10 border-sage/40", text: "text-sage-light", track: "bg-sage/40", bar: "from-sage to-sage-light" },
-  appreciation: { label: "Gratidão", card: "from-gold/20 to-gold-dark/10 border-gold/40", text: "text-gold-light", track: "bg-gold-dark/40", bar: "from-gold to-gold-dark" },
-  memory: { label: "Memórias", card: "from-gold/20 to-gold-dark/10 border-gold/40", text: "text-gold-light", track: "bg-gold-dark/40", bar: "from-gold to-gold-dark" },
-};
-const DEFAULT_CATEGORY_STYLE = { label: "Desafio", card: "from-gold/20 to-gold-dark/10 border-gold/40", text: "text-gold-light", track: "bg-gold-dark/40", bar: "from-gold to-gold-dark" };
 
 export const DailyChallenge = ({ userData, coupleData, rounds, onAcceptChallenge }) => {
   const [currentChallenge, setCurrentChallenge] = useState(null);
@@ -396,142 +379,26 @@ export const DailyChallenge = ({ userData, coupleData, rounds, onAcceptChallenge
 
   return (
     <div className={`bg-gradient-to-r ${categoryStyle.card} border rounded-2xl shadow-lg p-6 backdrop-blur-sm`}>
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center">
-          <ChallengeIcon className={`h-6 w-6 ${categoryStyle.text} mr-2`} />
-          <h3 className="text-xl font-bold text-white">
-            Desafio Semanal
-          </h3>
-        </div>
-        <div className="text-right">
-          <div className={`text-xs ${categoryStyle.text}`}>
-            {calculateWeeklyProgress.daysRemaining > 0 
-              ? `${calculateWeeklyProgress.daysRemaining} dias restantes`
-              : 'Último dia!'
-            }
-          </div>
-          <div className={`w-20 ${categoryStyle.track} rounded-full h-2 mt-1`}>
-            <div 
-              className={`bg-gradient-to-r ${categoryStyle.bar} h-2 rounded-full transition-all duration-500`}
-              style={{ width: `${calculateWeeklyProgress.percentage}%` }}
-            />
-          </div>
-        </div>
-      </div>
+      <WeeklyChallengeHeader
+        categoryStyle={categoryStyle}
+        calculateWeeklyProgress={calculateWeeklyProgress}
+      />
 
       <div className="bg-black/20 rounded-lg p-4 mb-4">
-        <p className={`text-xs uppercase tracking-wide font-bold ${categoryStyle.text} mb-1`}>
-          {categoryStyle.label}
-        </p>
-        <h4 className="font-semibold text-white text-lg mb-2">
-          🎯 {selectedChallenge.title}
-        </h4>
-        <p className="text-gray-300 text-sm mb-3 leading-relaxed">
-          {selectedChallenge.description}
-        </p>
+        <WeeklyChallengeInfo
+          categoryStyle={categoryStyle}
+          selectedChallenge={selectedChallenge}
+          challengeState={challengeState}
+        />
 
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center text-yellow-400">
-            <TrophyIcon className="h-4 w-4 mr-1" />
-            <span className="font-bold text-sm">+{selectedChallenge.points} pontos</span>
-          </div>
-
-          {/* Status de aceitação independente */}
-          <div className="text-xs text-gray-300 text-right">
-            <div className="mb-1">
-              {challengeState?.myAccepted ? (
-                <span className="text-green-400">✅ Você: Aceito</span>
-              ) : (
-                <span className="text-gray-400">❌ Você: Não aceito</span>
-              )}
-            </div>
-            <div>
-              {challengeState?.partnerAccepted ? (
-                <span className="text-green-400">✅ Parceiro: Aceito</span>
-              ) : (
-                <span className="text-gray-400">❌ Parceiro: Não aceito</span>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Botões de ação */}
-        <div className="space-y-3">
-          {/* Botão de aceitar desafio */}
-          {!challengeState?.myAccepted && (
-            <button
-              onClick={handleAcceptWeeklyChallenge}
-              disabled={isLoading}
-              className="w-full px-4 py-2 rounded-lg font-semibold text-sm transition-all transform hover:scale-105 bg-gradient-to-r from-accent to-accent-dark hover:from-accent-light hover:to-accent text-white disabled:opacity-50"
-            >
-              {isLoading ? 'Aceitando...' : 'Aceitar Desafio'}
-            </button>
-          )}
-
-          {/* Botão de reivindicar conclusão - só aparece se EU aceitei */}
-          {challengeState?.myAccepted && !challengeState?.myConfirmation && (
-            <button
-              onClick={handleClaimCompletion}
-              disabled={isLoading}
-              className="w-full px-4 py-2 rounded-lg font-semibold text-sm transition-all bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white disabled:opacity-50"
-            >
-              {isLoading ? 'Reivindicando...' : 'Reivindicar Conclusão'}
-            </button>
-          )}
-
-          {/* Status da minha reivindicação */}
-          {challengeState?.myConfirmation && (
-            <div className="p-3 bg-blue-900/30 rounded-lg">
-              <p className="text-blue-300 text-sm font-semibold mb-1">Minha reivindicação:</p>
-              <p className="text-blue-300 text-sm">
-                {challengeState.myConfirmation.status === 'pending_partner_confirmation' && 
-                  '⏳ Aguardando confirmação do parceiro'}
-                {challengeState.myConfirmation.status === 'confirmed' && 
-                  `✅ Confirmado! +${challengeState.myConfirmation.pointsAwarded || selectedChallenge.points} pontos`}
-                {challengeState.myConfirmation.status === 'denied' && 
-                  '❌ Negado pelo parceiro - você pode tentar novamente'}
-              </p>
-            </div>
-          )}
-
-          {/* Confirmação do parceiro - só aparece se o parceiro reivindicou */}
-          {challengeState?.partnerConfirmation?.status === 'pending_partner_confirmation' && (
-            <div className="p-3 bg-orange-900/30 rounded-lg space-y-2">
-              <p className="text-orange-300 text-sm font-semibold">
-                🤔 Seu parceiro reivindicou ter completado o desafio. Confirma?
-              </p>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handleConfirmPartner(true)}
-                  disabled={isLoading}
-                  className="flex-1 px-3 py-2 rounded-md font-semibold text-sm bg-green-600 hover:bg-green-500 text-white disabled:opacity-50"
-                >
-                  ✅ Confirmar
-                </button>
-                <button
-                  onClick={() => handleConfirmPartner(false)}
-                  disabled={isLoading}
-                  className="flex-1 px-3 py-2 rounded-md font-semibold text-sm bg-red-600 hover:bg-red-500 text-white disabled:opacity-50"
-                >
-                  ❌ Negar
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Status da reivindicação do parceiro */}
-          {challengeState?.partnerConfirmation && challengeState.partnerConfirmation.status !== 'pending_partner_confirmation' && (
-            <div className="p-3 bg-gray-900/30 rounded-lg">
-              <p className="text-gray-300 text-sm font-semibold mb-1">Reivindicação do parceiro:</p>
-              <p className="text-gray-300 text-sm">
-                {challengeState.partnerConfirmation.status === 'confirmed' && 
-                  `✅ Confirmado por você! Parceiro ganhou +${challengeState.partnerConfirmation.pointsAwarded || selectedChallenge.points} pontos`}
-                {challengeState.partnerConfirmation.status === 'denied' && 
-                  '❌ Negado por você'}
-              </p>
-            </div>
-          )}
-        </div>
+        <WeeklyChallengeActions
+          challengeState={challengeState}
+          isLoading={isLoading}
+          handleAcceptWeeklyChallenge={handleAcceptWeeklyChallenge}
+          handleClaimCompletion={handleClaimCompletion}
+          handleConfirmPartner={handleConfirmPartner}
+          selectedChallenge={selectedChallenge}
+        />
       </div>
 
       {!activeRound && (
