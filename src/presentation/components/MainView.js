@@ -32,6 +32,7 @@ import {
   getTodayMatches,
   getCoupleJourneyMatches,
 } from "../../application/services/matchSectionsService";
+import { getSortedSpecialSuggestions } from "../../application/services/specialSuggestionsService";
 import { buildRoundRulesProgress } from "../../domain/services/RoundRulesEvaluator";
 import CountdownTimer from "./CountdownTimer";
 import { useAchievements } from "../../application/hooks/useAchievements";
@@ -142,21 +143,14 @@ export default function MainView(props) {
     ? activeRound.scores?.[userData.partnerId] || 0
     : 0;
 
-  const sortedSpecialSuggestions = useMemo(() => {
-    if (!dailySuggestions) return [];
-    return Object.values(dailySuggestions)
-      .filter((activity) => {
-        if (!activity || !activity.name) return false;
-        // Se já teve match, não mostrar
-        if (activity.matched) return false;
-        // Se ambos selecionaram (mas ainda não processou o match), não mostrar
-        const mySelection = activity.selections?.[user.uid];
-        const partnerSelection = activity.selections?.[userData.partnerId];
-        if (mySelection === "selected" && partnerSelection === "selected") return false;
-        return true;
-      })
-      .sort((a, b) => a.name.localeCompare(b.name));
-  }, [dailySuggestions, user.uid, userData.partnerId]);
+  const sortedSpecialSuggestions = useMemo(
+    () =>
+      getSortedSpecialSuggestions(dailySuggestions, {
+        userId: user.uid,
+        partnerId: userData.partnerId,
+      }),
+    [dailySuggestions, user.uid, userData.partnerId]
+  );
 
   const countdownInfo = getRoundCountdownInfo(activeRound, todayStr);
 
