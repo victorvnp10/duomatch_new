@@ -10,6 +10,10 @@
  * the previous render". Por isso o teste renderiza o mesmo root duas vezes,
  * em vez de montar já aberto (que nunca exercita o caminho com bug).
  */
+/* eslint-disable testing-library/no-unnecessary-act --
+ * Este teste NÃO usa Testing Library (não está instalada no projeto): o
+ * `act` vem de react-dom/test-utils e é obrigatório para `createRoot`.
+ * A regra dispara por engano sobre esse uso. */
 import React from "react";
 import { createRoot } from "react-dom/client";
 import { act } from "react-dom/test-utils";
