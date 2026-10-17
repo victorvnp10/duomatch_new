@@ -68,6 +68,18 @@ test.each(['activity', 'suggestion'])('%s selection observes streak rejection an
   expect(container.querySelector('[role="alert"]')).not.toBeNull();
 });
 
+test.each(['activity', 'suggestion'])('distinguishes %s selection failure from a later streak failure', async (kind) => {
+  if (kind === 'suggestion') {
+    props.allActivities = []; props.dailySuggestions = { special: { id: 'special', name: 'Jantar', category: 'Lazer' } };
+    props.handleSelectSuggestion.mockRejectedValueOnce(new Error('permission-denied'));
+  } else {
+    props.handleSelectActivity.mockRejectedValueOnce(new Error('permission-denied'));
+  }
+  await render(); await choose();
+  expect(container.querySelector('[role="alert"]')?.textContent).toBe('Não foi possível registrar sua escolha. Tente novamente.');
+  expect(updateStreak).not.toHaveBeenCalled();
+});
+
 test('activity streak receives the committed selection projection and leaves original snapshot untouched', async () => {
   await render(); await choose();
   expect(updateStreak).toHaveBeenCalledWith('couple', { ...props.userData, coupleData: props.coupleData }, [{ ...activity, selections: { me: nextSelection } }], props.dailySuggestions, props.hotSuggestions);

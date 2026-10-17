@@ -332,7 +332,7 @@ export default function DuoMatchApp({ user, userData }) {
           ["dailySuggestions", dailySuggestionsOperationError],
           ["wishlist", wishlistOperationError],
           ["rewards", rewardsOperationError],
-          ["chat", chatOperationError],
+          ["chat", chatActivity ? null : chatOperationError],
         ].map(([source, error]) => error && (
           <p key={source} role="alert" className="text-red-400 text-sm">{error.message}</p>
         ))}

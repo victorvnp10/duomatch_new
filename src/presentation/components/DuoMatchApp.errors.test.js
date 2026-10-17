@@ -104,6 +104,7 @@ test('shows read-receipt errors inside the open chat instead of only behind its 
     const footer = container.querySelector('footer');
     expect(footer.querySelector('[role="alert"]')?.textContent).toBe('Não foi possível marcar as mensagens como lidas.');
     expect(footer.querySelector('button[aria-label="Enviar"]')).not.toBeNull();
+    expect(container.querySelectorAll('[role="alert"]')).toHaveLength(1);
   } finally {
     delete Element.prototype.scrollIntoView;
   }

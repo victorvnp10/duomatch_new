@@ -260,8 +260,10 @@ export default function MainView(props) {
   // Usar as funções já existentes do useActivities
   const handleSelectActivityAndUpdateStreak = async (activityId) => {
     setIsLoading(true);
+    let selectionCompleted = false;
     try {
       const selectionResult = await handleSelectActivity(activityId);
+      selectionCompleted = true;
 
       // Atualizar sequência após seleção
       // mainViewService discards the Promise, so consume the rejecting service
@@ -277,7 +279,9 @@ export default function MainView(props) {
       }
     } catch (error) {
       console.error("Erro ao selecionar atividade:", error);
-      setSelectionError("Não foi possível atualizar a sequência de atividades do casal.");
+      setSelectionError(selectionCompleted
+        ? "Não foi possível atualizar a sequência de atividades do casal."
+        : "Não foi possível registrar sua escolha. Tente novamente.");
     } finally {
       setIsLoading(false);
     }
@@ -285,8 +289,10 @@ export default function MainView(props) {
 
   const handleSelectSuggestionAndUpdateStreak = async (suggestionId) => {
     setIsLoading(true);
+    let selectionCompleted = false;
     try {
       await handleSelectSuggestion(suggestionId);
+      selectionCompleted = true;
 
       // Atualizar sequência após seleção de sugestão especial
       if (userData?.coupleId) {
@@ -294,7 +300,9 @@ export default function MainView(props) {
       }
     } catch (error) {
       console.error("Erro ao selecionar sugestão:", error);
-      setSelectionError("Não foi possível atualizar a sequência de atividades do casal.");
+      setSelectionError(selectionCompleted
+        ? "Não foi possível atualizar a sequência de atividades do casal."
+        : "Não foi possível registrar sua escolha. Tente novamente.");
     } finally {
       setIsLoading(false);
     }
@@ -302,8 +310,10 @@ export default function MainView(props) {
 
   const handleSelectHotSuggestionAndUpdateStreak = async (hotId) => {
     setIsLoading(true);
+    let selectionCompleted = false;
     try {
       await handleSelectHotSuggestion(hotId);
+      selectionCompleted = true;
 
       // Atualizar sequência após seleção de sugestão picante
       if (userData?.coupleId) {
@@ -311,7 +321,9 @@ export default function MainView(props) {
       }
     } catch (error) {
       console.error("Erro ao selecionar hot suggestion:", error);
-      setSelectionError("Não foi possível atualizar a sequência de atividades do casal.");
+      setSelectionError(selectionCompleted
+        ? "Não foi possível atualizar a sequência de atividades do casal."
+        : "Não foi possível registrar sua escolha. Tente novamente.");
     } finally {
       setIsLoading(false);
     }
