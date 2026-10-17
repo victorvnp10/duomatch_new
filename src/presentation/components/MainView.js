@@ -28,6 +28,7 @@ import {
   filterAvailableActivities,
   selectDailyActivities,
 } from "../../application/services/activityFeedService";
+import { getTodayMatches } from "../../application/services/matchSectionsService";
 import { buildRoundRulesProgress } from "../../domain/services/RoundRulesEvaluator";
 import CountdownTimer from "./CountdownTimer";
 import { useAchievements } from "../../application/hooks/useAchievements";
@@ -185,30 +186,15 @@ export default function MainView(props) {
     [activeRound, allActivities, user.uid, userData.partnerId, todayStr]
   );
   // Separar matches de hoje dos da jornada do casal
-  const todayMatches = useMemo(() => {
-    const today = getTodayDateString();
-
-    return allActivities.filter((activity) => {
-      const myChoice = activity.selections?.[user.uid];
-      const partnerChoice = activity.selections?.[userData.partnerId];
-
-      const isNormalMatch =
-        myChoice?.date === today &&
-        myChoice?.status === "confirmed" &&
-        partnerChoice?.date === today &&
-        partnerChoice?.status === "confirmed" &&
-        !activity.type?.startsWith("desafio");
-
-      // Para desafios, só mostrar os que estão aceitos (ativos) hoje
-      const isChallengeMatch =
-        activity.type?.startsWith("desafio") &&
-        activity.challengeState === "accepted" &&
-        activity.expiresAt &&
-        activity.expiresAt.toDate() > new Date();
-
-      return isNormalMatch || isChallengeMatch;
-    });
-  }, [allActivities, user.uid, userData.partnerId]);
+  const todayMatches = useMemo(
+    () =>
+      getTodayMatches(allActivities, {
+        userId: user.uid,
+        partnerId: userData.partnerId,
+        todayStr,
+      }),
+    [allActivities, user.uid, userData.partnerId, todayStr]
+  );
 
   const coupleJourneyMatches = useMemo(() => {
     // B2-16: data LOCAL (convenção do projeto) — toISOString() é UTC e à
