@@ -10,6 +10,7 @@ import {
 import { ChallengeIcon, TrophyIcon } from './Icons';
 import { getTodayDateString, getDateString } from '../../shared/lib/dateUtils';
 import { CATEGORY_STYLES, DEFAULT_CATEGORY_STYLE } from "./dailychallenge/categoryStyles";
+import WeeklyChallengeHeader from "./dailychallenge/WeeklyChallengeHeader";
 
 /**
  * Retorna a SEGUNDA-FEIRA que inicia a semana da data informada.
@@ -377,28 +378,10 @@ export const DailyChallenge = ({ userData, coupleData, rounds, onAcceptChallenge
 
   return (
     <div className={`bg-gradient-to-r ${categoryStyle.card} border rounded-2xl shadow-lg p-6 backdrop-blur-sm`}>
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center">
-          <ChallengeIcon className={`h-6 w-6 ${categoryStyle.text} mr-2`} />
-          <h3 className="text-xl font-bold text-white">
-            Desafio Semanal
-          </h3>
-        </div>
-        <div className="text-right">
-          <div className={`text-xs ${categoryStyle.text}`}>
-            {calculateWeeklyProgress.daysRemaining > 0 
-              ? `${calculateWeeklyProgress.daysRemaining} dias restantes`
-              : 'Último dia!'
-            }
-          </div>
-          <div className={`w-20 ${categoryStyle.track} rounded-full h-2 mt-1`}>
-            <div 
-              className={`bg-gradient-to-r ${categoryStyle.bar} h-2 rounded-full transition-all duration-500`}
-              style={{ width: `${calculateWeeklyProgress.percentage}%` }}
-            />
-          </div>
-        </div>
-      </div>
+      <WeeklyChallengeHeader
+        categoryStyle={categoryStyle}
+        calculateWeeklyProgress={calculateWeeklyProgress}
+      />
 
       <div className="bg-black/20 rounded-lg p-4 mb-4">
         <p className={`text-xs uppercase tracking-wide font-bold ${categoryStyle.text} mb-1`}>
