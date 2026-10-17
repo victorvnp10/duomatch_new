@@ -753,7 +753,11 @@ service cloud.firestore {
         inviteCode.size() > 0 &&
         exists(/databases/$(database)/documents/inviteCodes/$(inviteCode)) &&
         get(/databases/$(database)/documents/inviteCodes/$(inviteCode)).data.get('creatorId', '') == invitedUserId &&
-        get(/databases/$(database)/documents/inviteCodes/$(inviteCode)).data.get('coupleId', '') == coupleId;
+        get(/databases/$(database)/documents/inviteCodes/$(inviteCode)).data.get('coupleId', '') == coupleId &&
+        // ACHADO M-1: o convite tem validade explícita. Um convite sem
+        // expiresAt (formato antigo) ou já vencido não serve para vincular.
+        get(/databases/$(database)/documents/inviteCodes/$(inviteCode)).data.get('expiresAt', null) is timestamp &&
+        get(/databases/$(database)/documents/inviteCodes/$(inviteCode)).data.expiresAt > request.time;
     }
 
     function isLinkingUserUpdate(userId) {
@@ -829,13 +833,23 @@ service cloud.firestore {
     match /inviteCodes/{code} {
       allow get: if isSignedIn();
       allow list: if false;
+      // ACHADO M-1: todo convite passa a ter validade explícita (`expiresAt`).
+      // Sem isso o código — que antes era curto e previsível — valia para
+      // sempre e podia ser varrido/consumido por um terceiro. Teto de 48h
+      // impede que um cliente malicioso crie um convite "eterno" (o app usa 24h).
       allow create: if isSignedIn() &&
         request.resource.data.get('creatorId', '') == request.auth.uid &&
         request.resource.data.get('coupleId', '') is string &&
         request.resource.data.get('coupleId', '') != '' &&
         request.resource.data.keys().hasOnly([
-          'creatorId', 'creatorNickname', 'coupleId', 'createdAt'
-        ]);
+          'creatorId', 'creatorNickname', 'coupleId', 'createdAt', 'expiresAt'
+        ]) &&
+        request.resource.data.keys().hasAll([
+          'creatorId', 'creatorNickname', 'coupleId', 'createdAt', 'expiresAt'
+        ]) &&
+        request.resource.data.expiresAt is timestamp &&
+        request.resource.data.expiresAt > request.time &&
+        request.resource.data.expiresAt <= request.time + duration.value(2, 'd');
       allow update: if false;
       allow delete: if isSignedIn() &&
         (resource.data.get('creatorId', '') == request.auth.uid ||

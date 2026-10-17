@@ -260,6 +260,8 @@ async function main() {
       creatorNickname: "Convidador",
       coupleId: LEGIT,
       createdAt: new Date(),
+      // M-1: as regras novas exigem validade explícita no convite.
+      expiresAt: Timestamp.fromDate(new Date(Date.now() + 60 * 60 * 1000)),
     });
   });
 
@@ -380,6 +382,7 @@ async function main() {
       creatorNickname: "Convidador",
       coupleId: "casal-legado",
       createdAt: new Date(),
+      expiresAt: Timestamp.fromDate(new Date(Date.now() + 60 * 60 * 1000)),
     });
   });
   const dbLegado = env.authenticatedContext("entrante").firestore();
@@ -579,6 +582,194 @@ async function main() {
           LEGIT_ACTIVITY
         )
       );
+    }
+  );
+
+  // ---------------------------------------------------------------------
+  // FASE 6 — ACHADO M-1: convites adivinháveis / sem expiração
+  // ---------------------------------------------------------------------
+  const TTL_H = 60 * 60 * 1000;
+
+  console.log(
+    "\n=== FASE 6 (M-1): regras ANTIGAS — convite sem validade NUNCA expira ==="
+  );
+  await envLegado.clearFirestore();
+  await seed(envLegado, async (db) => {
+    await setDoc(doc(db, "users", "vitima2"), perfil("vitima2", "Vítima 2"));
+    await setDoc(doc(db, "users", "atacante2"), perfil("atacante2", "Atacante 2"));
+    // Convite criado há 30 dias, sem expiresAt (exatamente o que o app antigo
+    // gravava). O atacante que adivinhar/obter o código ainda o consome hoje.
+    await setDoc(doc(db, "inviteCodes", "AAAAAA"), {
+      creatorId: "vitima2",
+      creatorNickname: "Vítima 2",
+      coupleId: "casal-m1",
+      createdAt: new Date(Date.now() - 30 * 24 * TTL_H),
+    });
+  });
+  const dbAtacante2Antigo = envLegado.authenticatedContext("atacante2").firestore();
+
+  await teste(
+    "ANTIGAS: convite de 30 dias (sem expiresAt) ainda é consumível — sequestro PASSA",
+    async () => {
+      await assertSucceeds(
+        runTransaction(dbAtacante2Antigo, async (transaction) => {
+          const inviteRef = doc(dbAtacante2Antigo, "inviteCodes", "AAAAAA");
+          const snap = await transaction.get(inviteRef);
+          if (!snap.exists()) throw new Error("convite inexistente");
+          const inv = snap.data();
+          const coupleRef = doc(dbAtacante2Antigo, "duomatches", "casal-m1");
+          transaction.set(coupleRef, {
+            members: ["atacante2", inv.creatorId],
+            memberNicknames: {
+              atacante2: "Atacante 2",
+              [inv.creatorId]: inv.creatorNickname,
+            },
+            createdAt: serverTimestamp(),
+            createdBy: "atacante2",
+            invitedUserId: inv.creatorId,
+            inviteCode: "AAAAAA",
+            confirmationTime: "22:00",
+          });
+          transaction.update(doc(dbAtacante2Antigo, "users", "atacante2"), {
+            partnerId: inv.creatorId,
+            coupleId: "casal-m1",
+          });
+          transaction.update(doc(dbAtacante2Antigo, "users", inv.creatorId), {
+            partnerId: "atacante2",
+            coupleId: "casal-m1",
+          });
+          transaction.delete(inviteRef);
+        })
+      );
+    }
+  );
+
+  console.log(
+    "\n=== FASE 6 (M-1): regras NOVAS — convite exige validade e expira ==="
+  );
+  await env.clearFirestore();
+  await seed(env, async (db) => {
+    await setDoc(doc(db, "users", "vitima2"), perfil("vitima2", "Vítima 2"));
+    await setDoc(doc(db, "users", "atacante2"), perfil("atacante2", "Atacante 2"));
+    // Convite legado (pré-deploy), sem expiresAt: não pode mais ser consumido.
+    await setDoc(doc(db, "inviteCodes", "SEMEXP"), {
+      creatorId: "vitima2",
+      creatorNickname: "Vítima 2",
+      coupleId: "casal-m1-semexp",
+      createdAt: new Date(Date.now() - 30 * 24 * TTL_H),
+    });
+    // Convite já expirado.
+    await setDoc(doc(db, "inviteCodes", "EXPIRD"), {
+      creatorId: "vitima2",
+      creatorNickname: "Vítima 2",
+      coupleId: "casal-m1-expird",
+      createdAt: new Date(Date.now() - 2 * TTL_H),
+      expiresAt: Timestamp.fromDate(new Date(Date.now() - TTL_H)),
+    });
+    // Convite válido para o fluxo legítimo.
+    await setDoc(doc(db, "inviteCodes", "VAL123"), {
+      creatorId: "vitima2",
+      creatorNickname: "Vítima 2",
+      coupleId: "casal-m1-val",
+      createdAt: new Date(),
+      expiresAt: Timestamp.fromDate(new Date(Date.now() + TTL_H)),
+    });
+  });
+  const dbVitima2 = env.authenticatedContext("vitima2").firestore();
+  const dbAtacante2Novo = env.authenticatedContext("atacante2").firestore();
+
+  const transacaoVinculo = (db, code) =>
+    runTransaction(db, async (transaction) => {
+      const inviteRef = doc(db, "inviteCodes", code);
+      const snap = await transaction.get(inviteRef);
+      if (!snap.exists()) throw new Error("convite inexistente");
+      const inv = snap.data();
+      const coupleRef = doc(db, "duomatches", inv.coupleId);
+      transaction.set(coupleRef, {
+        members: ["atacante2", inv.creatorId],
+        memberNicknames: {
+          atacante2: "Atacante 2",
+          [inv.creatorId]: inv.creatorNickname,
+        },
+        createdAt: serverTimestamp(),
+        createdBy: "atacante2",
+        invitedUserId: inv.creatorId,
+        inviteCode: code,
+        confirmationTime: "22:00",
+      });
+      transaction.update(doc(db, "users", "atacante2"), {
+        partnerId: inv.creatorId,
+        coupleId: inviteRef.id && coupleRef.id,
+      });
+      transaction.update(doc(db, "users", inv.creatorId), {
+        partnerId: "atacante2",
+        coupleId: coupleRef.id,
+      });
+      transaction.delete(inviteRef);
+    });
+
+  await teste(
+    "NOVAS: criar convite SEM expiresAt é NEGADO (campo obrigatório)",
+    async () => {
+      await assertFails(
+        setDoc(doc(dbVitima2, "inviteCodes", "NEW001"), {
+          creatorId: "vitima2",
+          creatorNickname: "Vítima 2",
+          coupleId: "casal-novo",
+          createdAt: serverTimestamp(),
+        })
+      );
+    }
+  );
+
+  await teste(
+    "NOVAS: criar convite com validade acima do teto (3 dias) é NEGADO",
+    async () => {
+      await assertFails(
+        setDoc(doc(dbVitima2, "inviteCodes", "NEW002"), {
+          creatorId: "vitima2",
+          creatorNickname: "Vítima 2",
+          coupleId: "casal-novo",
+          createdAt: serverTimestamp(),
+          expiresAt: Timestamp.fromDate(new Date(Date.now() + 3 * 24 * TTL_H)),
+        })
+      );
+    }
+  );
+
+  await teste(
+    "NOVAS: criar convite válido (expira em 24h) é PERMITIDO — fluxo do app",
+    async () => {
+      await assertSucceeds(
+        setDoc(doc(dbVitima2, "inviteCodes", "NEW003"), {
+          creatorId: "vitima2",
+          creatorNickname: "Vítima 2",
+          coupleId: "casal-novo",
+          createdAt: serverTimestamp(),
+          expiresAt: Timestamp.fromDate(new Date(Date.now() + 24 * TTL_H)),
+        })
+      );
+    }
+  );
+
+  await teste(
+    "NOVAS: convite legado sem expiresAt NÃO pode ser consumido (atacante bloqueado)",
+    async () => {
+      await assertFails(transacaoVinculo(dbAtacante2Novo, "SEMEXP"));
+    }
+  );
+
+  await teste(
+    "NOVAS: convite expirado NÃO pode ser consumido (atacante bloqueado)",
+    async () => {
+      await assertFails(transacaoVinculo(dbAtacante2Novo, "EXPIRD"));
+    }
+  );
+
+  await teste(
+    "NOVAS: convite válido e não expirado continua consumível — fluxo legítimo",
+    async () => {
+      await assertSucceeds(transacaoVinculo(dbAtacante2Novo, "VAL123"));
     }
   );
 
