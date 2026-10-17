@@ -1,8 +1,19 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 
 // --- COMPONENTE DE MEMÓRIAS ÍNTIMAS ---
 const IntimateMemoriesSection = ({ finalizedHotItems, user, userData, setActiveChatActivity }) => {
   const [showHistory, setShowHistory] = useState(false);
+  const fallbackKeys = useRef({ keys: new WeakMap(), next: 0 });
+
+  // Sem id persistido, preserve a identidade do objeto, nunca sua posição.
+  const getMemoryKey = (item) => {
+    if (item.id) return `id-${item.id}`;
+    const registry = fallbackKeys.current;
+    if (!registry.keys.has(item)) {
+      registry.keys.set(item, `memory-${registry.next++}`);
+    }
+    return registry.keys.get(item);
+  };
   
   // Verificação de segurança
   if (!finalizedHotItems || !Array.isArray(finalizedHotItems) || finalizedHotItems.length === 0) {
@@ -45,14 +56,14 @@ const IntimateMemoriesSection = ({ finalizedHotItems, user, userData, setActiveC
 
       {showHistory && (
         <div className="space-y-4">
-          {finalizedHotItems.map((item, index) => {
+          {finalizedHotItems.map((item) => {
             const isChallenge = item.type?.startsWith("desafio");
             const myResolution = item.selections?.[user?.uid]?.resolution;
             const partnerResolution = item.selections?.[userData?.partnerId]?.resolution;
 
             return (
               <div
-                key={item.id || `memory-${index}`}
+                key={getMemoryKey(item)}
                 className="bg-gray-800/50 border-l-4 border-pink-500/50 rounded-lg p-4 shadow-lg backdrop-blur-sm"
               >
                 <div className="flex justify-between items-start">
