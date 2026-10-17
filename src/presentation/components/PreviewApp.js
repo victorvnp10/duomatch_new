@@ -1,6 +1,5 @@
 import React, { useState, useRef, useMemo } from "react";
-import { signOut } from "firebase/auth";
-import { auth } from "../../infrastructure/firebase";
+import { endSession } from "../../application/services/sessionService";
 import { getTodayDateString } from "../../shared/lib/dateUtils";
 import { toggleActivitySelection } from "../../domain/services/ActivitySelectionEvaluator";
 import {
@@ -271,7 +270,7 @@ function PreviewApp({ user, userData }) {
           Vincular meu par agora
         </button>
         {" • "}
-        <button onClick={() => signOut(auth)} className="underline hover:text-white">
+        <button onClick={() => endSession()} className="underline hover:text-white">
           Sair
         </button>
       </div>
