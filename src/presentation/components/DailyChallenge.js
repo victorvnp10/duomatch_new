@@ -8,6 +8,7 @@ import WeeklyChallengeActions from "./dailychallenge/WeeklyChallengeActions";
 
 export const DailyChallenge = ({ userData, coupleData, rounds, onAcceptChallenge }) => {
   const {
+    operationError,
     selectedChallenge,
     challengeState,
     calculateWeeklyProgress,
@@ -18,14 +19,19 @@ export const DailyChallenge = ({ userData, coupleData, rounds, onAcceptChallenge
     handleConfirmPartner,
   } = useDailyChallenge({ userData, coupleData, rounds });
 
+  const errorMessage = operationError && (
+    <p role="alert" className="text-red-400 text-sm">{operationError.message}</p>
+  );
+
   if (!userData || !selectedChallenge) {
-    return null;
+    return errorMessage || null;
   }
 
   const categoryStyle = CATEGORY_STYLES[selectedChallenge.type] || DEFAULT_CATEGORY_STYLE;
 
   return (
     <div className={`bg-gradient-to-r ${categoryStyle.card} border rounded-2xl shadow-lg p-6 backdrop-blur-sm`}>
+      {errorMessage}
       <WeeklyChallengeHeader
         categoryStyle={categoryStyle}
         calculateWeeklyProgress={calculateWeeklyProgress}
