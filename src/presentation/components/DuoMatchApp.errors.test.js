@@ -94,6 +94,21 @@ test('does not render operation alerts when hooks have no failure', async () => 
   expect(container.textContent).toContain('Feed principal');
 });
 
+test('shows read-receipt errors inside the open chat instead of only behind its overlay', async () => {
+  couple.coupleData.onboardingCompletedBy = ['me'];
+  // JSDOM does not implement scrolling; the real ChatModal remains mounted.
+  Element.prototype.scrollIntoView = jest.fn();
+  useChat.mockReturnValue({ activeChatActivity: { id: 'walk', name: 'Passear' }, activeChatComments: [], operationError: new Error('Não foi possível marcar as mensagens como lidas.') });
+  try {
+    await render();
+    const footer = container.querySelector('footer');
+    expect(footer.querySelector('[role="alert"]')?.textContent).toBe('Não foi possível marcar as mensagens como lidas.');
+    expect(footer.querySelector('button[aria-label="Enviar"]')).not.toBeNull();
+  } finally {
+    delete Element.prototype.scrollIntoView;
+  }
+});
+
 test('onboarding waits for persistence before closing and navigating on success', async () => {
   let resolve;
   couple.handleCompleteOnboarding.mockReturnValue(new Promise((r) => { resolve = r; }));

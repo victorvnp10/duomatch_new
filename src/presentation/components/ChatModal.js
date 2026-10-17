@@ -6,6 +6,7 @@ function ChatModal({
   user,
   userData,
   comments,
+  operationError,
   onClose,
   handlePostComment,
   handleDeleteComment,
@@ -144,6 +145,7 @@ function ChatModal({
 
         {/* Rodapé do Modal (formulário de envio) */}
         <footer className="p-4 border-t border-gray-700/50 flex-shrink-0">
+          {operationError && <p role="alert" className="text-red-400 text-sm">{operationError.message}</p>}
           <form onSubmit={handleSubmit} className="flex items-center gap-2">
             <input
               type="text"

@@ -411,6 +411,7 @@ export default function DuoMatchApp({ user, userData }) {
           user={user}
           userData={userData}
           comments={chatHandlers.activeChatComments}
+          operationError={chatOperationError}
           onClose={() => setChatActivity(null)}
           handlePostComment={chatHandlers.handlePostComment}
           handleEditComment={chatHandlers.handleEditComment}
