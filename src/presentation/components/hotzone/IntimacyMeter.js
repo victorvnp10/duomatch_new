@@ -2,7 +2,7 @@ import React from "react";
 import { POINTS_PER_LEVEL, getIntimacyLevel } from "../../../domain/services/intimacyLevels";
 
 // --- COMPONENTE DE NÍVEL DE INTIMIDADE ---
-const IntimacyMeter = ({ user, userData, coupleData }) => {
+const IntimacyMeter = ({ coupleData }) => {
   const currentPoints = coupleData?.intimacyPoints || 0;
 
   // Cada nível requer POINTS_PER_LEVEL pontos (matches hot) — fonte única
