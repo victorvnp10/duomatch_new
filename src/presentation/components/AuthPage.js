@@ -1,21 +1,15 @@
 import React, { useState, useEffect } from "react";
 import {
-  auth,
-  db,
-  setNewUserData,
-  googleProvider,
-  GoogleAuthProvider,
-  signInWithRedirect,
-  signInWithPopup,
-  getRedirectResult,
-  fetchSignInMethodsForEmail,
-  linkWithCredential,
-} from "../../infrastructure/firebase";
-import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-} from "firebase/auth";
-import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
+  signInEmail,
+  linkEmailAccount,
+  registerEmailAccount,
+  ensureGoogleUserDoc,
+  readGoogleRedirect,
+  openGooglePopup,
+  startGoogleRedirect,
+  getEmailSignInMethods,
+  getGoogleCredential,
+} from "../../application/services/authPageService";
 import { HeartIcon } from "./Icons";
 
 function AuthPage() {
@@ -44,12 +38,7 @@ function AuthPage() {
     // promise, sem depender de re-render.
     if (linkRequest) {
       try {
-        const userCredential = await signInWithEmailAndPassword(
-          auth,
-          linkRequest.email,
-          password
-        );
-        await linkWithCredential(userCredential.user, linkRequest.credential);
+        await linkEmailAccount(linkRequest, password);
       } catch (err) {
         if (
           err.code === "auth/invalid-credential" ||
@@ -74,7 +63,7 @@ function AuthPage() {
 
     try {
       if (isLogin) {
-        await signInWithEmailAndPassword(auth, email, password);
+        await signInEmail(email, password);
       } else {
         if (email !== confirmEmail) {
           setError("Os e-mails não coincidem.");
@@ -92,28 +81,7 @@ function AuthPage() {
           return;
         }
 
-        const userCredential = await createUserWithEmailAndPassword(
-          auth,
-          email,
-          password
-        );
-        const user = userCredential.user;
-
-        // Nickname, gênero, data de nascimento e avatar ficam para a
-        // etapa seguinte (CompleteProfileView, a mesma usada por quem
-        // entra pelo Google) — aqui só criamos a conta em si.
-        const initialUserData = {
-          uid: user.uid,
-          nickname: "",
-          gender: null,
-          email,
-          createdAt: serverTimestamp(),
-          partnerId: null,
-          coupleId: null,
-        };
-
-        await setDoc(doc(db, "users", user.uid), initialUserData);
-        setNewUserData({ nickname: "", gender: null, email });
+        await registerEmailAccount(email, password);
       }
     } catch (err) {
       if (err.code === "auth/email-already-in-use") {
@@ -121,7 +89,7 @@ function AuthPage() {
         // ganhar uma segunda conta só porque escolheu "Registrar" com o
         // mesmo e-mail. Descobrir o provider do e-mail para orientar.
         try {
-          const methods = await fetchSignInMethodsForEmail(auth, email);
+          const methods = await getEmailSignInMethods(email);
           const isGoogleOnly =
             methods.length === 1 && methods.includes("google.com");
           setError(
@@ -141,7 +109,7 @@ function AuthPage() {
         // Login unificado: e-mail existe só no Google? Nada de senha que
         // valida — orientar o login pelo Google em vez de parecer erro.
         try {
-          const methods = await fetchSignInMethodsForEmail(auth, email);
+          const methods = await getEmailSignInMethods(email);
           const isGoogleOnly =
             methods.length === 1 && methods.includes("google.com");
           setError(
@@ -178,36 +146,13 @@ function AuthPage() {
   };
 
   /**
-   * Cria o documento do usuário em `users` se ainda não existir. Usado tanto
-   * pelo fluxo de Google quanto pelo de e-mail. Para o Google, criar o doc
-   * imediatamente evita a corrida com o `onAuthStateChanged` do `useAuth`,
-   * que de outro modo deslogaria a pessoa se não encontrasse nem o doc nem o
-   * `newUserData` preenchido.
-   */
-  const ensureGoogleUserDoc = async (googleUser) => {
-    const userRef = doc(db, "users", googleUser.uid);
-    const existingDoc = await getDoc(userRef);
-    if (!existingDoc.exists()) {
-      await setDoc(userRef, {
-        uid: googleUser.uid,
-        nickname: googleUser.displayName || "",
-        gender: null,
-        email: googleUser.email,
-        createdAt: serverTimestamp(),
-        partnerId: null,
-        coupleId: null,
-      });
-    }
-  };
-
-  /**
    * Processa o retorno do Google Auth quando o fallback via REDIRECT conclui.
    * A via primária é o popup; este efeito também mantém o fluxo de redirect
    * disponível para navegadores que bloqueiam janelas auxiliares.
    */
   useEffect(() => {
     let cancelled = false;
-    getRedirectResult(auth)
+    readGoogleRedirect()
       .then(async (result) => {
         // PENDÊNCIA ATIVA (CLAUDE.md §8) — "bate e volta" do login Google: o
         // redirect volta do Google mas o app não finaliza. O flag abaixo
@@ -244,7 +189,7 @@ function AuthPage() {
         // Google à conta existente (mesmo UID, dois providers).
         if (err.code === "auth/account-exists-with-different-credential") {
           const email = err.customData?.email;
-          const credential = GoogleAuthProvider.credentialFromError(err);
+          const credential = getGoogleCredential(err);
           if (email && credential) {
             setLinkRequest({ email, credential });
             setError(
@@ -275,13 +220,13 @@ function AuthPage() {
       // O popup é a via primária. Redirect fica como fallback para contextos
       // que bloqueiam popup; a COOP do vercel.json permite a comunicação com
       // a janela de autenticação.
-      const result = await signInWithPopup(auth, googleProvider);
+      const result = await openGooglePopup();
       await ensureGoogleUserDoc(result.user);
     } catch (err) {
       if (err.code === "auth/account-exists-with-different-credential") {
         // Login unificado: igual ao getRedirectResult — pede a senha e vincula.
         const email = err.customData?.email;
-        const credential = GoogleAuthProvider.credentialFromError(err);
+        const credential = getGoogleCredential(err);
         if (email && credential) {
           setLinkRequest({ email, credential });
           setError(
@@ -297,7 +242,7 @@ function AuthPage() {
         // Popup inviável (ex.: bloqueador de janelas) → volta o redirect.
         try {
           sessionStorage.setItem("duomatch_google_redirect_started", "1");
-          await signInWithRedirect(auth, googleProvider);
+          await startGoogleRedirect();
           return;
         } catch (redirectErr) {
           setError(
