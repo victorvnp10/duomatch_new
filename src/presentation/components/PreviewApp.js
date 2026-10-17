@@ -11,7 +11,7 @@ import {
   buildPreviewActivities,
   buildPreviewWishlistItems,
   buildPreviewRewards,
-} from "../../shared/previewData";
+} from "./preview/previewData";
 
 import LinkingPage from "./LinkingPage";
 import MainView from "./MainView";
