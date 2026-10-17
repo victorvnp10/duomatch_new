@@ -60,12 +60,22 @@ describe("formatPeriodicity (Periodicity.js:23-48)", () => {
     expect(formatPeriodicity({ type: "especifica", value: undefined })).toBe("");
   });
 
-  it("BUG SUSPEITO: valor 'semanal' fora de 0-6 produz 'undefined' no rótulo", () => {
-    // Periodicity.js:34-35 indexa WEEKDAY_NAMES[value] sem validar a faixa.
-    // Um valor corrompido/fora do intervalo vira texto "(Toda undefined)" na UI.
-    // Documenta o comportamento ATUAL — não corrigido nesta tarefa.
-    expect(formatPeriodicity({ type: "semanal", value: 7 })).toBe(
-      "(Toda undefined)"
+  it("devolve string vazia para 'semanal' com valor fora da faixa 0-6", () => {
+    // Periodicity.js:34-35: o índice era usado sem validação, e um valor
+    // corrompido virava o texto "(Toda undefined)" na UI. Agora o índice é
+    // validado e um valor inválido cai no mesmo "" dos outros tipos
+    // desconhecidos (nenhum texto novo é inventado).
+    expect(formatPeriodicity({ type: "semanal", value: 7 })).toBe("");
+    expect(formatPeriodicity({ type: "semanal", value: 99 })).toBe("");
+    expect(formatPeriodicity({ type: "semanal", value: -1 })).toBe("");
+    expect(formatPeriodicity({ type: "semanal", value: 1.5 })).toBe("");
+    expect(formatPeriodicity({ type: "semanal", value: "abc" })).toBe("");
+    expect(formatPeriodicity({ type: "semanal", value: undefined })).toBe("");
+  });
+
+  it("aceita o índice como número ou string numérica dentro da faixa", () => {
+    expect(formatPeriodicity({ type: "semanal", value: "3" })).toBe(
+      "(Toda Quarta-feira)"
     );
   });
 });
