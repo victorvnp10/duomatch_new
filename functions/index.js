@@ -52,6 +52,10 @@ exports.recordWeeklyProgress = onCall(
   createRecordWeeklyProgressHandler(db)
 );
 
+// Persisted actions are the durable source of truth; the callable is optional.
+const { weeklyActionOptions, createWeeklyActionHandler } = require('./weeklyAction');
+exports.consumeWeeklyAction = onDocumentCreated(weeklyActionOptions, createWeeklyActionHandler(db));
+
 // Scheduler (lembrete diário) — Pub/Sub funciona em qualquer região.
 const SCHEDULER_REGION = "us-central1";
 const TIME_ZONE = "America/Sao_Paulo";

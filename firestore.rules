@@ -346,6 +346,8 @@ service cloud.firestore {
           request.resource.data.targetUid != request.auth.uid &&
           request.resource.data.targetUid in get(couplePath(coupleId)).data.members &&
           request.resource.data.kind in ['confirm', 'deny'] &&
+          // One decision per actor/target/week, also for atomic batches and races.
+          !existsAfter(/databases/$(database)/documents/duomatches/$(coupleId)/weeklyActions/$(request.resource.data.weekKey + '_' + (request.resource.data.kind == 'confirm' ? 'deny' : 'confirm') + '_' + request.auth.uid + '_' + request.resource.data.targetUid)) &&
           isDate(request.resource.data.weekKey) &&
           eventId == request.resource.data.weekKey + '_' + request.resource.data.kind + '_' +
             request.auth.uid + '_' + request.resource.data.targetUid &&

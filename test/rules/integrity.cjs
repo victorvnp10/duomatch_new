@@ -191,6 +191,59 @@ module.exports = async ({ env, seed, teste, host, port }) => {
       const noClaim = await fresh(env, { weeklyChallenge: { [date]: weekly } }, 'bob');
       await assertFails(setDoc(doc(noClaim, 'weeklyActions', `${date}_confirm_bob_alice`), action));
     });
+    // Opposite sources cannot coexist even in one atomic batch. The round
+    // write stays atomic and rolls back with a rejected stale confirmation.
+    await teste('WEEKLY ORDER: deny first rejects late confirm and its round award', async () => {
+      const initial = { ...weekly, confirmations: { alice: { claimed: true, status: 'pending_partner_confirmation' } } };
+      const ref = await fresh(env, { weeklyChallenge: { [date]: initial } }, 'bob');
+      const action = { weekKey: date, actorUid: 'bob', targetUid: 'alice', challengeId: 'week-walk' };
+      await setDoc(doc(ref, 'weeklyActions', `${date}_deny_bob_alice`), { ...action, kind: 'deny' });
+      const round = doc(ref, 'rounds', 'active');
+      await seed(env, db => setDoc(doc(db, round.path), { scores: { alice: 0 } }));
+      const batch = writeBatch(ref.firestore);
+      batch.set(doc(ref, 'weeklyActions', `${date}_confirm_bob_alice`), { ...action, kind: 'confirm' });
+      batch.update(round, { 'scores.alice': increment(20) });
+      await assertFails(batch.commit());
+      assert.equal((await getDoc(round)).data().scores.alice, 0);
+    });
+    await teste('WEEKLY ORDER: confirm first rejects late deny', async () => {
+      const initial = { ...weekly, confirmations: { alice: { claimed: true } } };
+      const ref = await fresh(env, { weeklyChallenge: { [date]: initial } }, 'bob');
+      const action = { weekKey: date, actorUid: 'bob', targetUid: 'alice', challengeId: 'week-walk' };
+      await setDoc(doc(ref, 'weeklyActions', `${date}_confirm_bob_alice`), { ...action, kind: 'confirm' });
+      await assertFails(setDoc(doc(ref, 'weeklyActions', `${date}_deny_bob_alice`), { ...action, kind: 'deny' }));
+    });
+    await teste('WEEKLY ORDER: opposing sources in one batch are both rejected', async () => {
+      const initial = { ...weekly, confirmations: { alice: { claimed: true } } };
+      const ref = await fresh(env, { weeklyChallenge: { [date]: initial } }, 'bob');
+      const batch = writeBatch(ref.firestore);
+      for (const kind of ['confirm', 'deny']) batch.set(doc(ref, 'weeklyActions', `${date}_${kind}_bob_alice`), {
+        weekKey: date, kind, actorUid: 'bob', targetUid: 'alice', challengeId: 'week-walk',
+      });
+      await assertFails(batch.commit());
+      assert.equal((await getDoc(doc(ref, 'weeklyActions', `${date}_confirm_bob_alice`))).exists(), false);
+      assert.equal((await getDoc(doc(ref, 'weeklyActions', `${date}_deny_bob_alice`))).exists(), false);
+    });
+    await teste('WEEKLY ORDER: two independent clients racing opposite origins get one winner', async () => {
+      const initial = { ...weekly, confirmations: { alice: { claimed: true } } };
+      const ref = await fresh(env, { weeklyChallenge: { [date]: initial } }, 'bob');
+      const other = env.authenticatedContext('bob').firestore();
+      const result = await Promise.allSettled(['confirm', 'deny'].map((kind, index) =>
+        setDoc(doc(index ? other : ref.firestore, ref.path, 'weeklyActions', `${date}_${kind}_bob_alice`), {
+          weekKey: date, kind, actorUid: 'bob', targetUid: 'alice', challengeId: 'week-walk',
+        })));
+      // Contending blind writes may both abort (the emulator's existsAfter
+      // dependency locks); neither outcome may persist opposing decisions.
+      assert.ok(result.filter(x => x.status === 'fulfilled').length <= 1);
+      const confirmRef = doc(ref, 'weeklyActions', `${date}_confirm_bob_alice`);
+      const denyRef = doc(ref, 'weeklyActions', `${date}_deny_bob_alice`);
+      const persisted = [(await getDoc(confirmRef)).exists(), (await getDoc(denyRef)).exists()];
+      assert.ok(persisted.filter(Boolean).length <= 1);
+      if (!persisted.some(Boolean)) await assertSucceeds(setDoc(confirmRef, {
+        weekKey: date, kind: 'confirm', actorUid: 'bob', targetUid: 'alice', challengeId: 'week-walk',
+      }));
+      assert.equal([(await getDoc(confirmRef)).exists(), (await getDoc(denyRef)).exists()].filter(Boolean).length, 1);
+    });
     // Mesmo um convite real não deve habilitar o bypass dos validadores via create.
     for (const field of ['streak', 'intimacyPoints', 'messageCount', 'achievements', 'recentActivityIds', 'recentChallengeIds', 'dailySignals', 'cycleTracking', 'weeklyChallenge']) {
       for (const [target, label, expectation] of [[before, 'ANTES PASSA', assertSucceeds], [env, 'NOVAS NEGADO', assertFails]]) {

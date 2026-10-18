@@ -47,11 +47,36 @@ exports.createRecordWeeklyProgressHandler = db => async request => {
       if (kind !== 'accept' && marker.data().challengeId !== challengeId) fail('invalid-argument', 'Evento já usado.');
       return { challengeData: old, duplicate: true };
     }
-    if (!currentWeeks(new Date()).has(weekKey)) fail('invalid-argument', 'Semana inválida.');
+    // createTime is assigned by Firestore, including legacy sources without a
+    // client timestamp. Recovery validates when the source COMMITTED, not delivery.
+    const sourceSnap = confirming ? await tx.get(sourceRef) : null;
+    const source = sourceSnap?.data();
+    if (confirming && (!source || source.actorUid !== uid || source.targetUid !== targetUid ||
+        source.kind !== kind || source.weekKey !== weekKey || source.challengeId !== challengeId)) {
+      fail('failed-precondition', 'Confirmação de origem ausente ou inválida.');
+    }
+    const registeredAt = confirming ? sourceSnap.createTime.toDate() : new Date();
+    if (!currentWeeks(registeredAt).has(weekKey)) fail('invalid-argument', 'Semana inválida.');
+    if (confirming) {
+      const oppositeKind = kind === 'confirm' ? 'deny' : 'confirm';
+      const opposite = await tx.get(coupleRef.collection('weeklyActions').doc(`${weekKey}_${oppositeKind}_${uid}_${targetUid}`));
+      const previous = old.confirmations?.[targetUid];
+      // Firestore delivery is unordered. Compare persisted origins, not arrival.
+      // New rules prevent two opposing sources; this also handles legacy pairs.
+      const oppositeFirst = opposite.exists && (opposite.createTime.seconds < sourceSnap.createTime.seconds ||
+        (opposite.createTime.seconds === sourceSnap.createTime.seconds &&
+          (opposite.createTime.nanoseconds < sourceSnap.createTime.nanoseconds ||
+            (opposite.createTime.nanoseconds === sourceSnap.createTime.nanoseconds && opposite.id < sourceSnap.id))));
+      if (oppositeFirst || ['confirmed', 'denied'].includes(previous?.status)) {
+        tx.create(markerRef, { actorUid: uid, kind, weekKey, challengeId, targetUid,
+          points: 0, ignored: true, createdAt: FieldValue.serverTimestamp() });
+        return { challengeData: old, duplicate: false, ignored: true };
+      }
+    }
     const effectiveChallengeId = kind === 'accept' ? old.challengeId || challengeId : challengeId;
     const catalogSnap = await tx.get(db.doc(`contentChallenges/${effectiveChallengeId}`));
     const challenge = catalogSnap.data();
-    if (!challenge || challenge.active === false) fail('not-found', 'Desafio não encontrado.');
+    if (!challenge || (!confirming && challenge.active === false)) fail('not-found', 'Desafio não encontrado.');
     if (old.challengeId && ((kind !== 'accept' && old.challengeId !== challengeId) || old.weekStartDate !== weekKey)) {
       fail('failed-precondition', 'O desafio não pertence a esta semana.');
     }
@@ -74,7 +99,6 @@ exports.createRecordWeeklyProgressHandler = db => async request => {
             [uid]: { claimed: true, claimedAt: now, status: 'pending_partner_confirmation' } } };
         }
       } else {
-        const source = (await tx.get(sourceRef)).data();
         const previous = old.confirmations?.[targetUid];
         if (!old.acceptedBy.includes(targetUid) || !previous?.claimed ||
             !source || source.actorUid !== uid || source.targetUid !== targetUid ||

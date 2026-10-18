@@ -152,9 +152,18 @@ test('desafio diário/semanal aceita, reivindica e persiste no servidor após re
       startDate: '2000-01-01', endDate: '2099-12-31', scores: { [profile.uid]: 0 }, rules: {},
     });
     await acceptor.reload();
+    const confirmationRequests = [];
+    acceptor.on('request', request => {
+      if (request.url().includes('recordWeeklyProgress')) confirmationRequests.push(request.postData() || '');
+    });
     await acceptor.getByRole('button', { name: '✅ Confirmar', exact: true }).click();
+    // Leave the document immediately after the source commits. No confirmation
+    // callable is needed: Functions must consume it while this client reloads.
+    await expect.poll(async () => Number((await adminRead(`duomatches/${profile.coupleId}/rounds/${roundId}`)).fields.scores.mapValue.fields[profile.uid].integerValue)).toBeGreaterThan(0);
+    await acceptor.reload();
     await expect(inviter.getByText(/^✅ Confirmado! \+/)).toBeVisible();
     await expect(acceptor.getByText(/^✅ Confirmado por você!/)).toBeVisible();
+    expect(confirmationRequests).toEqual([]);
     const server = await adminRead(`duomatches/${profile.coupleId}`);
     const week = Object.values(server.fields.weeklyChallenge.mapValue.fields)[0].mapValue.fields;
     const awarded = Number(week.confirmations.mapValue.fields[profile.uid].mapValue.fields.pointsAwarded.integerValue);

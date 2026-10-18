@@ -78,6 +78,8 @@ const WeeklyChallengeActions = ({
             <div className="p-3 bg-gray-900/30 rounded-lg">
               <p className="text-gray-300 text-sm font-semibold mb-1">Reivindicação do parceiro:</p>
               <p className="text-gray-300 text-sm">
+                {challengeState.partnerConfirmation.status === 'processing' &&
+                  '⏳ Decisão registrada. Aguardando processamento automático.'}
                 {challengeState.partnerConfirmation.status === 'confirmed' && 
                   `✅ Confirmado por você! Parceiro ganhou +${challengeState.partnerConfirmation.pointsAwarded || selectedChallenge.points} pontos`}
                 {challengeState.partnerConfirmation.status === 'denied' && 

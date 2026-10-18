@@ -13,7 +13,7 @@ import { getDateString } from '../../shared/lib/dateUtils';
 import { getStartOfWeek } from '../../domain/services/WeeklyChallengeSchedule';
 
 jest.mock('../../infrastructure/firebase', () => ({
-  db: {}, doc: jest.fn(), increment: jest.fn(), runTransaction: jest.fn(),
+  db: {}, doc: jest.fn(), increment: jest.fn(), runTransaction: jest.fn(), onSnapshot: jest.fn(),
 }));
 jest.mock('firebase/firestore', () => jest.requireMock('../../infrastructure/firebase'));
 jest.mock('../../infrastructure/firebase/repositories/weeklyProgressCallable', () => ({ recordWeeklyProgress: jest.fn() }));
@@ -36,6 +36,7 @@ beforeEach(() => {
   root = createRoot(container);
   firebase.doc.mockReturnValue('round-ref');
   firebase.runTransaction.mockResolvedValue();
+  firebase.onSnapshot.mockReturnValue(jest.fn());
   getChallengeCatalog.mockResolvedValue([{ id: 'challenge', points: 10 }]);
   jest.spyOn(window, 'scrollTo').mockImplementation(() => {});
 });
