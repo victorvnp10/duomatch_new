@@ -162,6 +162,25 @@ test.each([
   expect(read().allActivities).toHaveLength(1); // Still render the successfully received snapshot.
 });
 
+test.each([
+  ['normal', { points: 10 }, 'A atividade não existe mais!'],
+  ['hot', { category: 'Hot', points: 0 }, 'A atividade hot não existe mais!'],
+])('missing %s activity retains an Error diagnostic without awarding or announcing points', async (_kind, fields, message) => {
+  const writes = jest.fn();
+  firebase.runTransaction.mockImplementation(async (_db, body) => body({
+    get: async () => ({ exists: () => false }),
+    update: writes,
+  }));
+  const read = mount(() => useActivities(user, userData, {}, rounds));
+  const selection = { status: 'confirmed', resolution: 'completed', date: getTodayDateString() };
+  const data = { ...fields, selections: { me: selection, partner: selection } };
+  await flush(() => listeners[0].next({ forEach: (fn) => fn({ id: 'missing', data: () => data }) }));
+  expect(read().operationError.cause).toBeInstanceOf(Error);
+  expect(read().operationError.cause.message).toBe(message);
+  expect(writes).not.toHaveBeenCalled();
+  expect(read().pointsMessage).toBe('');
+});
+
 test('cyclical rule evaluation exposes persistence failure without rejecting an effect', async () => {
   firebase.runTransaction.mockRejectedValueOnce(failure);
   const read = mount(() => useRoundRules({ user, userData, rounds, allActivities: [] }));
