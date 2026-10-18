@@ -1,4 +1,3 @@
-import React from "react";
 import { usePwaNotifications } from "./usePwaNotifications";
 import { usePushSubscription } from "./usePushSubscription";
 

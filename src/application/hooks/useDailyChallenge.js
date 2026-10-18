@@ -35,8 +35,6 @@ import { getTodayDateString, getDateString } from '../../shared/lib/dateUtils';
  */
 export const useDailyChallenge = ({ userData, coupleData, rounds }) => {
   const { operationError, reportOperationError, clearOperationError } = useOperationError();
-  const [currentChallenge, setCurrentChallenge] = useState(null);
-  const [weeklyProgress, setWeeklyProgress] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [localChallengeData, setLocalChallengeData] = useState(null);
   const [challengeCatalog, setChallengeCatalog] = useState(null);
@@ -323,10 +321,6 @@ export const useDailyChallenge = ({ userData, coupleData, rounds }) => {
     () => findActiveRound(rounds, getTodayDateString()),
     [rounds]
   );
-
-  // Estado morto preservado para não alterar a ordem/quantidade de hooks.
-  void currentChallenge;
-  void weeklyProgress;
 
   return {
     operationError,

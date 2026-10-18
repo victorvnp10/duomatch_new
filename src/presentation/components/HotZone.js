@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect, useRef } from "react";
-import { FireIcon, ArrowLeftIcon, ChatBubbleIcon, ChallengeIcon } from "./Icons";
+import { FireIcon, ArrowLeftIcon } from "./Icons";
 import LevelUpAnimation from "./LevelUpAnimation";
 import MatchNotification from "./MatchNotification";
 import { isActivityForToday } from "../../shared/lib/dateUtils";
