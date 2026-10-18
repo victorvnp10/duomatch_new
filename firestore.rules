@@ -249,6 +249,28 @@ service cloud.firestore {
       return value is string && value.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$');
     }
 
+    // Same inhabited-offset envelope as currentWeeks() in the consumer.
+    function weekAt(time) {
+      let monday = time.date() - duration.value(time.dayOfWeek() - 1, 'd');
+      return string(monday.year()) + '-' + (monday.month() < 10 ? '0' : '') +
+        string(monday.month()) + '-' + (monday.day() < 10 ? '0' : '') + string(monday.day());
+    }
+
+    function isCurrentWeek(key) {
+      return key == weekAt(request.time - duration.value(12, 'h')) ||
+        key == weekAt(request.time + duration.value(14, 'h'));
+    }
+
+    function validActionPoints(coupleId) {
+      let action = request.resource.data;
+      let weekly = get(couplePath(coupleId)).data.weeklyChallenge[action.weekKey];
+      // Old clients without a bound value must refresh before granting a score.
+      return action.awardPoints is int && action.awardPoints >= 0 &&
+        (weekly.get('awardPoints', null) != null
+          ? action.awardPoints == weekly.awardPoints
+          : action.awardPoints == get(/databases/$(database)/documents/contentChallenges/$(action.challengeId)).data.points);
+    }
+
     function validSignals() {
       let next = request.resource.data.dailySignals;
       let previous = resource.data.get('dailySignals', null);
@@ -341,14 +363,15 @@ service cloud.firestore {
       match /weeklyActions/{eventId} {
         allow read: if isCoupleMember(coupleId);
         allow create: if isCoupleMember(coupleId) &&
-          request.resource.data.keys().hasOnly(['weekKey', 'kind', 'actorUid', 'targetUid', 'challengeId']) &&
+          request.resource.data.keys().hasOnly(['weekKey', 'kind', 'actorUid', 'targetUid', 'challengeId', 'awardPoints']) &&
+          validActionPoints(coupleId) &&
           request.resource.data.actorUid == request.auth.uid &&
           request.resource.data.targetUid != request.auth.uid &&
           request.resource.data.targetUid in get(couplePath(coupleId)).data.members &&
           request.resource.data.kind in ['confirm', 'deny'] &&
           // One decision per actor/target/week, also for atomic batches and races.
           !existsAfter(/databases/$(database)/documents/duomatches/$(coupleId)/weeklyActions/$(request.resource.data.weekKey + '_' + (request.resource.data.kind == 'confirm' ? 'deny' : 'confirm') + '_' + request.auth.uid + '_' + request.resource.data.targetUid)) &&
-          isDate(request.resource.data.weekKey) &&
+          isDate(request.resource.data.weekKey) && isCurrentWeek(request.resource.data.weekKey) &&
           eventId == request.resource.data.weekKey + '_' + request.resource.data.kind + '_' +
             request.auth.uid + '_' + request.resource.data.targetUid &&
           get(couplePath(coupleId)).data.weeklyChallenge[request.resource.data.weekKey].challengeId == request.resource.data.challengeId &&

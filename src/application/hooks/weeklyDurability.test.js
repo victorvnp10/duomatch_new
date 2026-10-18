@@ -94,7 +94,53 @@ beforeEach(() => {
     return transaction(body, false);
   } });
 });
-afterEach(() => { roots.forEach(root => act(() => root.unmount())); jest.restoreAllMocks(); });
+afterEach(() => { roots.forEach(root => act(() => root.unmount())); jest.useRealTimers(); jest.restoreAllMocks(); });
+
+test('I3 stale browser catalog uses authoritative accepted points for both awards', async () => {
+  store[path].weeklyChallenge[week].awardPoints = 25;
+  const read = mount(); await flush();
+  await flush(() => read().handleConfirmPartner(true));
+  expect(store[`${path}/rounds/round`].scores.alice).toBe(25);
+  store['contentChallenges/challenge'].points = 99;
+  await flush(deliver);
+  expect(read().challengeState.partnerConfirmation.pointsAwarded).toBe(25);
+});
+
+test('I3 legacy acceptance binds a fresh transaction catalog value before delivery changes it', async () => {
+  store['contentChallenges/challenge'].points = 30;
+  const read = mount(); await flush();
+  await flush(() => read().handleConfirmPartner(true));
+  expect(store[`${path}/rounds/round`].scores.alice).toBe(30);
+  expect(store[`${path}/weeklyActions/${week}_confirm_bob_alice`].awardPoints).toBe(30);
+  store['contentChallenges/challenge'].points = 99;
+  await flush(deliver);
+  expect(read().challengeState.partnerConfirmation.pointsAwarded).toBe(30);
+});
+
+test('I1 an open tab refreshes week and rejects a stale callback before awarding round points', async () => {
+  jest.spyOn(window, 'alert').mockImplementation(() => {});
+  const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+  jest.useFakeTimers();
+  const now = new Date();
+  jest.setSystemTime(now);
+  const read = mount(); await flush();
+  const staleConfirm = read().handleConfirmPartner;
+  jest.setSystemTime(new Date(now.getTime() + 8 * 86400000));
+  await flush(() => staleConfirm(true));
+  expect(store[`${path}/rounds/round`].scores.alice).toBe(0);
+  expect(Object.keys(store).filter(p => p.includes('/weeklyActions/'))).toHaveLength(0);
+  await flush(() => jest.advanceTimersByTime(60000));
+  expect(read().challengeState.weekKey).not.toBe(week);
+  expect(consoleError).toHaveBeenCalledWith('Erro ao confirmar parceiro:', expect.any(Error));
+  jest.useRealTimers();
+});
+
+test('I1 rejected marker is visible instead of perpetual processing after reload', async () => {
+  store[`${path}/weeklyActions/${week}_confirm_bob_alice`] = { kind: 'confirm' };
+  store[`${path}/weeklyEvents/${week}_confirm_bob_alice`] = { status: 'rejected', errorCode: 'invalid-argument' };
+  const read = mount(); await flush();
+  expect(read().challengeState.partnerConfirmation.status).toBe('rejected');
+});
 
 test('source + round commit, failed application, automatic retry: UI and both awards converge without another click', async () => {
   const read = mount(); await flush();

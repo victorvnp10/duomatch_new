@@ -56,6 +56,12 @@ exports.recordWeeklyProgress = onCall(
 const { weeklyActionOptions, createWeeklyActionHandler } = require('./weeklyAction');
 exports.consumeWeeklyAction = onDocumentCreated(weeklyActionOptions, createWeeklyActionHandler(db));
 
+const { reconcileWeeklyActions } = require('./reconcileWeeklyActions');
+exports.reconcilePendingWeeklyActions = onSchedule(
+  { schedule: 'every 30 minutes', region: 'southamerica-east1', timeoutSeconds: 540, maxInstances: 1 },
+  () => reconcileWeeklyActions(db)
+);
+
 // Scheduler (lembrete diário) — Pub/Sub funciona em qualquer região.
 const SCHEDULER_REGION = "us-central1";
 const TIME_ZONE = "America/Sao_Paulo";

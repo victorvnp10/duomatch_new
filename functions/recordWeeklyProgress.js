@@ -76,7 +76,10 @@ exports.createRecordWeeklyProgressHandler = db => async request => {
     const effectiveChallengeId = kind === 'accept' ? old.challengeId || challengeId : challengeId;
     const catalogSnap = await tx.get(db.doc(`contentChallenges/${effectiveChallengeId}`));
     const challenge = catalogSnap.data();
-    if (!challenge || (!confirming && challenge.active === false)) fail('not-found', 'Desafio não encontrado.');
+    // Freeze the server-owned value at acceptance; bound legacy origins carry
+    // the value checked by rules at commit, never the browser catalog cache.
+    const awardPoints = source?.awardPoints ?? old.awardPoints ?? challenge?.points;
+    if ((!challenge && awardPoints == null) || (!confirming && challenge?.active === false)) fail('not-found', 'Desafio não encontrado.');
     if (old.challengeId && ((kind !== 'accept' && old.challengeId !== challengeId) || old.weekStartDate !== weekKey)) {
       fail('failed-precondition', 'O desafio não pertence a esta semana.');
     }
@@ -84,8 +87,9 @@ exports.createRecordWeeklyProgressHandler = db => async request => {
     let next = { ...old };
     let points = 0;
     const updates = {};
+    if (!Number.isSafeInteger(awardPoints) || awardPoints < 0) fail('failed-precondition', 'Pontos inválidos no catálogo.');
     if (kind === 'accept') {
-      next = { ...old, challengeId: effectiveChallengeId, acceptedBy: [...new Set([...(old.acceptedBy || []), uid])],
+      next = { ...old, awardPoints, challengeId: effectiveChallengeId, acceptedBy: [...new Set([...(old.acceptedBy || []), uid])],
         acceptedAt: old.acceptedAt || now, weekStartDate: weekKey,
         state: old.state || 'in_progress', confirmations: old.confirmations || {} };
       updates.recentChallengeIds = FieldValue.arrayUnion(effectiveChallengeId);
@@ -95,7 +99,7 @@ exports.createRecordWeeklyProgressHandler = db => async request => {
       }
       if (kind === 'claim') {
         if (!old.confirmations?.[uid]?.claimed) {
-          next = { ...old, state: 'pending_confirmations', confirmations: { ...old.confirmations,
+          next = { ...old, awardPoints, state: 'pending_confirmations', confirmations: { ...old.confirmations,
             [uid]: { claimed: true, claimedAt: now, status: 'pending_partner_confirmation' } } };
         }
       } else {
@@ -105,11 +109,10 @@ exports.createRecordWeeklyProgressHandler = db => async request => {
             source.kind !== kind || source.weekKey !== weekKey || source.challengeId !== challengeId) {
           fail('failed-precondition', 'Confirmação de origem ausente ou inválida.');
         }
-        if (!Number.isSafeInteger(challenge.points) || challenge.points < 0) fail('failed-precondition', 'Pontos inválidos no catálogo.');
         const confirmation = { ...previous, status: kind === 'confirm' ? 'confirmed' : 'denied',
           confirmedBy: uid, confirmedAt: now };
         if (kind === 'confirm' && previous.pointsAwarded == null) {
-          points = challenge.points;
+          points = awardPoints;
           confirmation.pointsAwarded = points;
         }
         next = { ...old, confirmations: { ...old.confirmations, [targetUid]: confirmation } };

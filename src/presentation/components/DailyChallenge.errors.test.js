@@ -36,6 +36,21 @@ test('keeps the empty catalog hidden when there is no failure', async () => {
   expect(container.textContent).toBe('');
 });
 
+test('I1 terminal rejection is rendered with support guidance and no retry promise', async () => {
+  value.challengeState = { myAccepted: true, partnerConfirmation: { status: 'rejected' } };
+  await render();
+  expect(container.textContent).toContain('Contate o suporte');
+  expect(container.textContent).not.toContain('Aguardando processamento');
+  expect(container.textContent).not.toContain('você pode tentar novamente');
+});
+
+test('definitive denial text does not promise a second decision', async () => {
+  value.challengeState = { myAccepted: true, myConfirmation: { status: 'denied' } };
+  await render();
+  expect(container.textContent).toContain('A primeira decisão é definitiva nesta semana');
+  expect(container.textContent).not.toContain('você pode tentar novamente');
+});
+
 test('does not block existing challenge actions when displaying an operation error', async () => {
   value.operationError = new Error('Não foi possível aceitar o desafio semanal. Tente novamente.');
   value.handleAcceptWeeklyChallenge = jest.fn();

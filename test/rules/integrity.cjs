@@ -11,7 +11,7 @@ module.exports = async ({ env, seed, teste, host, port }) => {
   const date = '2026-10-12';
   const cycle = { ownerId: 'alice', periods: [{ startDate: '2026-09-01', periodLength: 5 }], cycleLengthOverride: null };
   const a = ['act-normal-1-maratona-de-um-filme-que', 'act-normal-2-recriar-uma-foto-antiga-', 'act-normal-3-passeio-sem-destino', 'act-normal-4-noite-de-detox-digital', 'act-normal-5-montar-uma-playlist-cola'];
-  const weekly = { challengeId: 'week-walk', acceptedBy: ['alice'], acceptedAt: new Date(), weekStartDate: date, state: 'in_progress', confirmations: {} };
+  const weekly = { challengeId: 'week-walk', awardPoints: 20, acceptedBy: ['alice'], acceptedAt: new Date(), weekStartDate: date, state: 'in_progress', confirmations: {} };
   let id = 0;
   const fresh = async (target, initial = {}, uid = 'alice') => {
     const key = `integrity-${++id}`;
@@ -177,7 +177,7 @@ module.exports = async ({ env, seed, teste, host, port }) => {
     await teste('WEEKLY SERVER: origem exige claim e autor correto; imutavel; scores de rodada permitidos', async () => {
       const initial = { ...weekly, confirmations: { alice: { claimed: true, status: 'pending_partner_confirmation' } } };
       const ref = await fresh(env, { weeklyChallenge: { [date]: initial } }, 'bob');
-      const action = { weekKey: date, kind: 'confirm', actorUid: 'bob', targetUid: 'alice', challengeId: 'week-walk' };
+      const action = { weekKey: date, kind: 'confirm', actorUid: 'bob', targetUid: 'alice', challengeId: 'week-walk', awardPoints: 20 };
       const source = doc(ref, 'weeklyActions', `${date}_confirm_bob_alice`);
       const round = doc(ref, 'rounds', 'active');
       await seed(env, db => setDoc(doc(db, round.path), { scores: { alice: 0 } }));
@@ -196,7 +196,7 @@ module.exports = async ({ env, seed, teste, host, port }) => {
     await teste('WEEKLY ORDER: deny first rejects late confirm and its round award', async () => {
       const initial = { ...weekly, confirmations: { alice: { claimed: true, status: 'pending_partner_confirmation' } } };
       const ref = await fresh(env, { weeklyChallenge: { [date]: initial } }, 'bob');
-      const action = { weekKey: date, actorUid: 'bob', targetUid: 'alice', challengeId: 'week-walk' };
+      const action = { weekKey: date, actorUid: 'bob', targetUid: 'alice', challengeId: 'week-walk', awardPoints: 20 };
       await setDoc(doc(ref, 'weeklyActions', `${date}_deny_bob_alice`), { ...action, kind: 'deny' });
       const round = doc(ref, 'rounds', 'active');
       await seed(env, db => setDoc(doc(db, round.path), { scores: { alice: 0 } }));
@@ -209,7 +209,7 @@ module.exports = async ({ env, seed, teste, host, port }) => {
     await teste('WEEKLY ORDER: confirm first rejects late deny', async () => {
       const initial = { ...weekly, confirmations: { alice: { claimed: true } } };
       const ref = await fresh(env, { weeklyChallenge: { [date]: initial } }, 'bob');
-      const action = { weekKey: date, actorUid: 'bob', targetUid: 'alice', challengeId: 'week-walk' };
+      const action = { weekKey: date, actorUid: 'bob', targetUid: 'alice', challengeId: 'week-walk', awardPoints: 20 };
       await setDoc(doc(ref, 'weeklyActions', `${date}_confirm_bob_alice`), { ...action, kind: 'confirm' });
       await assertFails(setDoc(doc(ref, 'weeklyActions', `${date}_deny_bob_alice`), { ...action, kind: 'deny' }));
     });
@@ -218,7 +218,7 @@ module.exports = async ({ env, seed, teste, host, port }) => {
       const ref = await fresh(env, { weeklyChallenge: { [date]: initial } }, 'bob');
       const batch = writeBatch(ref.firestore);
       for (const kind of ['confirm', 'deny']) batch.set(doc(ref, 'weeklyActions', `${date}_${kind}_bob_alice`), {
-        weekKey: date, kind, actorUid: 'bob', targetUid: 'alice', challengeId: 'week-walk',
+        weekKey: date, kind, actorUid: 'bob', targetUid: 'alice', challengeId: 'week-walk', awardPoints: 20,
       });
       await assertFails(batch.commit());
       assert.equal((await getDoc(doc(ref, 'weeklyActions', `${date}_confirm_bob_alice`))).exists(), false);
@@ -230,7 +230,7 @@ module.exports = async ({ env, seed, teste, host, port }) => {
       const other = env.authenticatedContext('bob').firestore();
       const result = await Promise.allSettled(['confirm', 'deny'].map((kind, index) =>
         setDoc(doc(index ? other : ref.firestore, ref.path, 'weeklyActions', `${date}_${kind}_bob_alice`), {
-          weekKey: date, kind, actorUid: 'bob', targetUid: 'alice', challengeId: 'week-walk',
+          weekKey: date, kind, actorUid: 'bob', targetUid: 'alice', challengeId: 'week-walk', awardPoints: 20,
         })));
       // Contending blind writes may both abort (the emulator's existsAfter
       // dependency locks); neither outcome may persist opposing decisions.
@@ -240,7 +240,7 @@ module.exports = async ({ env, seed, teste, host, port }) => {
       const persisted = [(await getDoc(confirmRef)).exists(), (await getDoc(denyRef)).exists()];
       assert.ok(persisted.filter(Boolean).length <= 1);
       if (!persisted.some(Boolean)) await assertSucceeds(setDoc(confirmRef, {
-        weekKey: date, kind: 'confirm', actorUid: 'bob', targetUid: 'alice', challengeId: 'week-walk',
+        weekKey: date, kind: 'confirm', actorUid: 'bob', targetUid: 'alice', challengeId: 'week-walk', awardPoints: 20,
       }));
       assert.equal([(await getDoc(confirmRef)).exists(), (await getDoc(denyRef)).exists()].filter(Boolean).length, 1);
     });
