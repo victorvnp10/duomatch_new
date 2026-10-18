@@ -98,6 +98,17 @@ test.each([undefined, { nextSelection: { status: 'unconfirmed' } }])('does not u
   expect(updateStreak).not.toHaveBeenCalled();
 });
 
+test('documents pending stale achievements bug: same-length replacement is hidden from the achievements hook', async () => {
+  const previous = [{ id: 'old' }];
+  props.coupleData = { achievements: previous };
+  await render();
+  props.coupleData = { achievements: [{ id: 'new' }] };
+  await render();
+  const latestInputs = useAchievements.mock.calls[useAchievements.mock.calls.length - 1][0];
+  expect(latestInputs.coupleData.achievements).toBe(previous);
+  expect(latestInputs.coupleData.achievements).not.toBe(props.coupleData.achievements);
+});
+
 test('suggestion streak preserves the snapshot and suggestion catalogs used before', async () => {
   props.allActivities = []; props.dailySuggestions = { special: { id: 'special', name: 'Jantar', category: 'Lazer' } };
   await render(); await choose();

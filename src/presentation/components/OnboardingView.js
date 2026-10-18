@@ -112,7 +112,7 @@ export default function OnboardingView({ onFinish, setView }) {
     if (currentStep.view && setView) {
       setView(currentStep.view);
     }
-  }, [stepIndex]);
+  }, [stepIndex, currentStep.view, setView]);
 
   useLayoutEffect(() => {
     if (!currentStep.selector) {

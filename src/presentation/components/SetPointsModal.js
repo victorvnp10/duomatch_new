@@ -1,15 +1,23 @@
 // Arquivo: src/components/SetPointsModal.js
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 
 function SetPointsModal({ activity, onSave, onClose }) {
   const [points, setPoints] = useState(5);
 
+  const activityRef = useRef(activity);
   useEffect(() => {
-    if (activity) {
-      setPoints(activity.points || 5);
+    activityRef.current = activity;
+  }, [activity]);
+
+  useEffect(() => {
+    // Trocar o objeto da mesma atividade não deve apagar o rascunho.
+    // O efeito anterior sincroniza o snapshot antes de inicializar outro id.
+    const currentActivity = activityRef.current;
+    if (currentActivity) {
+      setPoints(currentActivity.points || 5);
     }
-  }, [activity?.id]); // Dependência estável para evitar loops
+  }, [activity?.id]);
 
   if (!activity) return null;
 
