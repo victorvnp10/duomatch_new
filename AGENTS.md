@@ -31,7 +31,7 @@ src/
 ```
 
 O catálogo de conteúdo do app vive em `src/infrastructure/seed/contentCatalog.js`
-(é seed de infraestrutura, consumido por `ContentRepository`).
+(é seed de infraestrutura, empacotado pelo build de Functions; o cliente só lê Firestore).
 
 ## Documentação
 

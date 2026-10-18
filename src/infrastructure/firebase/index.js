@@ -94,6 +94,7 @@ export const getFirebaseMessaging = () => {
 };
 
 export {
+  app,
   auth,
   googleProvider,
   GoogleAuthProvider,

@@ -21,6 +21,14 @@ export default defineConfig(({ mode, command }) => {
         name: 'duomatch-e2e-emulators',
         enforce: 'pre',
         transform(code, id) {
+          if (id.split('?')[0].endsWith('/src/infrastructure/firebase/repositories/contentCatalogCallable.js')) {
+            return `import { connectFunctionsEmulator } from 'firebase/functions';\n${code.replace(
+              'const functions = getFunctions(app, "southamerica-east1");',
+              `const functions = getFunctions(app, "southamerica-east1");
+  if (app.options.projectId !== 'demo-duomatch-e2e') throw new Error('E2E requires demo project');
+  connectFunctionsEmulator(functions, '127.0.0.1', 5001);`
+            )}`;
+          }
           if (!id.split('?')[0].endsWith('/src/infrastructure/firebase/index.js')) return null;
           return `${code}\nimport { connectAuthEmulator } from 'firebase/auth';
 import { connectFirestoreEmulator } from 'firebase/firestore';

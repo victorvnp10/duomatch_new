@@ -39,6 +39,16 @@ module.exports = async ({ env, seed, teste, host, port }) => {
   const group = Number(process.env.INTEGRITY_GROUP || 3);
   console.log('\n=== FASE 7: integridade — baseline local f5f29a9 versus regras novas ===');
   try {
+    // Server-owned catalog membership is checked with exists(), not an id list.
+    const { ACTIVITY_CATALOG, CHALLENGE_CATALOG } = await import('../../src/infrastructure/seed/contentCatalog.js');
+    await seed(env, async db => {
+      const batch = writeBatch(db);
+      ACTIVITY_CATALOG.filter(item => a.includes(item.id) || item.id === 'act-normal-6-cozinhar-o-prato-favorit')
+        .forEach(item => batch.set(doc(db, 'contentActivities', item.id), item));
+      CHALLENGE_CATALOG.filter(item => ['week-walk', 'week-movie'].includes(item.id))
+        .forEach(item => batch.set(doc(db, 'contentChallenges', item.id), item));
+      await batch.commit();
+    });
     await attack('streak', 'salto para 999999', { streak: 4 }, { streak: 999999 });
     await attack('streak', 'tipo string', {}, { streak: 'infinito' });
     await attack('intimacyPoints', 'incremento 999999', { intimacyPoints: 3 }, { intimacyPoints: increment(999999) });
@@ -92,6 +102,16 @@ module.exports = async ({ env, seed, teste, host, port }) => {
       await updateDoc(ref, { recentChallengeIds: arrayUnion('week-walk') });
       await updateDoc(ref, { recentChallengeIds: arrayUnion('week-movie') });
       assert.deepEqual((await getDoc(ref)).data().recentChallengeIds, ['week-walk', 'week-movie']);
+    });
+    await legit('recentActivityIds', 'novo id publicado só no servidor dispensa allowlist', {}, async ref => {
+      await seed(env, db => setDoc(doc(db, 'contentActivities', 'server-only-activity'), { id: 'server-only-activity' }));
+      await updateDoc(ref, { recentActivityIds: arrayUnion('server-only-activity') });
+      assert.deepEqual((await getDoc(ref)).data().recentActivityIds, ['server-only-activity']);
+    });
+    await legit('recentChallengeIds', 'novo id publicado só no servidor dispensa allowlist', {}, async ref => {
+      await seed(env, db => setDoc(doc(db, 'contentChallenges', 'server-only-challenge'), { id: 'server-only-challenge' }));
+      await updateDoc(ref, { recentChallengeIds: arrayUnion('server-only-challenge') });
+      assert.deepEqual((await getDoc(ref)).data().recentChallengeIds, ['server-only-challenge']);
     });
     if (group < 3) return;
     await attack('dailySignals', 'valor absurdo', {}, { dailySignals: { date, signals: { alice: 'evil' } } });

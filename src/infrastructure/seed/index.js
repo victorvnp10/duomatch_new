@@ -1,7 +1,7 @@
 // Catálogo de seed organizado por categoria (atividades) e tipo (desafios).
 // Os segmentos abaixo recompõem a ordem exata do commit base 04c99fd.
 // Não ordenar/agrupar estes spreads: WeeklyChallengeSchedule seleciona por índice.
-// Ao editar conteúdo, validar test/catalog-equivalence.test.cjs e a allowlist.
+// Ao editar conteúdo, validar test/catalog-equivalence.test.cjs e gerar o artefato de Functions.
 import { activitiesHot } from "./activities/hot.js";
 import { activitiesFilmesSeries } from "./activities/filmes-series.js";
 import { activitiesHobbiesOutros } from "./activities/hobbies-outros.js";
