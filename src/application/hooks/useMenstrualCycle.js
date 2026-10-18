@@ -165,7 +165,7 @@ export function useMenstrualCycle({ user, userData, coupleData }) {
               ownerId: current.ownerId || user.uid,
               periods: updatedPeriods,
               cycleLengthOverride:
-                override && clampCycleLength(Number(override)) || null,
+                (override && clampCycleLength(Number(override))) || null,
             },
           });
         });
@@ -197,7 +197,7 @@ export function useMenstrualCycle({ user, userData, coupleData }) {
               ownerId: current.ownerId || user.uid,
               periods: updatedPeriods,
               cycleLengthOverride:
-                override && clampCycleLength(Number(override)) || null,
+                (override && clampCycleLength(Number(override))) || null,
             },
           });
         });

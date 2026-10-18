@@ -127,7 +127,7 @@ export default function MainView(props) {
     setIsAddItemModalOpen,
   } = props;
 
-  const [isLoading, setIsLoading] = useState(false);
+  const [, setIsLoading] = useState(false);
   const [selectionError, setSelectionError] = useState(null);
   const [dailyActivities, setDailyActivities] = useState([]);
 
@@ -203,7 +203,7 @@ export default function MainView(props) {
     [allActivities, user.uid, userData.partnerId, todayStr]
   );
 
-  const { coupleData, handleSelectHotSuggestion } = props;
+  const { coupleData } = props;
 
   // Hook para gerenciar conquistas automaticamente (com memoização mais estável)
   const memoizedUserData = useMemo(() => ({
@@ -308,26 +308,6 @@ export default function MainView(props) {
     }
   };
 
-  const handleSelectHotSuggestionAndUpdateStreak = async (hotId) => {
-    setIsLoading(true);
-    let selectionCompleted = false;
-    try {
-      await handleSelectHotSuggestion(hotId);
-      selectionCompleted = true;
-
-      // Atualizar sequência após seleção de sugestão picante
-      if (userData?.coupleId) {
-        await updateStreak(userData.coupleId, { ...userData, coupleData }, allActivities, dailySuggestions, hotSuggestions);
-      }
-    } catch (error) {
-      console.error("Erro ao selecionar hot suggestion:", error);
-      setSelectionError(selectionCompleted
-        ? "Não foi possível atualizar a sequência de atividades do casal."
-        : "Não foi possível registrar sua escolha. Tente novamente.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   return (
     <div className="app-bg-glow text-white min-h-screen">

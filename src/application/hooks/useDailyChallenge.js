@@ -35,8 +35,6 @@ import { getTodayDateString, getDateString } from '../../shared/lib/dateUtils';
  */
 export const useDailyChallenge = ({ userData, coupleData, rounds }) => {
   const { operationError, reportOperationError, clearOperationError } = useOperationError();
-  const [currentChallenge, setCurrentChallenge] = useState(null);
-  const [weeklyProgress, setWeeklyProgress] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [localChallengeData, setLocalChallengeData] = useState(null);
   const [challengeCatalog, setChallengeCatalog] = useState(null);
@@ -308,26 +306,21 @@ export const useDailyChallenge = ({ userData, coupleData, rounds }) => {
 
   // Resetar dados locais quando dados do Firestore chegarem
   useEffect(() => {
-    if (!coupleData?.weeklyChallenge || !localChallengeData) return;
-
-    if (coupleData.weeklyChallenge[weekKey] && localChallengeData[weekKey]) {
-      // Se os dados do servidor já chegaram, limpar o cache local — sem
-      // incluir `localChallengeData` nas deps, o efeito só dispara quando o
-      // dado do servidor muda (e não a cada re-render/atualização local),
-      // evitando o ping-pong de re-render que travava o componente.
-      setLocalChallengeData(null);
-    }
-  }, [coupleData?.weeklyChallenge]);
+    // Só o snapshot do servidor dispara a limpeza. Ler o cache pelo updater
+    // evita capturá-lo e não descarta o aceite otimista na atualização local.
+    setLocalChallengeData((currentLocal) => {
+      if (coupleData?.weeklyChallenge?.[weekKey] && currentLocal?.[weekKey]) {
+        return null;
+      }
+      return currentLocal;
+    });
+  }, [coupleData?.weeklyChallenge, weekKey]);
 
   // Verificar se há uma rodada ativa
   const activeRound = useMemo(
     () => findActiveRound(rounds, getTodayDateString()),
     [rounds]
   );
-
-  // Estado morto preservado para não alterar a ordem/quantidade de hooks.
-  void currentChallenge;
-  void weeklyProgress;
 
   return {
     operationError,

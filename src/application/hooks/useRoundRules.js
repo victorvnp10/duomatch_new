@@ -5,7 +5,6 @@ import { getTodayDateString } from "../../shared/lib/dateUtils";
 import {
   findActiveRound,
   evaluateCyclicalRules,
-  shouldEvaluateCyclicalRules,
 } from "../../domain/services/RoundRulesEvaluator";
 
 /**
@@ -115,14 +114,9 @@ export const useRoundRules = ({ user, userData, rounds, allActivities }) => {
   });
 
   useEffect(() => {
-    if (
-      shouldEvaluateCyclicalRules({
-        rounds,
-        coupleId: userData?.coupleId,
-      })
-    ) {
-      runEvaluationRef.current();
-    }
+    // A guarda equivalente já vive em runEvaluation; a ref fornece os
+    // dados mais recentes sem disparar transações em snapshots só de placar.
+    runEvaluationRef.current();
   }, [rulesRevision, activitiesRevision, userData?.coupleId]);
   return { operationError, clearOperationError };
 };

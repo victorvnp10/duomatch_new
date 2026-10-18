@@ -118,7 +118,7 @@ export const useActivities = (user, userData, coupleData, rounds) => {
             const activityDoc = await transaction.get(activityRef);
 
             if (!activityDoc.exists()) {
-              throw "A atividade não existe mais!";
+              throw new Error("A atividade não existe mais!");
             }
 
             const activityData = activityDoc.data();
@@ -170,7 +170,7 @@ export const useActivities = (user, userData, coupleData, rounds) => {
             const activityDoc = await transaction.get(activityRef);
 
             if (!activityDoc.exists()) {
-              throw "A atividade hot não existe mais!";
+              throw new Error("A atividade hot não existe mais!");
             }
 
             const activityData = activityDoc.data();
