@@ -58,7 +58,9 @@ test('revision I1 I2 I3 real Firestore transactions', async t => {
       const { reconcileWeeklyActions } = require('../../functions/reconcileWeeklyActions');
       const OriginalDate = Date;
       global.Date = class extends OriginalDate { constructor(...args) { super(...(args.length ? args : [OriginalDate.now() + 8 * 86400000])); } };
-      try { await reconcileWeeklyActions(db); await reconcileWeeklyActions(db); }
+      // Pre-trigger origins are covered by explicit administrative replay;
+      // scheduled reconciliation now reads only the derived pending index.
+      try { await reconcileWeeklyActions(db, { replay: true }); await reconcileWeeklyActions(db, { replay: true }); }
       finally { global.Date = OriginalDate; }
       assert.ok((await f.source.get()).createTime.isEqual(created));
       assert.equal((await f.ref.get()).data().weeklyChallenge[weekKey].confirmations.alice.pointsAwarded, 20);

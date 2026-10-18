@@ -1,5 +1,6 @@
 const { createRecordWeeklyProgressHandler } = require('./recordWeeklyProgress');
 const { FieldValue } = require('firebase-admin/firestore');
+const { pendingRef } = require('./weeklyActionPending');
 
 const weeklyActionOptions = {
   document: 'duomatches/{coupleId}/weeklyActions/{eventId}',
@@ -8,13 +9,19 @@ const weeklyActionOptions = {
   maxInstances: 3,
 };
 
-const createWeeklyActionHandler = db => {
+const createWeeklyActionHandler = (db, { indexPending = false } = {}) => {
   const record = createRecordWeeklyProgressHandler(db);
   return async event => {
     const source = event.data?.data();
     if (!source) return;
+    const sourcePath = `duomatches/${event.params.coupleId}/weeklyActions/${event.params.eventId}`;
+    const pending = pendingRef(db, sourcePath);
+    // onCreate must durably register delivery BEFORE attempting business work.
+    // A failure here escapes to Eventarc retry; a later failure retains the item.
+    if (indexPending) await pending.set({ sourcePath });
+    let result;
     try {
-      return await record({ auth: { uid: source.actorUid }, data: {
+      result = await record({ auth: { uid: source.actorUid }, data: {
         coupleId: event.params.coupleId, eventId: event.params.eventId, kind: source.kind,
         payload: { weekKey: source.weekKey, challengeId: source.challengeId, targetUid: source.targetUid },
       } });
@@ -35,10 +42,15 @@ const createWeeklyActionHandler = db => {
           });
         });
         console.error('WEEKLY_ACTION_REJECTED', event.params, error.code);
-        return { rejected: true, errorCode: error.code };
+        result = { rejected: true, errorCode: error.code };
+      } else {
+        throw error;
       }
-      throw error;
     }
+    // Both success and permanent rejection have committed the SAME receipt.
+    // Cleanup failure is retriable; stale index entries are safe to reconcile.
+    if (indexPending) await pending.delete();
+    return result;
   };
 };
 

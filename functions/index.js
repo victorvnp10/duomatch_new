@@ -54,7 +54,7 @@ exports.recordWeeklyProgress = onCall(
 
 // Persisted actions are the durable source of truth; the callable is optional.
 const { weeklyActionOptions, createWeeklyActionHandler } = require('./weeklyAction');
-exports.consumeWeeklyAction = onDocumentCreated(weeklyActionOptions, createWeeklyActionHandler(db));
+exports.consumeWeeklyAction = onDocumentCreated(weeklyActionOptions, createWeeklyActionHandler(db, { indexPending: true }));
 
 const { reconcileWeeklyActions } = require('./reconcileWeeklyActions');
 exports.reconcilePendingWeeklyActions = onSchedule(
