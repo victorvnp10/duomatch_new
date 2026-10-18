@@ -8,3 +8,14 @@ npm-debug.log*
 firebase-debug.log
 firebase-debug.*.log
 .vercel
+
+# Emulador do Firestore
+firestore-debug.log
+firestore.rules.bak
+
+/dist
+# log do emulador do Firestore
+
+# Generated Playwright artifacts (uploaded by CI)
+/playwright-report/
+/test-results/

@@ -1,6 +1,7 @@
+import { useOperationError } from "./useOperationError";
 import { useMemo, useCallback } from "react";
 import { doc, runTransaction, db } from "../../infrastructure/firebase";
-import { getTodayDateString } from "../../shared/utils";
+import { getTodayDateString } from "../../shared/lib/dateUtils";
 import {
   summarizeCycle,
   computeCycleStatistics,
@@ -67,6 +68,7 @@ const normalizeCycleTracking = (cycleTracking) => {
  * nunca as datas.
  */
 export function useMenstrualCycle({ user, userData, coupleData }) {
+  const { operationError, reportOperationError, clearOperationError } = useOperationError();
   const normalized = useMemo(
     () => normalizeCycleTracking(coupleData?.cycleTracking),
     [coupleData?.cycleTracking]
@@ -163,16 +165,17 @@ export function useMenstrualCycle({ user, userData, coupleData }) {
               ownerId: current.ownerId || user.uid,
               periods: updatedPeriods,
               cycleLengthOverride:
-                override && clampCycleLength(Number(override)) || null,
+                (override && clampCycleLength(Number(override))) || null,
             },
           });
         });
       } catch (error) {
         console.error("Erro ao registrar período:", error);
+        reportOperationError("Não foi possível registrar o período. Tente novamente.", error);
         alert("Não foi possível salvar o período. Tente novamente.");
       }
     },
-    [userData?.coupleId, user?.uid, periods]
+    [userData?.coupleId, user?.uid, periods, reportOperationError]
   );
 
   /** Remove um registro do histórico (correção de um lançamento errado). */
@@ -194,19 +197,22 @@ export function useMenstrualCycle({ user, userData, coupleData }) {
               ownerId: current.ownerId || user.uid,
               periods: updatedPeriods,
               cycleLengthOverride:
-                override && clampCycleLength(Number(override)) || null,
+                (override && clampCycleLength(Number(override))) || null,
             },
           });
         });
       } catch (error) {
         console.error("Erro ao remover período:", error);
+        reportOperationError("Não foi possível remover o registro do período. Tente novamente.", error);
         alert("Não foi possível remover o registro. Tente novamente.");
       }
     },
-    [userData?.coupleId, user?.uid]
+    [userData?.coupleId, user?.uid, reportOperationError]
   );
 
   return {
+    operationError,
+    clearOperationError,
     isOwner,
     isConfigured,
     ownerId,

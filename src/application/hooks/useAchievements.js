@@ -1,3 +1,4 @@
+import { useOperationError } from "./useOperationError";
 import { useEffect } from "react";
 import { doc, updateDoc, arrayUnion } from "firebase/firestore";
 import { db } from "../../infrastructure/firebase";
@@ -19,13 +20,17 @@ import { evaluateNewAchievements } from "../../domain/entities/Achievement";
  *    são de fato alcançáveis (antes só existiam visualmente na tela).
  *  - Removidos os `console.log` de depuração deixados em produção.
  */
+// Stable defaults: publishing an operation error must not restart the debounce.
+const EMPTY_ITEMS = [];
+
 export function useAchievements({
   userData,
   coupleData,
-  allActivities = [],
-  rewards = [],
-  wishlistItems = [],
+  allActivities = EMPTY_ITEMS,
+  rewards = EMPTY_ITEMS,
+  wishlistItems = EMPTY_ITEMS,
 }) {
+  const { operationError, reportOperationError, clearOperationError } = useOperationError();
   useEffect(() => {
     if (!userData?.coupleId || !coupleData || !allActivities.length) return;
 
@@ -59,11 +64,13 @@ export function useAchievements({
         });
       } catch (error) {
         console.error("Erro ao atualizar conquistas:", error);
+        reportOperationError("Não foi possível salvar as conquistas do casal.", error);
       }
     }, 1000); // Debounce para evitar execuções em excesso
 
     return () => clearTimeout(timeoutId);
   }, [
+    reportOperationError,
     userData?.coupleId,
     userData?.uid,
     userData?.partnerId,
@@ -72,4 +79,5 @@ export function useAchievements({
     rewards,
     wishlistItems,
   ]);
+  return { operationError, clearOperationError };
 }

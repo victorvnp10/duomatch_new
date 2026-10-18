@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { onAuthStateChanged } from "firebase/auth";
-import { auth, db, doc, getDoc, setDoc, onSnapshot, newUserData, setNewUserData } from "../../infrastructure/firebase";
+import { auth, db, doc, setDoc, onSnapshot, newUserData, setNewUserData } from "../../infrastructure/firebase";
 
 /**
  * Hook de aplicação: única fonte de verdade sobre o estado de autenticação

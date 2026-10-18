@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useOperationError } from "./useOperationError";
+import { useState, useEffect, useRef } from "react";
 import {
   db,
   doc,
@@ -14,10 +15,11 @@ import {
   orderBy,
   runTransaction,
 } from "../../infrastructure/firebase";
-import { getTodayDateString } from "../../shared/utils"; // Importar a função de data
+import { getTodayDateString } from "../../shared/lib/dateUtils"; // Importar a função de data
 
 // --- MUDANÇA 1: Adicionar 'rounds' como um parâmetro para o hook ---
 export const useRewards = (user, userData, coupleData, rounds) => {
+  const { operationError, reportOperationError, clearOperationError } = useOperationError();
   const [rewards, setRewards] = useState([]);
   const [rewardToEdit, setRewardToEdit] = useState(null);
   const [rewardToDelete, setRewardToDelete] = useState(null);
@@ -58,7 +60,7 @@ export const useRewards = (user, userData, coupleData, rounds) => {
       if (newApprovalNotifications.length > 0) {
         setApprovalNotifications((prev) => [
           ...prev,
-          ...newApprovalNotifications,
+          ...newApprovalNotifications.filter((reward) => !prev.some((item) => item.id === reward.id)),
         ]);
         const batch = writeBatch(db);
         newApprovalNotifications.forEach((reward) => {
@@ -66,14 +68,16 @@ export const useRewards = (user, userData, coupleData, rounds) => {
           batch.update(rewardRef, { notifiedForApproval: true });
         });
         // B2-46: sem catch, falha de rede aqui vira unhandled rejection
-        batch.commit().catch((error) =>
-          console.error("Erro ao marcar notificações de aprovação:", error)
-        );
+        batch.commit().catch((error) => {
+          console.error("Erro ao marcar notificações de aprovação:", error);
+          reportOperationError("Não foi possível registrar a leitura das notificações de aprovação.", error);
+          newApprovalNotifications.forEach((reward) => notifiedRewardsRef.current.delete(reward.id));
+        });
       }
     });
 
     return () => unsubscribe();
-  }, [userData?.coupleId, user.uid]);
+  }, [userData?.coupleId, user.uid, reportOperationError]);
 
   const handleCreateReward = async (rewardData) => {
     if (!userData?.coupleId) return;
@@ -89,6 +93,7 @@ export const useRewards = (user, userData, coupleData, rounds) => {
       });
     } catch (error) {
       console.error("Erro ao criar recompensa:", error);
+      reportOperationError("Não foi possível criar a recompensa. Tente novamente.", error);
       alert("Não foi possível criar a recompensa. Tente novamente.");
     }
   };
@@ -126,6 +131,7 @@ export const useRewards = (user, userData, coupleData, rounds) => {
       });
     } catch (error) {
       console.error("Erro ao aprovar recompensa:", error);
+      reportOperationError("Não foi possível aprovar a recompensa. Confira seu estado e tente novamente.", error);
       alert(error.message || "Não foi possível aprovar a recompensa.");
     }
   };
@@ -193,6 +199,7 @@ export const useRewards = (user, userData, coupleData, rounds) => {
         // B2-35: erros da transação eram engolidos — usuário clicava,
         // nada acontecia e não havia feedback.
         console.error("Erro ao comprar recompensa:", error);
+        reportOperationError("Não foi possível comprar a recompensa. Confira o saldo e a disponibilidade.", error);
         alert(error.message || "Não foi possível concluir a compra.");
       }
     }
@@ -226,6 +233,8 @@ export const useRewards = (user, userData, coupleData, rounds) => {
 
   // Retorno do hook
   return {
+    operationError,
+    clearOperationError,
     rewards,
     rewardToEdit,
     setRewardToEdit,

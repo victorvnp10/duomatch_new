@@ -1,6 +1,5 @@
 import React, { useMemo, useState, useEffect } from "react";
-import { signOut } from "firebase/auth";
-import { auth } from "../../infrastructure/firebase";
+import { endSession } from "../../application/services/sessionService";
 import {
   HeartIcon,
   TagIcon,
@@ -21,17 +20,26 @@ import StreakTracker from "./StreakTracker";
 import DailyChallenge from "./DailyChallenge";
 import AchievementSystem from "./AchievementSystem";
 import MatchNotification from "./MatchNotification";
-import { isActivityForToday, getTodayDateString, getDateString } from "../../shared/utils";
-import { updateStreak } from "../../shared/utils/streakUtils";
+import { getTodayDateString } from "../../shared/lib/dateUtils";
+import { updateStreak } from "../../application/services/streakService";
+import { withActivitySelection } from "../../domain/services/activitySelectionSnapshot";
+import { getRoundCountdownInfo } from "../../application/services/roundCountdownService";
 import {
-  countMarkedActivitiesInRound,
-  countChallengesCreatedInRound,
-} from "../../domain/services/RoundRulesEvaluator";
+  filterAvailableActivities,
+  selectDailyActivities,
+} from "../../application/services/activityFeedService";
+import {
+  getTodayMatches,
+  getCoupleJourneyMatches,
+} from "../../application/services/matchSectionsService";
+import { getSortedSpecialSuggestions } from "../../application/services/specialSuggestionsService";
+import { buildRoundRulesProgress } from "../../domain/services/RoundRulesEvaluator";
 import CountdownTimer from "./CountdownTimer";
 import { useAchievements } from "../../application/hooks/useAchievements";
 import { useMenstrualCycle } from "../../application/hooks/useMenstrualCycle";
 import DailyTipCard from "./DailyTipCard";
 import { useNotificationCenter } from "../../application/hooks/useNotificationCenter";
+import { useMatchNotification } from "../../application/hooks/useMatchNotification";
 import NotificationCenter from "./NotificationCenter";
 import { Avatar } from "./avatars/AvatarCatalog";
 
@@ -119,10 +127,9 @@ export default function MainView(props) {
     setIsAddItemModalOpen,
   } = props;
 
-  const [isLoading, setIsLoading] = useState(false);
+  const [, setIsLoading] = useState(false);
+  const [selectionError, setSelectionError] = useState(null);
   const [dailyActivities, setDailyActivities] = useState([]);
-  const [showMatchNotification, setShowMatchNotification] = useState(false);
-  const [matchedActivityName, setMatchedActivityName] = useState('');
 
   // Data LOCAL (convenção do projeto) — toISOString() é UTC e, no fuso
   // brasileiro, viraria "amanhã" entre 21h e 23:59, quebrando rodada ativa,
@@ -136,279 +143,67 @@ export default function MainView(props) {
     ? activeRound.scores?.[userData.partnerId] || 0
     : 0;
 
-  const sortedSpecialSuggestions = useMemo(() => {
-    if (!dailySuggestions) return [];
-    return Object.values(dailySuggestions)
-      .filter((activity) => {
-        if (!activity || !activity.name) return false;
-        // Se já teve match, não mostrar
-        if (activity.matched) return false;
-        // Se ambos selecionaram (mas ainda não processou o match), não mostrar
-        const mySelection = activity.selections?.[user.uid];
-        const partnerSelection = activity.selections?.[userData.partnerId];
-        if (mySelection === "selected" && partnerSelection === "selected") return false;
-        return true;
-      })
-      .sort((a, b) => a.name.localeCompare(b.name));
-  }, [dailySuggestions, user.uid, userData.partnerId]);
+  const sortedSpecialSuggestions = useMemo(
+    () =>
+      getSortedSpecialSuggestions(dailySuggestions, {
+        userId: user.uid,
+        partnerId: userData.partnerId,
+      }),
+    [dailySuggestions, user.uid, userData.partnerId]
+  );
 
-  const getRoundCountdownInfo = () => {
-    const baseClasses = "text-center text-sm mt-4";
-    if (!activeRound) return { text: null, className: baseClasses };
-    // B2-40: o fim da rodada é INCLUSIVO e `Math.ceil` sobre
-    // `endDate + T23:59:59` nunca produzia `diffDays === 0` — o aviso
-    // "acaba hoje" de fato nunca aparecia e o ramo `diffDays === 1`
-    // do fallback era inalcançável (o `<= 1` pegava antes). Comparar a
-    // data-string do fim (YYY-MM-DD) com hoje é exato.
-    if (todayStr >= activeRound.endDate)
-      return {
-        text: "A rodada acaba hoje!",
-        className: `${baseClasses} text-yellow-400 font-bold`,
-      };
-    const diffDays = Math.ceil(
-      (new Date(activeRound.endDate).getTime() -
-        new Date(todayStr).getTime()) /
-        (1000 * 60 * 60 * 24)
-    );
-    const text =
-      diffDays === 1
-        ? "Falta 1 dia para acabar a rodada."
-        : `Faltam ${diffDays} dias para acabar a rodada.`;
-    return { text, className: `${baseClasses} text-gray-400 italic` };
-  };
-
-  const countdownInfo = getRoundCountdownInfo();
+  const countdownInfo = getRoundCountdownInfo(activeRound, todayStr);
 
   const availableActivities = useMemo(
     () =>
-      allActivities.filter((activity) => {
-        if (
-          !isActivityForToday(activity) ||
-          matches.some((m) => m.id === activity.id) ||
-          activity.category === "Hot"
-        )
-          return false;
-        
-        const isChallenge = activity.type?.startsWith("desafio");
-        if (isChallenge)
-          return activity.challengeState === "pending_acceptance";
-        
-        // Para atividades criadas pelo sistema (não sugestões especiais), aplicar a mesma lógica
-        if (activity.createdBy === "SYSTEM") return false;
-        
-        // Para atividades normais, verificar se já houve match
-        const mySelection = activity.selections?.[user.uid];
-        const partnerSelection = activity.selections?.[userData.partnerId];
-        
-        // Se ambos confirmaram, não mostrar (será exibido em "Matches de Hoje")
-        if (mySelection?.status === "confirmed" && partnerSelection?.status === "confirmed") {
-          return false;
-        }
-        
-        return true;
+      filterAvailableActivities(allActivities, {
+        matches,
+        userId: user.uid,
+        partnerId: userData.partnerId,
       }),
     [allActivities, matches, user.uid, userData.partnerId]
   );
 
   useEffect(() => {
-    const creationDateOf = (act) =>
-      act.createdAt?.toDate ? getDateString(act.createdAt.toDate()) : null;
-    const activitiesFromToday = availableActivities.filter(
-      (act) => creationDateOf(act) === todayStr
-    );
-    const activitiesFromBeforeToday = availableActivities.filter(
-      (act) => creationDateOf(act) !== todayStr
-    );
-    const pendingChallenges = availableActivities.filter((act) =>
-      act.type?.startsWith("desafio")
-    );
-    let randomBaseActivities = [];
-    if (activitiesFromBeforeToday.length > 5) {
-      const seededHash = (str) => {
-        let hash = 0;
-        for (let i = 0; i < str.length; i++) {
-          const char = str.charCodeAt(i);
-          hash = (hash << 5) - hash + char;
-          hash &= hash;
-        }
-        return hash;
-      };
-      const shuffled = [...activitiesFromBeforeToday].sort(
-        (a, b) => seededHash(a.id + todayStr) - seededHash(b.id + todayStr)
-      );
-      randomBaseActivities = shuffled.slice(0, 5);
-    } else {
-      randomBaseActivities = activitiesFromBeforeToday;
-    }
-    const combinedList = [
-      ...randomBaseActivities,
-      ...activitiesFromToday,
-      ...pendingChallenges,
-    ];
-    const uniqueActivities = combinedList.filter(
-      (activity, index, self) =>
-        index === self.findIndex((a) => a.id === activity.id)
-    );
-    setDailyActivities(uniqueActivities);
+    setDailyActivities(selectDailyActivities(availableActivities, todayStr));
   }, [availableActivities, todayStr]);
 
-  const roundRulesProgress = useMemo(() => {
-    if (!activeRound || !activeRound.rules) return {};
-
-    const result = {};
-    const activitiesRule = activeRound.rules.minActivities;
-    const challengesRule = activeRound.rules.minChallenges;
-
-    if (activitiesRule) {
-      // Period-aware: conta apenas atividades marcadas DENTRO da janela de
-      // avaliação corrente (desde rulesLastChecked), alinhado ao avaliador.
-      const activitiesPeriodStart =
-        activeRound.rulesLastChecked?.activities || activeRound.startDate;
-      const myCount = countMarkedActivitiesInRound(
-        allActivities,
-        user.uid,
+  // Progresso das regras cíclicas: derivação delegada ao domínio
+  // (RoundRulesEvaluator.buildRoundRulesProgress) — fonte única de verdade
+  // compartilhada com o avaliador (evaluateCyclicalRules).
+  const roundRulesProgress = useMemo(
+    () =>
+      buildRoundRulesProgress({
         activeRound,
+        allActivities,
+        userId: user.uid,
+        partnerId: userData.partnerId,
         todayStr,
-        activitiesPeriodStart
-      );
-      const partnerCount = countMarkedActivitiesInRound(
-        allActivities,
-        userData.partnerId,
-        activeRound,
-        todayStr,
-        activitiesPeriodStart
-      );
-
-      // B2-40: alinhar o painel com o avaliador. O avaliador (evaluateGoal)
-      // avalia quando `daysBetween(today, reference) >= rule.days`, com
-      // `reference = rulesLastChecked?.X || startDate`.
-      const activitiesDaysSinceCheck = Math.max(
-        0,
-        Math.floor(
-          (new Date(todayStr).getTime() -
-            new Date(activitiesPeriodStart).getTime()) /
-            (1000 * 60 * 60 * 24)
-        )
-      );
-      const activitiesDaysRemaining = Math.max(
-        0,
-        activitiesRule.days - activitiesDaysSinceCheck
-      );
-
-      result.activitiesRule = {
-        myProgress: { count: myCount, target: activitiesRule.quantity },
-        partnerProgress: { count: partnerCount, target: activitiesRule.quantity },
-        penalty: activitiesRule.penalty,
-        daysRemaining: activitiesDaysRemaining,
-      };
-    }
-
-    if (challengesRule) {
-      // Period-aware: conta apenas desafios lançados DENTRO da janela de
-      // avaliação corrente, alinhado ao avaliador.
-      const challengesPeriodStart =
-        activeRound.rulesLastChecked?.challenges || activeRound.startDate;
-      const myChallengesCount = countChallengesCreatedInRound(
-        allActivities,
-        user.uid,
-        activeRound,
-        challengesPeriodStart,
-        todayStr
-      );
-      const partnerChallengesCount = countChallengesCreatedInRound(
-        allActivities,
-        userData.partnerId,
-        activeRound,
-        challengesPeriodStart,
-        todayStr
-      );
-
-      // B2-40: mesma correção da regra de atividades — dias até a próxima
-      // checagem contando a partir de `rulesLastChecked?.challenges ||
-      // startDate`, sem o bug do módulo no dia 0.
-      const challengesDaysSinceCheck = Math.max(
-        0,
-        Math.floor(
-          (new Date(todayStr).getTime() -
-            new Date(challengesPeriodStart).getTime()) /
-            (1000 * 60 * 60 * 24)
-        )
-      );
-      const challengesDaysRemaining = Math.max(
-        0,
-        challengesRule.days - challengesDaysSinceCheck
-      );
-
-      result.challengesRule = {
-        myProgress: { count: myChallengesCount, target: challengesRule.quantity },
-        partnerProgress: { count: partnerChallengesCount, target: challengesRule.quantity },
-        penalty: challengesRule.penalty,
-        daysRemaining: challengesDaysRemaining,
-      };
-    }
-
-    return result;
-  }, [
-    activeRound,
-    allActivities,
-    user.uid,
-    userData.partnerId,
-    todayStr,
-  ]);
+      }),
+    [activeRound, allActivities, user.uid, userData.partnerId, todayStr]
+  );
   // Separar matches de hoje dos da jornada do casal
-  const todayMatches = useMemo(() => {
-    const today = getTodayDateString();
+  const todayMatches = useMemo(
+    () =>
+      getTodayMatches(allActivities, {
+        userId: user.uid,
+        partnerId: userData.partnerId,
+        todayStr,
+      }),
+    [allActivities, user.uid, userData.partnerId, todayStr]
+  );
 
-    return allActivities.filter((activity) => {
-      const myChoice = activity.selections?.[user.uid];
-      const partnerChoice = activity.selections?.[userData.partnerId];
+  const coupleJourneyMatches = useMemo(
+    () =>
+      getCoupleJourneyMatches(allActivities, {
+        userId: user.uid,
+        partnerId: userData.partnerId,
+        todayStr,
+      }),
+    [allActivities, user.uid, userData.partnerId, todayStr]
+  );
 
-      const isNormalMatch =
-        myChoice?.date === today &&
-        myChoice?.status === "confirmed" &&
-        partnerChoice?.date === today &&
-        partnerChoice?.status === "confirmed" &&
-        !activity.type?.startsWith("desafio");
-
-      // Para desafios, só mostrar os que estão aceitos (ativos) hoje
-      const isChallengeMatch =
-        activity.type?.startsWith("desafio") &&
-        activity.challengeState === "accepted" &&
-        activity.expiresAt &&
-        activity.expiresAt.toDate() > new Date();
-
-      return isNormalMatch || isChallengeMatch;
-    });
-  }, [allActivities, user.uid, userData.partnerId]);
-
-  const coupleJourneyMatches = useMemo(() => {
-    // B2-16: data LOCAL (convenção do projeto) — toISOString() é UTC e à
-    // noite vira "amanhã", escondendo as atividades de hoje da jornada.
-    const today = getTodayDateString();
-
-    return allActivities.filter((activity) => {
-      // Atividades normais do passado
-      const selectionDateStr = activity.selections?.[user.uid]?.date;
-      if (selectionDateStr && selectionDateStr < today) {
-        const isNormalMatch =
-          activity.selections?.[user.uid]?.status === "confirmed" &&
-          activity.selections?.[userData.partnerId]?.status === "confirmed" &&
-          !activity.type?.startsWith("desafio");
-        if (isNormalMatch) return true;
-      }
-
-      // Desafios concluídos, não cumpridos, recusados ou expirados
-      const isChallengeFinished =
-        activity.type?.startsWith("desafio") &&
-        ["completed", "not_completed", "declined", "expired"].includes(
-          activity.challengeState
-        );
-
-      return isChallengeFinished;
-    });
-  }, [allActivities, user.uid, userData.partnerId]);
-
-  const { coupleData, handleSelectHotSuggestion } = props;
+  const { coupleData } = props;
 
   // Hook para gerenciar conquistas automaticamente (com memoização mais estável)
   const memoizedUserData = useMemo(() => ({
@@ -433,7 +228,7 @@ export default function MainView(props) {
   // entre snapshots (os hooks só setam estado em mudança real), e depender
   // só do comprimento mascarava trocas de STATUS (ex.: reward vira
   // "purchased" sem mudar tamanho), deixando conquistas presas.
-  useAchievements({
+  const { operationError: achievementsOperationError } = useAchievements({
     userData: memoizedUserData,
     coupleData: memoizedCoupleData,
     allActivities,
@@ -458,49 +253,35 @@ export default function MainView(props) {
   // Sistema de eventos para notificações de match.
   // Matches HOT não são tratados aqui: o overlay temático fica no
   // DuoMatchApp (global) e no HotZone — evita overlay duplicado/errado.
-  useEffect(() => {
-    const handleMatchEvent = (event) => {
-      const name = typeof event.detail === "string" ? event.detail : event.detail?.activityName;
-      setMatchedActivityName(name || "");
-      setShowMatchNotification(true);
-    };
-
-    window.addEventListener('activityMatch', handleMatchEvent);
-
-    return () => {
-      window.removeEventListener('activityMatch', handleMatchEvent);
-    };
-  }, []);
+  // Listener+parsing agora vivem na fonte única useMatchNotification.
+  const { showMatchNotification, matchedActivityName, hideMatchNotification } =
+    useMatchNotification();
 
   // Usar as funções já existentes do useActivities
   const handleSelectActivityAndUpdateStreak = async (activityId) => {
     setIsLoading(true);
+    let selectionCompleted = false;
     try {
       const selectionResult = await handleSelectActivity(activityId);
+      selectionCompleted = true;
 
       // Atualizar sequência após seleção
+      // mainViewService discards the Promise, so consume the rejecting service
+      // directly while preserving its selection projection and eligibility.
       if (userData?.coupleId && selectionResult?.nextSelection?.status === "confirmed") {
-        const activitiesAfterSelection = allActivities.map((activity) =>
-          activity.id === activityId
-            ? {
-                ...activity,
-                selections: {
-                  ...activity.selections,
-                  [user.uid]: selectionResult.nextSelection,
-                },
-              }
-            : activity
-        );
-        updateStreak(
+        await updateStreak(
           userData.coupleId,
           { ...userData, coupleData },
-          activitiesAfterSelection,
+          withActivitySelection(allActivities, activityId, user.uid, selectionResult.nextSelection),
           dailySuggestions,
           hotSuggestions
         );
       }
     } catch (error) {
       console.error("Erro ao selecionar atividade:", error);
+      setSelectionError(selectionCompleted
+        ? "Não foi possível atualizar a sequência de atividades do casal."
+        : "Não foi possível registrar sua escolha. Tente novamente.");
     } finally {
       setIsLoading(false);
     }
@@ -508,35 +289,25 @@ export default function MainView(props) {
 
   const handleSelectSuggestionAndUpdateStreak = async (suggestionId) => {
     setIsLoading(true);
+    let selectionCompleted = false;
     try {
       await handleSelectSuggestion(suggestionId);
+      selectionCompleted = true;
 
       // Atualizar sequência após seleção de sugestão especial
       if (userData?.coupleId) {
-        updateStreak(userData.coupleId, { ...userData, coupleData }, allActivities, dailySuggestions, hotSuggestions);
+        await updateStreak(userData.coupleId, { ...userData, coupleData }, allActivities, dailySuggestions, hotSuggestions);
       }
     } catch (error) {
       console.error("Erro ao selecionar sugestão:", error);
+      setSelectionError(selectionCompleted
+        ? "Não foi possível atualizar a sequência de atividades do casal."
+        : "Não foi possível registrar sua escolha. Tente novamente.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleSelectHotSuggestionAndUpdateStreak = async (hotId) => {
-    setIsLoading(true);
-    try {
-      await handleSelectHotSuggestion(hotId);
-
-      // Atualizar sequência após seleção de sugestão picante
-      if (userData?.coupleId) {
-        updateStreak(userData.coupleId, { ...userData, coupleData }, allActivities, dailySuggestions, hotSuggestions);
-      }
-    } catch (error) {
-      console.error("Erro ao selecionar hot suggestion:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   return (
     <div className="app-bg-glow text-white min-h-screen">
@@ -643,7 +414,7 @@ export default function MainView(props) {
               <PlusIcon />
             </button>
             <button
-              onClick={() => signOut(auth)}
+              onClick={() => endSession()}
               className="text-sm text-gray-400 hover:text-red-500"
             >
               Sair
@@ -677,7 +448,7 @@ export default function MainView(props) {
               <CalendarIcon />
             </button>
             <button
-              onClick={() => signOut(auth)}
+              onClick={() => endSession()}
               className="text-sm font-semibold text-gray-400 hover:text-red-500"
             >
               Sair
@@ -687,6 +458,8 @@ export default function MainView(props) {
       </header>
 
       <main className="max-w-4xl mx-auto p-4 md:p-6 space-y-8 pb-24">
+        {selectionError && <p role="alert" className="text-red-400 text-sm">{selectionError}</p>}
+        {achievementsOperationError && <p role="alert" className="text-red-400 text-sm">{achievementsOperationError.message}</p>}
         <div
           data-tour-id="rounds-card"
           className="bg-gray-800/50 border border-gray-700/50 rounded-2xl shadow-lg p-6 backdrop-blur-sm"
@@ -1056,7 +829,7 @@ export default function MainView(props) {
         isVisible={showMatchNotification}
         activityName={matchedActivityName}
         isHot={false}
-        onComplete={() => setShowMatchNotification(false)}
+        onComplete={() => hideMatchNotification()}
       />
     </div>
   );

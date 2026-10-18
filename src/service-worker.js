@@ -7,6 +7,12 @@
 // arquivo, a PRÓPRIA URL do SW a carrega: `/service-worker.js?fb=<JSON>` —
 // a página injeta via serviceWorkerRegistration.js (que tem acesso às env
 // REACT_APP_*). Sem env no SW não há push, mas o precache segue normal.
+import { clientsClaim } from "workbox-core";
+import { precacheAndRoute, createHandlerBoundToURL } from "workbox-precaching";
+import { registerRoute } from "workbox-routing";
+import { StaleWhileRevalidate, CacheFirst } from "workbox-strategies";
+import { ExpirationPlugin } from "workbox-expiration";
+import { CacheableResponsePlugin } from "workbox-cacheable-response";
 importScripts(
   "https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js",
   "https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"
@@ -92,13 +98,6 @@ self.addEventListener("notificationclick", (event) => {
 // injeta, no momento do build, o manifesto de precache (todos os assets
 // de `build/`, com hash de conteúdo) na constante `self.__WB_MANIFEST`
 // abaixo — não é necessário nenhuma configuração adicional.
-
-import { clientsClaim } from "workbox-core";
-import { precacheAndRoute, createHandlerBoundToURL } from "workbox-precaching";
-import { registerRoute } from "workbox-routing";
-import { StaleWhileRevalidate, CacheFirst } from "workbox-strategies";
-import { ExpirationPlugin } from "workbox-expiration";
-import { CacheableResponsePlugin } from "workbox-cacheable-response";
 
 clientsClaim();
 

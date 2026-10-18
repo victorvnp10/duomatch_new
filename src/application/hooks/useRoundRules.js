@@ -1,10 +1,10 @@
+import { useOperationError } from "./useOperationError";
 import { useEffect, useCallback, useRef } from "react";
 import { db, doc, increment, runTransaction } from "../../infrastructure/firebase";
-import { getTodayDateString } from "../../shared/utils";
+import { getTodayDateString } from "../../shared/lib/dateUtils";
 import {
   findActiveRound,
   evaluateCyclicalRules,
-  shouldEvaluateCyclicalRules,
 } from "../../domain/services/RoundRulesEvaluator";
 
 /**
@@ -23,6 +23,7 @@ import {
  * (compare-and-set), impedindo penalidade/bônus aplicado em dobro.
  */
 export const useRoundRules = ({ user, userData, rounds, allActivities }) => {
+  const { operationError, reportOperationError, clearOperationError } = useOperationError();
   // O tamanho dos arrays nao muda quando alguem marca/desmarca uma atividade.
   // Estas revisoes incluem apenas campos que alteram a contagem das regras.
   const rulesRevision = rounds
@@ -99,8 +100,9 @@ export const useRoundRules = ({ user, userData, rounds, allActivities }) => {
       });
     } catch (error) {
       console.error("Erro ao processar regras cíclicas da rodada:", error);
+      reportOperationError("Não foi possível aplicar as regras da rodada. O placar pode estar desatualizado.", error);
     }
-  }, [rounds, allActivities, user?.uid, userData?.partnerId, userData?.coupleId]);
+  }, [rounds, allActivities, user?.uid, userData?.partnerId, userData?.coupleId, reportOperationError]);
 
   // Mantém sempre a versão mais recente da avaliação sem recriar o listener.
   // O efeito depende das revisões primitivas acima: uma marcação/desmarcação
@@ -112,13 +114,9 @@ export const useRoundRules = ({ user, userData, rounds, allActivities }) => {
   });
 
   useEffect(() => {
-    if (
-      shouldEvaluateCyclicalRules({
-        rounds,
-        coupleId: userData?.coupleId,
-      })
-    ) {
-      runEvaluationRef.current();
-    }
+    // A guarda equivalente já vive em runEvaluation; a ref fornece os
+    // dados mais recentes sem disparar transações em snapshots só de placar.
+    runEvaluationRef.current();
   }, [rulesRevision, activitiesRevision, userData?.coupleId]);
+  return { operationError, clearOperationError };
 };

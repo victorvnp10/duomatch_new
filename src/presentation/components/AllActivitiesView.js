@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { EditIcon, TrashIcon, categoryIcons, ArrowLeftIcon } from "./Icons";
-import { formatPeriodicity } from "../../shared/utils";
+import { formatPeriodicity } from "../../shared/lib/dateUtils";
 
 export default function AllActivitiesView({
   userData,

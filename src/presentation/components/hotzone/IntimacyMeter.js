@@ -1,0 +1,51 @@
+import React from "react";
+import { POINTS_PER_LEVEL, getIntimacyLevel } from "../../../domain/services/intimacyLevels";
+
+// --- COMPONENTE DE NÍVEL DE INTIMIDADE ---
+const IntimacyMeter = ({ coupleData }) => {
+  const currentPoints = coupleData?.intimacyPoints || 0;
+
+  // Cada nível requer POINTS_PER_LEVEL pontos (matches hot) — fonte única
+  // em domain/services/intimacyLevels.js.
+  const currentLevel = getIntimacyLevel(currentPoints);
+  const pointsInCurrentLevel = currentPoints % POINTS_PER_LEVEL;
+  const progressPercentage = (pointsInCurrentLevel / POINTS_PER_LEVEL) * 100;
+
+  const getLevelName = (level) => {
+    if (level >= 4) return "🔥 Ardente";
+    if (level >= 3) return "💋 Apaixonados";
+    if (level >= 2) return "😘 Carinhosos";
+    if (level >= 1) return "💕 Conectados";
+    return "💖 Começando";
+  };
+
+  const pointsToNextLevel = POINTS_PER_LEVEL - pointsInCurrentLevel;
+
+  return (
+    <div className="bg-gradient-to-r from-red-900/40 to-pink-900/40 p-4 rounded-xl border border-red-500/30 backdrop-blur-sm">
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-sm font-semibold text-red-300">Nível de Intimidade</h3>
+        <div className="text-right">
+          <span className="text-xs text-pink-400">{getLevelName(currentLevel)}</span>
+          <div className="text-xs text-gray-400">Nível {currentLevel}</div>
+        </div>
+      </div>
+      <div className="w-full bg-gray-800/50 rounded-full h-3 overflow-hidden">
+        <div 
+          className="h-full bg-gradient-to-r from-red-500 to-pink-500 transition-all duration-500 ease-out"
+          style={{ width: `${progressPercentage}%` }}
+        />
+      </div>
+      <div className="flex justify-between items-center mt-1">
+        <p className="text-xs text-gray-400">
+          {currentPoints} pontos totais
+        </p>
+        <p className="text-xs text-pink-400">
+          {pointsToNextLevel === POINTS_PER_LEVEL ? `${POINTS_PER_LEVEL} matches para próximo nível` : `${pointsToNextLevel} matches restantes`}
+        </p>
+      </div>
+    </div>
+  );
+};
+
+export default IntimacyMeter;

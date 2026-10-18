@@ -8,7 +8,7 @@ import {
 } from "./Icons"; // Adicionei ArrowLeftIcon
 import AddRoundModal from "./AddRoundModal";
 import EditRoundModal from "./EditRoundModal";
-import { getTodayDateString } from "../../shared/utils";
+import { getTodayDateString } from "../../shared/lib/dateUtils";
 
 export default function RoundsView(props) {
   const {

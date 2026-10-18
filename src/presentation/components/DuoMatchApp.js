@@ -1,12 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
-import { db, doc } from "../../infrastructure/firebase";
-import {
-  getAuth,
-  EmailAuthProvider,
-  reauthenticateWithCredential,
-  updatePassword,
-} from "firebase/auth";
-import { updateDoc } from "firebase/firestore";
+import { changeAccountPassword, updateUserProfile } from "../../application/services/accountService";
 
 // HOOKS
 import { useCouple } from "../../application/hooks/useCouple";
@@ -48,6 +41,14 @@ import ErrorScreen from "./ErrorScreen";
 import CycleView from "./CycleView";
 import { PlusIcon } from "./Icons";
 
+import { useMatchNotification } from "../../application/hooks/useMatchNotification";
+
+// Preserve o contrato estrito do listener global, inclusive para payloads legados.
+const extractHotMatchActivityName = (event) => {
+  const { activityName } = event.detail;
+  return activityName;
+};
+
 export default function DuoMatchApp({ user, userData }) {
   const validViews = ["main", "wishlist", "wallet", "shop", "hot", "all", "rounds", "profile", "cycle"];
   const initialView = new URLSearchParams(window.location.search).get("view");
@@ -58,8 +59,6 @@ export default function DuoMatchApp({ user, userData }) {
   const [isAddRoundModalOpen, setIsAddRoundModalOpen] = useState(false);
   const [isTourOpen, setIsTourOpen] = useState(false);
   const hasAutoOpenedTour = useRef(false);
-  const [showHotMatchNotification, setShowHotMatchNotification] = useState(false);
-  const [hotMatchedActivityName, setHotMatchedActivityName] = useState("");
   const [achievementToShow, setAchievementToShow] = useState(null);
 
   const partnerNickname = useMemo(
@@ -70,6 +69,7 @@ export default function DuoMatchApp({ user, userData }) {
 
   const {
     coupleData,
+    operationError: coupleOperationError,
     error: coupleError,
     handleUpdateCoupleData,
     handleUnlinkCouple,
@@ -94,41 +94,44 @@ export default function DuoMatchApp({ user, userData }) {
       setIsTourOpen(true);
     }
   }, [coupleData, user?.uid]);
-  const { rounds, handleAddRound, handleUpdateRound, handleDeleteRound } =
+  const { rounds, operationError: roundsOperationError, handleAddRound, handleUpdateRound, handleDeleteRound } =
     useRounds(userData);
   const {
     allActivities,
     mySelections,
     partnerSelections,
     matches,
+    operationError: activitiesOperationError,
     ...activityHandlers
   } = useActivities(user, userData, coupleData, rounds);
 
-  useRoundRules({ user, userData, rounds, allActivities });
+  const { operationError: rulesOperationError } = useRoundRules({ user, userData, rounds, allActivities });
 
 
   const {
+    operationError: hotSuggestionsOperationError,
     suggestions: hotSuggestions,
     handleSelectSuggestion: handleSelectHotSuggestion,
   } = useSuggestions(userData, activityHandlers.handleAddActivity, "hot");
   const {
+    operationError: dailySuggestionsOperationError,
     suggestions: dailySuggestions,
     handleSelectSuggestion: handleSelectDailySuggestion,
   } = useSuggestions(userData, activityHandlers.handleAddActivity, "daily");
 
-  const { wishlistItems, ...wishlistHandlers } = useWishlist(
+  const { wishlistItems, operationError: wishlistOperationError, ...wishlistHandlers } = useWishlist(
     user,
     userData,
     coupleData,
     rounds
   );
-  const { rewards, ...rewardHandlers } = useRewards(
+  const { rewards, operationError: rewardsOperationError, ...rewardHandlers } = useRewards(
     user,
     userData,
     coupleData,
     rounds
   );
-  const { activeChatActivity: chatActivity, setActiveChatActivity: setChatActivity, ...chatHandlers } =
+  const { operationError: chatOperationError, activeChatActivity: chatActivity, setActiveChatActivity: setChatActivity, ...chatHandlers } =
     useChat(user, userData, allActivities);
 
   // Derivação única da Central de Notificações no nível do app: alimenta o
@@ -146,11 +149,17 @@ export default function DuoMatchApp({ user, userData }) {
     dailyActivities: [],
   });
 
-  const handleFinishOnboarding = () => {
+  const handleFinishOnboarding = async () => {
     if (userData?.coupleId) {
-      setIsTourOpen(false);
-      handleCompleteOnboarding();
-      setView("rounds");
+      try {
+        await handleCompleteOnboarding();
+        setIsTourOpen(false);
+        setView("rounds");
+      } catch (error) {
+        console.error("Erro ao finalizar apresentação inicial:", error);
+        // The tour overlay would hide an inline message; reuse the app's alert.
+        alert("Não foi possível salvar a conclusão da apresentação inicial. Tente novamente.");
+      }
     } else {
       console.error(
         "Não foi possível finalizar o onboarding: coupleId não encontrado."
@@ -161,10 +170,7 @@ export default function DuoMatchApp({ user, userData }) {
   const handleOpenTour = () => setIsTourOpen(true);
   const handleChangePassword = async (currentPassword, newPassword) => {
     try {
-      const auth = getAuth();
-      const credential = EmailAuthProvider.credential(user.email, currentPassword);
-      await reauthenticateWithCredential(auth.currentUser, credential);
-      await updatePassword(auth.currentUser, newPassword);
+      await changeAccountPassword(user.email, currentPassword, newPassword);
       alert("Senha alterada com sucesso!");
     } catch (error) {
       console.error("Erro ao alterar senha:", error);
@@ -178,8 +184,7 @@ export default function DuoMatchApp({ user, userData }) {
       return;
     }
     try {
-      const userRef = doc(db, "users", user.uid);
-      await updateDoc(userRef, updatedData);
+      await updateUserProfile(user.uid, updatedData);
       alert("Perfil atualizado com sucesso!");
     } catch (error) {
       console.error("Erro ao atualizar perfil:", error);
@@ -268,15 +273,14 @@ export default function DuoMatchApp({ user, userData }) {
     return () => navigator.serviceWorker?.removeEventListener("message", handleSwMessage);
   }, []);
 
+  // Mesmo evento do HotZone; estado por instância e exclusão do overlay em "hot" preservados.
+  const {
+    showMatchNotification: showHotMatchNotification,
+    matchedActivityName: hotMatchedActivityName,
+    hideMatchNotification: hideHotMatchNotification,
+  } = useMatchNotification(["hotActivityMatch"], extractHotMatchActivityName);
+
   useEffect(() => {
-    const handleHotMatchEvent = (event) => {
-      const { activityName } = event.detail;
-      setHotMatchedActivityName(activityName);
-      setShowHotMatchNotification(true);
-    };
-
-    window.addEventListener('hotActivityMatch', handleHotMatchEvent);
-
     // Tornar a função dispatchHotMatchEvent acessível globalmente
     window.dispatchHotMatchEvent = (activityName) => {
       const event = new CustomEvent('hotActivityMatch', { detail: { activityName } });
@@ -285,7 +289,6 @@ export default function DuoMatchApp({ user, userData }) {
 
     return () => {
       delete window.dispatchHotMatchEvent;
-      window.removeEventListener('hotActivityMatch', handleHotMatchEvent);
     };
   }, []);
 
@@ -323,7 +326,21 @@ export default function DuoMatchApp({ user, userData }) {
   return (
     <div className="relative min-h-screen bg-gray-900">
       {isTourOpen && <OnboardingView onFinish={handleFinishOnboarding} setView={setView} />}
-      <div className="pb-24 md:pb-0">{renderCurrentView()}
+      <div className="pb-24 md:pb-0">
+        {[
+          ["couple", coupleOperationError],
+          ["activities", activitiesOperationError],
+          ["rounds", roundsOperationError],
+          ["rules", rulesOperationError],
+          ["hotSuggestions", hotSuggestionsOperationError],
+          ["dailySuggestions", dailySuggestionsOperationError],
+          ["wishlist", wishlistOperationError],
+          ["rewards", rewardsOperationError],
+          ["chat", chatActivity ? null : chatOperationError],
+        ].map(([source, error]) => error && (
+          <p key={source} role="alert" className="text-red-400 text-sm">{error.message}</p>
+        ))}
+        {renderCurrentView()}
         {/* Overlay global de hot match — cobre todas as views EXCETO "hot",
             onde o HotZone já exibe o seu próprio overlay temático. */}
         {showHotMatchNotification && view !== "hot" && (
@@ -331,7 +348,7 @@ export default function DuoMatchApp({ user, userData }) {
             isVisible={showHotMatchNotification}
             activityName={hotMatchedActivityName}
             isHot={true}
-            onComplete={() => setShowHotMatchNotification(false)}
+            onComplete={() => hideHotMatchNotification()}
           />
         )}
 
@@ -398,6 +415,7 @@ export default function DuoMatchApp({ user, userData }) {
           user={user}
           userData={userData}
           comments={chatHandlers.activeChatComments}
+          operationError={chatOperationError}
           onClose={() => setChatActivity(null)}
           handlePostComment={chatHandlers.handlePostComment}
           handleEditComment={chatHandlers.handleEditComment}

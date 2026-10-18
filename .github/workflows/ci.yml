@@ -1,0 +1,115 @@
+name: CI
+
+# Roda em push e pull_request para a branch main.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancela execuções antigas do mesmo ref quando um novo commit chega.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    name: Lint, testes e build
+    runs-on: ubuntu-latest
+
+    # Vite exige Node >=20.19 ou >=22.12; CI usa Node 22 LTS.
+    strategy:
+      matrix:
+        node-version: [22]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Node ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+
+      # LINT — BLOQUEANTE.
+      # Antes isto era `continue-on-error` por causa de débito pré-existente,
+      # mas o débito era em boa parte FALSO POSITIVO de configuração (globalThis
+      # não declarado, globais de service worker, comentários em JSON), o que
+      # escondia erro real no meio de 24 acusações erradas. Com a configuração
+      # corrigida e os 10 erros reais resolvidos, o lint fica em 0 erro e pode
+      # bloquear: pipeline que vive vermelho ensina a ignorar o vermelho.
+      - name: Lint
+        run: npm run lint
+
+      - name: Testes
+        run: CI=true npm test -- --watchAll=false
+
+      # REGRAS DO FIRESTORE — a suíte de test/rules prova, dos dois lados, que
+      # os ataques são bloqueados E que o fluxo legítimo continua funcionando.
+      # Sem este passo o CI fica verde com uma regressão de segurança reaberta:
+      # as regras vivem em firestore.rules, fora do bundle, e nenhum teste do
+      # app as exercita.
+      - name: Configurar Java (exigido pelo emulador do Firestore)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      # As dependências do harness vão para um diretório isolado: o teste as
+      # carrega de FIREBASE_TOOLS_NODE_MODULES de propósito, para não instalar
+      # nada no repositório. Aqui apontamos a variável para o diretório do CI.
+      #
+      # VERSÕES FIXADAS de propósito: com @firebase/rules-unit-testing sem
+      # versão, o npm resolveu 6.0.0 localmente (peer firebase ^13, compatível)
+      # e 5.0.2 no runner (peer firebase ^12) — ERESOLVE e pipeline vermelho,
+      # por causa de versão flutuante resolvendo diferente em outro ambiente.
+      - name: Testes das regras do Firestore (emulador)
+        run: |
+          mkdir -p /tmp/fb-tools && cd /tmp/fb-tools
+          npm init -y >/dev/null
+          # Sem --silent de propósito: com ele, uma falha aqui morre com exit 1
+          # SEM imprimir nada, e o log do CI não diz o motivo.
+          npm i --no-audit --no-fund --loglevel=error \
+            firebase@13 firebase-tools "@firebase/rules-unit-testing@6"
+          cd "$GITHUB_WORKSPACE"
+          FIREBASE_TOOLS_NODE_MODULES=/tmp/fb-tools/node_modules \
+            /tmp/fb-tools/node_modules/.bin/firebase emulators:exec \
+            --only firestore --project demo-duomatch \
+            "node test/rules/duomatch.rules.test.cjs"
+
+      # Chromium only, two isolated workers, reuse the Firebase CLI above.
+      - name: Instalar Chromium do Playwright
+        run: npx playwright install chromium --with-deps
+
+      - name: E2E (Auth + Firestore reais no emulador)
+        run: PATH="/tmp/fb-tools/node_modules/.bin:$PATH" npm run test:e2e
+
+      - name: Relatório E2E
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-chromium
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 7
+
+      # BUILD — sem secrets reais.
+      # O shim Vite inlina as REACT_APP_* em tempo de build. Os valores abaixo são
+      # placeholders SÓ para o smoke-build do CI (o artefato do CI não é
+      # publicado); em produção os valores reais vêm das env vars da Vercel.
+      # Ver a justificativa completa no relatório.
+      - name: Build
+        env:
+          REACT_APP_FIREBASE_API_KEY: ci-placeholder-api-key
+          REACT_APP_FIREBASE_AUTH_DOMAIN: ci-placeholder.firebaseapp.com
+          REACT_APP_FIREBASE_PROJECT_ID: ci-placeholder
+          REACT_APP_FIREBASE_STORAGE_BUCKET: ci-placeholder.appspot.com
+          REACT_APP_FIREBASE_MESSAGING_SENDER_ID: "000000000000"
+          REACT_APP_FIREBASE_APP_ID: "1:000000000000:web:ciplaceholder"
+        run: CI=true npm run build

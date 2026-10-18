@@ -17,8 +17,24 @@
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
-const daysBetween = (laterDateStr, earlierDateStr) =>
+/**
+ * Dias inteiros decorridos entre duas datas YYYY-MM-DD (data local).
+ * `Math.floor` — mesmo critério usado pelo avaliador e pelo painel.
+ * Exportado para ser a fonte única dessa aritmética (avaliador + UI).
+ */
+export const daysBetween = (laterDateStr, earlierDateStr) =>
   Math.floor((new Date(laterDateStr) - new Date(earlierDateStr)) / MS_PER_DAY);
+
+/**
+ * Resolve o início da janela de avaliação corrente de uma regra: a última
+ * checagem registrada (`rulesLastChecked.<key>`) ou, na ausência dela, o
+ * início da rodada. Fonte ÚNICA dessa decisão — usada tanto pelo avaliador
+ * (`evaluateCyclicalRules`) quanto pelo painel de progresso da UI
+ * (`buildRoundRulesProgress`). Antes, o painel (MainView) reimplementava
+ * essa resolução inline, o que podia divergir em silêncio.
+ */
+export const resolveRulePeriodStart = (lastCheckedDate, roundStartDate) =>
+  lastCheckedDate || roundStartDate;
 
 // Formata em data LOCAL (YYYY-MM-DD). `toISOString()` é UTC e, em fusos
 // negativos (ex.: Brasil), deslocava a criação para "amanhã" à noite,
@@ -178,9 +194,13 @@ export const evaluateCyclicalRules = ({
   const lastCheckedUpdates = {};
   let hasUpdates = false;
 
+  const activitiesPeriodStart = resolveRulePeriodStart(
+    activeRound.rulesLastChecked?.activities,
+    activeRound.startDate
+  );
   const activitiesResult = evaluateGoal({
     rule: activitiesRule,
-    lastCheckedDate: activeRound.rulesLastChecked?.activities || activeRound.startDate,
+    lastCheckedDate: activitiesPeriodStart,
     todayStr,
     userId,
     partnerId,
@@ -190,7 +210,7 @@ export const evaluateCyclicalRules = ({
         uid,
         activeRound,
         todayStr,
-        activeRound.rulesLastChecked?.activities || activeRound.startDate
+        activitiesPeriodStart
       ),
   });
   if (activitiesResult) {
@@ -203,9 +223,13 @@ export const evaluateCyclicalRules = ({
     hasUpdates = true;
   }
 
+  const challengesPeriodStart = resolveRulePeriodStart(
+    activeRound.rulesLastChecked?.challenges,
+    activeRound.startDate
+  );
   const challengesResult = evaluateGoal({
     rule: challengesRule,
-    lastCheckedDate: activeRound.rulesLastChecked?.challenges || activeRound.startDate,
+    lastCheckedDate: challengesPeriodStart,
     todayStr,
     userId,
     partnerId,
@@ -214,7 +238,7 @@ export const evaluateCyclicalRules = ({
         allActivities,
         uid,
         activeRound,
-        activeRound.rulesLastChecked?.challenges || activeRound.startDate,
+        challengesPeriodStart,
         todayStr
       ),
   });
@@ -230,4 +254,110 @@ export const evaluateCyclicalRules = ({
 
   if (!hasUpdates) return null;
   return { scoreDeltas, lastCheckedUpdates };
+};
+
+/**
+ * Monta os dados de progresso das regras cíclicas exibidos no painel do
+ * placar (atividades marcadas / desafios lançados no ciclo corrente).
+ *
+ * FONTE ÚNICA DE VERDADE: antes esta derivação vivia inteira dentro de
+ * `src/presentation/components/MainView.js` (useMemo `roundRulesProgress`),
+ * reimplementando a resolução do período e a aritmética de dias que o
+ * avaliador (`evaluateCyclicalRules`) também fazia. Além de duplicar a
+ * regra, qualquer mudança em um lado deixava o outro errado em silêncio —
+ * o usuário podia ver "meta cumprida" no painel e ainda assim levar
+ * penalidade. Agora painel e avaliador compartilham `resolveRulePeriodStart`
+ * e `daysBetween`, e os contadores são exatamente os mesmos.
+ *
+ * Retorna o mesmo shape consumido por `RuleProgressDisplay`:
+ * `{ activitiesRule?, challengesRule? }`, cada um com
+ * `{ myProgress: { count, target }, partnerProgress: { count, target },
+ *    penalty, daysRemaining }`. `daysRemaining` é clampado em 0 ("Hoje!").
+ */
+export const buildRoundRulesProgress = ({
+  activeRound,
+  allActivities,
+  userId,
+  partnerId,
+  todayStr,
+}) => {
+  if (!activeRound || !activeRound.rules) return {};
+
+  const result = {};
+  const activitiesRule = activeRound.rules.minActivities;
+  const challengesRule = activeRound.rules.minChallenges;
+
+  if (activitiesRule) {
+    // Period-aware: conta apenas atividades marcadas DENTRO da janela de
+    // avaliação corrente, exatamente como o avaliador.
+    const activitiesPeriodStart = resolveRulePeriodStart(
+      activeRound.rulesLastChecked?.activities,
+      activeRound.startDate
+    );
+    const myCount = countMarkedActivitiesInRound(
+      allActivities,
+      userId,
+      activeRound,
+      todayStr,
+      activitiesPeriodStart
+    );
+    const partnerCount = countMarkedActivitiesInRound(
+      allActivities,
+      partnerId,
+      activeRound,
+      todayStr,
+      activitiesPeriodStart
+    );
+
+    // Alinhado ao gate do avaliador: `daysBetween(today, reference) >=
+    // rule.days`. O painel mostra a contagem regressiva até esse dia.
+    const activitiesDaysRemaining = Math.max(
+      0,
+      activitiesRule.days - Math.max(0, daysBetween(todayStr, activitiesPeriodStart))
+    );
+
+    result.activitiesRule = {
+      myProgress: { count: myCount, target: activitiesRule.quantity },
+      partnerProgress: { count: partnerCount, target: activitiesRule.quantity },
+      penalty: activitiesRule.penalty,
+      daysRemaining: activitiesDaysRemaining,
+    };
+  }
+
+  if (challengesRule) {
+    // Period-aware: conta apenas desafios lançados DENTRO da janela de
+    // avaliação corrente, exatamente como o avaliador.
+    const challengesPeriodStart = resolveRulePeriodStart(
+      activeRound.rulesLastChecked?.challenges,
+      activeRound.startDate
+    );
+    const myChallengesCount = countChallengesCreatedInRound(
+      allActivities,
+      userId,
+      activeRound,
+      challengesPeriodStart,
+      todayStr
+    );
+    const partnerChallengesCount = countChallengesCreatedInRound(
+      allActivities,
+      partnerId,
+      activeRound,
+      challengesPeriodStart,
+      todayStr
+    );
+
+    const challengesDaysRemaining = Math.max(
+      0,
+      challengesRule.days - Math.max(0, daysBetween(todayStr, challengesPeriodStart))
+    );
+
+    result.challengesRule = {
+      myProgress: { count: myChallengesCount, target: challengesRule.quantity },
+      partnerProgress: { count: partnerChallengesCount, target: challengesRule.quantity },
+      penalty: challengesRule.penalty,
+      daysRemaining: challengesDaysRemaining,
+    };
+  }
+
+  return result;
 };

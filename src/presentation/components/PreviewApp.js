@@ -1,7 +1,6 @@
 import React, { useState, useRef, useMemo } from "react";
-import { signOut } from "firebase/auth";
-import { auth } from "../../infrastructure/firebase";
-import { getTodayDateString } from "../../shared/utils";
+import { endSession } from "../../application/services/sessionService";
+import { getTodayDateString } from "../../shared/lib/dateUtils";
 import { toggleActivitySelection } from "../../domain/services/ActivitySelectionEvaluator";
 import {
   DEMO_PARTNER_UID,
@@ -11,7 +10,7 @@ import {
   buildPreviewActivities,
   buildPreviewWishlistItems,
   buildPreviewRewards,
-} from "../../shared/previewData";
+} from "./preview/previewData";
 
 import LinkingPage from "./LinkingPage";
 import MainView from "./MainView";
@@ -271,7 +270,7 @@ function PreviewApp({ user, userData }) {
           Vincular meu par agora
         </button>
         {" • "}
-        <button onClick={() => signOut(auth)} className="underline hover:text-white">
+        <button onClick={() => endSession()} className="underline hover:text-white">
           Sair
         </button>
       </div>

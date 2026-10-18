@@ -7,10 +7,6 @@ import {
   arrayUnion,
   updateDoc,
 } from "../index";
-import {
-  ACTIVITY_CATALOG,
-  CHALLENGE_CATALOG,
-} from "../../../shared/contentCatalog";
 
 /**
  * ContentRepository — catálogo global de conteúdo (atividades e desafios).
@@ -18,7 +14,7 @@ import {
  * Fonte de verdade em produção: coleções raiz do Firestore
  * (`contentActivities` / `contentChallenges`). Como o app é um PWA sem
  * backend, este repositório é responsável por "plantar" (seed) o catálogo
- * a partir do módulo `shared/contentCatalog.js`; a leitura em produção vem
+ * a partir do módulo `infrastructure/seed/contentCatalog.js`; a leitura em produção vem
  * do Firestore, o que permite editar o conteúdo no banco sem novo build.
  *
  * - Seed por upsert: grava apenas os itens cujo `id` ainda não existe,
@@ -65,8 +61,11 @@ const plantMissing = async (collectionName, items) => {
   }
 };
 
-export const ensureActivityCatalog = () =>
-  plantMissing("contentActivities", ACTIVITY_CATALOG);
+export const ensureActivityCatalog = async () => {
+  // Keep seed data out of the initial bundle; upserts remain incremental.
+  const { ACTIVITY_CATALOG } = await import("../../seed/contentCatalog");
+  return plantMissing("contentActivities", ACTIVITY_CATALOG);
+};
 
 /** Retorna o catálogo de atividades ativo (com cache de sessão). */
 export const getActivityCatalog = async () => {
@@ -87,8 +86,10 @@ export const clearActivityCatalogCache = () => {
 
 // ---------- CATÁLOGO DE DESAFIOS ----------
 
-export const ensureChallengeCatalog = () =>
-  plantMissing("contentChallenges", CHALLENGE_CATALOG);
+export const ensureChallengeCatalog = async () => {
+  const { CHALLENGE_CATALOG } = await import("../../seed/contentCatalog");
+  return plantMissing("contentChallenges", CHALLENGE_CATALOG);
+};
 
 /** Retorna o catálogo de desafios ativo (com cache de sessão). */
 export const getChallengeCatalog = async () => {

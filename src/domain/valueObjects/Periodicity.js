@@ -9,14 +9,16 @@
  * duas perguntas de negócio sobre si mesma.
  */
 
-const WEEKDAY_NAMES = [
-  "Domingo",
-  "Segunda-feira",
-  "Terça-feira",
-  "Quarta-feira",
-  "Quinta-feira",
-  "Sexta-feira",
-  "Sábado",
+// Rótulos já com o artigo correto: "Domingo" e "Sábado" são masculinos
+// ("Todo ..."); os "-feira" são femininos ("Toda ...").
+const WEEKDAY_LABELS = [
+  "Todo Domingo",
+  "Toda Segunda-feira",
+  "Toda Terça-feira",
+  "Toda Quarta-feira",
+  "Toda Quinta-feira",
+  "Toda Sexta-feira",
+  "Todo Sábado",
 ];
 
 /** Formata a periodicidade para exibição amigável ao usuário. */
@@ -31,8 +33,21 @@ export const formatPeriodicity = (periodicity) => {
         const [year, month, day] = value.split("-");
         return `(Em ${day}/${month}/${year})`;
       }
-      case "semanal":
-        return `(Toda ${WEEKDAY_NAMES[value]})`;
+      case "semanal": {
+        // O índice precisa ser validado: `value` vem de dados persistidos e
+        // um valor fora de 0–6 (dado legado/corrompido) fazia a UI exibir
+        // literalmente "(Toda undefined)". Um índice inválido cai no mesmo
+        // "" dos tipos desconhecidos — sem inventar texto novo.
+        const weekdayIndex = Number(value);
+        if (
+          !Number.isInteger(weekdayIndex) ||
+          weekdayIndex < 0 ||
+          weekdayIndex > WEEKDAY_LABELS.length - 1
+        ) {
+          return "";
+        }
+        return `(${WEEKDAY_LABELS[weekdayIndex]})`;
+      }
       case "mensal":
         return `(Todo dia ${value})`;
       case "anual": {

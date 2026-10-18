@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { ArrowLeftIcon, DropletIcon, TrashIcon } from "./Icons";
 import { useMenstrualCycle } from "../../application/hooks/useMenstrualCycle";
 import { getPhaseLabel } from "../../domain/services/CycleInsightService";
-import { getTodayDateString } from "../../shared/utils";
+import { getTodayDateString } from "../../shared/lib/dateUtils";
 import DailyTipCard from "./DailyTipCard";
 import CycleHealthInfo from "./CycleHealthInfo";
 
@@ -234,6 +234,7 @@ function PartnerInsightPanel({ dailyInsight, isConfigured }) {
 export default function CycleView(props) {
   const { setView, user, userData, coupleData } = props;
   const {
+    operationError,
     isOwner,
     isConfigured,
     periods,
@@ -265,6 +266,7 @@ export default function CycleView(props) {
       </header>
 
       <main className="max-w-md mx-auto p-4">
+        {operationError && <p role="alert" className="text-red-400 text-sm">{operationError.message}</p>}
         {isOwner ? (
           <CycleOwnerPanel
             periods={periods}

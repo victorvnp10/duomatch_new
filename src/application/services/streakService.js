@@ -1,7 +1,8 @@
 
+import { contextualError } from './contextualError';
 import { doc, runTransaction, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../infrastructure/firebase';
-import { getTodayDateString, getDateString } from '../utils';
+import { getTodayDateString, getDateString } from '../../shared/lib/dateUtils';
 
 export const updateStreak = async (coupleId, userData, allActivities, dailySuggestions, hotSuggestions) => {
   if (!coupleId || !userData) return;
@@ -42,6 +43,8 @@ export const updateStreak = async (coupleId, userData, allActivities, dailySugge
 
   } catch (error) {
     console.error('Erro ao atualizar sequência:', error);
+    // This service has no hook state: expose persistence failure to its caller.
+    throw contextualError('Não foi possível atualizar a sequência de atividades do casal.', error);
   }
 };
 

@@ -1,3 +1,4 @@
+import { useOperationError } from "./useOperationError";
 import { useState, useEffect, useCallback } from "react";
 import {
   db,
@@ -13,7 +14,7 @@ import {
 } from "../../infrastructure/firebase"; // Funções existentes do seu ficheiro central
 import { signOut } from "firebase/auth";
 import { arrayUnion } from "firebase/firestore";
-import { getTodayDateString } from "../../shared/utils"; // <-- MUDANÇA: Importação direta da função em falta
+import { getTodayDateString } from "../../shared/lib/dateUtils"; // <-- MUDANÇA: Importação direta da função em falta
 
 /**
  * Hook para gerir os dados do documento do Casal e ações globais.
@@ -21,6 +22,7 @@ import { getTodayDateString } from "../../shared/utils"; // <-- MUDANÇA: Import
  * @param {object} userData - Dados do perfil do utilizador do Firestore.
  */
 export const useCouple = (user, userData) => {
+  const { operationError, reportOperationError, clearOperationError } = useOperationError();
   const [coupleData, setCoupleData] = useState(null);
   // B2-26: erro permanente no listener do casal → UI de erro em vez de
   // LoadingScreen infinita (o DuoMatchApp renderiza quando `!coupleData`).
@@ -103,9 +105,11 @@ export const useCouple = (user, userData) => {
         await updateDoc(coupleDocRef, data);
       } catch (error) {
         console.error("Erro ao atualizar os dados do casal:", error);
+        // Callers must not announce success until persistence has succeeded.
+        throw reportOperationError("Não foi possível atualizar os dados do casal. Tente novamente.", error);
       }
     },
-    [userData?.coupleId]
+    [userData?.coupleId, reportOperationError]
   );
 
   const handleCompleteOnboarding = useCallback(async () => {
@@ -120,8 +124,10 @@ export const useCouple = (user, userData) => {
       });
     } catch (error) {
       console.error("Erro ao completar o onboarding:", error);
+      // Do not advance onboarding after a failed write.
+      throw reportOperationError("Não foi possível salvar a conclusão da apresentação inicial. Tente novamente.", error);
     }
-  }, [user?.uid, userData?.coupleId]);
+  }, [user?.uid, userData?.coupleId, reportOperationError]);
 
   const handleUnlinkCouple = useCallback(async () => {
     if (!userData?.coupleId || !userData?.partnerId) {
@@ -212,15 +218,21 @@ export const useCouple = (user, userData) => {
         await signOut(auth);
       } catch (logOutError) {
         console.error("Casal desvinculado, mas houve erro no logout:", logOutError);
+        reportOperationError("Casal desvinculado, mas sua sessão continua aberta. Saia da conta para concluir.", logOutError);
+        alert("Casal desvinculado, mas sua sessão continua aberta. Saia da conta para concluir.");
+        return;
       }
       alert("Casal desvinculado com sucesso. Você será desconectado.");
     } catch (error) {
       console.error("Erro ao desvincular casal:", error);
+      reportOperationError("Não foi possível concluir a desvinculação do casal. Alguns dados podem já ter sido removidos.", error);
       alert("Ocorreu um erro grave ao tentar desvincular. Tente novamente.");
     }
-  }, [user?.uid, userData]);
+  }, [user?.uid, userData, reportOperationError]);
 
   return {
+    operationError,
+    clearOperationError,
     coupleData,
     error,
     handleUpdateCoupleData,
