@@ -28,6 +28,8 @@
  */
 const { onDocumentCreated, onDocumentUpdated } = require("firebase-functions/v2/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
+const { onCall } = require("firebase-functions/v2/https");
+const { createSyncContentCatalogHandler } = require("./syncContentCatalog");
 const { initializeApp } = require("firebase-admin/app");
 const { getFirestore, FieldValue } = require("firebase-admin/firestore");
 const { getMessaging } = require("firebase-admin/messaging");
@@ -38,6 +40,12 @@ const messaging = getMessaging();
 
 // Região do Firestore deste projeto (veja o aviso no cabeçalho acima).
 const FIRESTORE_REGION = process.env.FIRESTORE_REGION || "southamerica-east1";
+
+// Catalog reads run only after login. No anonymous or caller-supplied content.
+exports.syncContentCatalog = onCall(
+  { region: "southamerica-east1", timeoutSeconds: 120, maxInstances: 3 },
+  createSyncContentCatalogHandler(db)
+);
 // Scheduler (lembrete diário) — Pub/Sub funciona em qualquer região.
 const SCHEDULER_REGION = "us-central1";
 const TIME_ZONE = "America/Sao_Paulo";

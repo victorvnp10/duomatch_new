@@ -1,28 +1,18 @@
 import {
+  app,
   db,
   collection,
   getDocs,
-  writeBatch,
   doc,
   arrayUnion,
   updateDoc,
 } from "../index";
 
 /**
- * ContentRepository — catálogo global de conteúdo (atividades e desafios).
- *
- * Fonte de verdade em produção: coleções raiz do Firestore
- * (`contentActivities` / `contentChallenges`). Como o app é um PWA sem
- * backend, este repositório é responsável por "plantar" (seed) o catálogo
- * a partir do módulo `infrastructure/seed/contentCatalog.js`; a leitura em produção vem
- * do Firestore, o que permite editar o conteúdo no banco sem novo build.
- *
- * - Seed por upsert: grava apenas os itens cujo `id` ainda não existe,
- *   então ampliar `contentCatalog.js` planta o novo conteúdo na próxima
- *   inicialização (idempotente e incremental).
- * - Cache em memória por sessão (o catálogo global muda raramente).
- * - Helpers puros de variedade/anti-repetição são exportados para uso da
- *   camada de aplicação (useSuggestions / DailyChallenge).
+ * Catálogo global lido do Firestore, com cache por sessão.
+ * A callable sincroniza os dados canônicos pelo Admin SDK; o cliente nunca
+ * importa o seed nem escreve nas coleções globais. Falhas na sincronização
+ * não impedem a leitura de conteúdo já disponível (inclusive cache offline).
  */
 
 let activitiesCache = null;
@@ -43,35 +33,36 @@ export const pickVaried = (pool, count, recentIds = []) => {
 
 // ---------- CATÁLOGO DE ATIVIDADES ----------
 
-// Grava no banco apenas os itens ainda ausentes (upsert por id),
-// em lotes de ate 400 para respeitar o limite de 500 escritas do writeBatch.
-const plantMissing = async (collectionName, items) => {
-  const col = collection(db, collectionName);
-  const snap = await getDocs(col);
-  const existingIds = new Set(snap.docs.map((d) => d.id));
-  const missing = items.filter((it) => !existingIds.has(it.id));
-  if (!missing.length) return;
-
-  for (let i = 0; i < missing.length; i += 400) {
-    const batch = writeBatch(db);
-    missing.slice(i, i + 400).forEach((item) => {
-      batch.set(doc(col, item.id), item);
-    });
-    await batch.commit();
+// Coalesce the two catalogs and simultaneous hook mounts into one sync/session.
+// Failed attempts are not cached, so a later request can recover.
+let catalogSync = null;
+const syncCatalog = () => {
+  if (!catalogSync) {
+    catalogSync = import("./contentCatalogCallable")
+      .then(({ syncContentCatalog }) => syncContentCatalog(app))
+      .catch((error) => {
+        catalogSync = null;
+        throw error;
+      });
   }
+  return catalogSync;
 };
 
-export const ensureActivityCatalog = async () => {
-  // Keep seed data out of the initial bundle; upserts remain incremental.
-  const { ACTIVITY_CATALOG } = await import("../../seed/contentCatalog");
-  return plantMissing("contentActivities", ACTIVITY_CATALOG);
+export const ensureActivityCatalog = syncCatalog;
+
+const trySyncCatalog = async () => {
+  try {
+    await syncCatalog();
+  } catch (error) {
+    console.warn("Não foi possível sincronizar o catálogo; tentando a leitura existente.", error);
+  }
 };
 
 /** Retorna o catálogo de atividades ativo (com cache de sessão). */
 export const getActivityCatalog = async () => {
   if (activitiesCache) return activitiesCache;
 
-  await ensureActivityCatalog();
+  await trySyncCatalog();
   const snap = await getDocs(collection(db, "contentActivities"));
   activitiesCache = snap.docs
     .map((d) => strip(d.data()))
@@ -86,16 +77,13 @@ export const clearActivityCatalogCache = () => {
 
 // ---------- CATÁLOGO DE DESAFIOS ----------
 
-export const ensureChallengeCatalog = async () => {
-  const { CHALLENGE_CATALOG } = await import("../../seed/contentCatalog");
-  return plantMissing("contentChallenges", CHALLENGE_CATALOG);
-};
+export const ensureChallengeCatalog = syncCatalog;
 
 /** Retorna o catálogo de desafios ativo (com cache de sessão). */
 export const getChallengeCatalog = async () => {
   if (challengesCache) return challengesCache;
 
-  await ensureChallengeCatalog();
+  await trySyncCatalog();
   const snap = await getDocs(collection(db, "contentChallenges"));
   challengesCache = snap.docs
     .map((d) => strip(d.data()))

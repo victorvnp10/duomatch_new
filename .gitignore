@@ -19,3 +19,6 @@ firestore.rules.bak
 # Generated Playwright artifacts (uploaded by CI)
 /playwright-report/
 /test-results/
+
+# Generated from src/infrastructure/seed before Functions deploy
+/functions/generated/

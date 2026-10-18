@@ -8,6 +8,9 @@
   },
   "main": "index.js",
   "scripts": {
+    "build:catalog": "node ../scripts/build-functions-catalog.mjs",
+    "predeploy": "npm run build:catalog",
+    "preserve": "npm run build:catalog",
     "deploy": "firebase deploy --only functions",
     "serve": "firebase emulators:start --only functions"
   },

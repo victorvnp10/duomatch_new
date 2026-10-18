@@ -33,7 +33,10 @@ jobs:
           cache: npm
 
       - name: Instalar dependências
-        run: npm ci
+        run: |
+          npm ci
+          npm ci --prefix functions
+          npm --prefix functions run build:catalog
 
       # LINT — BLOQUEANTE.
       # Antes isto era `continue-on-error` por causa de débito pré-existente,
@@ -79,7 +82,7 @@ jobs:
           FIREBASE_TOOLS_NODE_MODULES=/tmp/fb-tools/node_modules \
             /tmp/fb-tools/node_modules/.bin/firebase emulators:exec \
             --only firestore --project demo-duomatch \
-            "node test/rules/duomatch.rules.test.cjs"
+            "node --test test/functions/sync-content-catalog.test.cjs && node test/rules/duomatch.rules.test.cjs"
 
       # Chromium only, two isolated workers, reuse the Firebase CLI above.
       - name: Instalar Chromium do Playwright

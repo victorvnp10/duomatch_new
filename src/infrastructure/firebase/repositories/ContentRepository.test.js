@@ -1,81 +1,77 @@
-// Firebase is a network boundary; exercise the real repository and catalog
-// against an in-memory batch adapter, without changing production data.
-describe('ContentRepository lazy seed', () => {
+// Exercise the real repository; only network boundaries are replaced.
+describe('ContentRepository server catalog', () => {
   let repository;
-  let loadCatalog;
+  let sync;
+  let getDocs;
   let documents;
-  let committedBatches;
-  let failCommit;
-
+  let warn;
   beforeEach(() => {
     jest.resetModules();
-    documents = { contentActivities: new Map(), contentChallenges: new Map() };
-    committedBatches = [];
-    failCommit = false;
-    loadCatalog = jest.fn();
-    jest.doMock('../../seed/contentCatalog', () => {
-      loadCatalog();
-      return jest.requireActual('../../seed/contentCatalog');
-    });
-    jest.doMock('../index', () => ({
-      db: {},
-      collection: (_db, name) => name,
-      doc: (collection, id) => ({ collection, id }),
-      getDocs: async (collection) => ({
-        docs: [...documents[collection]].map(([id, data]) => ({ id, data: () => data })),
-      }),
-      writeBatch: () => {
-        const writes = [];
-        return {
-          set: (ref, data) => writes.push({ ref, data }),
-          commit: async () => {
-            if (failCommit) throw new Error('commit rejected');
-            committedBatches.push(writes);
-            writes.forEach(({ ref, data }) => documents[ref.collection].set(ref.id, data));
-          },
-        };
+    documents = {
+      contentActivities: [{ id: 'act-one', name: 'One', active: true }, { id: 'off', active: false }],
+      contentChallenges: [{ id: 'week-one', title: 'One' }],
+    };
+    sync = jest.fn().mockResolvedValue({ data: { written: 0 } });
+    getDocs = jest.fn(async (name) => ({ docs: documents[name].map(data => ({ data: () => data })) }));
+    jest.doMock('firebase/functions', () => ({
+      getFunctions: (_app, region) => {
+        expect(region).toBe('southamerica-east1');
+        return {};
       },
-      arrayUnion: (...ids) => ids,
-      updateDoc: async () => {},
+      httpsCallable: (_functions, name) => {
+        expect(name).toBe('syncContentCatalog');
+        return sync;
+      },
     }));
+    jest.doMock('../index', () => ({
+      app: {}, db: {}, collection: (_db, name) => name,
+      getDocs: (...args) => getDocs(...args),
+      doc: (_db, name, id) => ({ name, id }),
+      arrayUnion: (...ids) => ids, updateDoc: async () => {},
+    }));
+    warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
     repository = require('./ContentRepository');
   });
-
-  test('does not evaluate the catalog until a seed operation is requested', async () => {
-    expect(loadCatalog).not.toHaveBeenCalled();
+  afterEach(() => jest.restoreAllMocks());
+  test('does not call the server on import or pure selection', () => {
     expect(repository.pickVaried([{ id: 'one' }], 1)).toEqual([{ id: 'one' }]);
-    expect(loadCatalog).not.toHaveBeenCalled();
-    await repository.ensureActivityCatalog();
-    expect(loadCatalog).toHaveBeenCalledTimes(1);
+    expect(sync).not.toHaveBeenCalled();
   });
-
-  test('seeds both real catalogs with unchanged data and batches of at most 400', async () => {
-    await repository.ensureActivityCatalog();
-    await repository.ensureChallengeCatalog();
-    const { ACTIVITY_CATALOG, CHALLENGE_CATALOG } = jest.requireActual('../../seed/contentCatalog');
-    expect([...documents.contentActivities.values()]).toEqual(ACTIVITY_CATALOG);
-    expect([...documents.contentChallenges.values()]).toEqual(CHALLENGE_CATALOG);
-    expect(ACTIVITY_CATALOG).toHaveLength(473);
-    expect(CHALLENGE_CATALOG).toHaveLength(217);
-    expect(committedBatches.map((batch) => batch.length)).toEqual([400, 73, 217]);
+  test('syncs the server once for both catalogs and concurrent requests', async () => {
+    await Promise.all([repository.ensureActivityCatalog(), repository.ensureChallengeCatalog(), repository.ensureActivityCatalog()]);
+    expect(sync).toHaveBeenCalledTimes(1);
+    expect(sync).toHaveBeenCalledWith();
   });
-
-  test('preserves incremental/idempotent seeding and session caching', async () => {
-    const { ACTIVITY_CATALOG } = jest.requireActual('../../seed/contentCatalog');
-    const custom = { ...ACTIVITY_CATALOG[0], title: 'server-owned edit' };
-    documents.contentActivities.set(custom.id, custom);
+  test('reads active Firestore content and caches it for the session', async () => {
     const activities = await repository.getActivityCatalog();
-    expect(documents.contentActivities.get(custom.id)).toEqual(custom);
-    expect(documents.contentActivities.size).toBe(473);
-    expect(committedBatches.map((batch) => batch.length)).toEqual([400, 72]);
-    await repository.ensureActivityCatalog();
-    expect(committedBatches).toHaveLength(2);
+    expect(activities).toEqual([documents.contentActivities[0]]);
     expect(await repository.getActivityCatalog()).toBe(activities);
+    expect(await repository.getChallengeCatalog()).toEqual([{ ...documents.contentChallenges[0], active: true }]);
+    expect(getDocs).toHaveBeenCalledTimes(2);
+    expect(sync).toHaveBeenCalledTimes(1);
   });
-
-  test('continues to propagate seed failures to its caller', async () => {
-    failCommit = true;
-    await expect(repository.ensureChallengeCatalog()).rejects.toThrow('commit rejected');
-    expect(documents.contentChallenges.size).toBe(0);
+  test('invalidates the read cache without resyncing unchanged server data', async () => {
+    await repository.getActivityCatalog();
+    repository.clearActivityCatalogCache();
+    await repository.getActivityCatalog();
+    expect(getDocs).toHaveBeenCalledTimes(2);
+    expect(sync).toHaveBeenCalledTimes(1);
+  });
+  test('ensure propagates sync failure and retries next time', async () => {
+    sync.mockRejectedValueOnce(new Error('offline'));
+    await expect(repository.ensureChallengeCatalog()).rejects.toThrow('offline');
+    await repository.ensureChallengeCatalog();
+    expect(sync).toHaveBeenCalledTimes(2);
+  });
+  test('still reads the available catalog when callable is unavailable', async () => {
+    sync.mockRejectedValue(new Error('offline'));
+    expect(await repository.getActivityCatalog()).toEqual([documents.contentActivities[0]]);
+    expect(await repository.getChallengeCatalog()).toEqual([{ ...documents.contentChallenges[0], active: true }]);
+    expect(warn).toHaveBeenCalledTimes(2);
+  });
+  test('propagates a Firestore read failure to existing hook error handlers', async () => {
+    getDocs.mockRejectedValue(new Error('read denied'));
+    await expect(repository.getActivityCatalog()).rejects.toThrow('read denied');
+    await expect(repository.getChallengeCatalog()).rejects.toThrow('read denied');
   });
 });
