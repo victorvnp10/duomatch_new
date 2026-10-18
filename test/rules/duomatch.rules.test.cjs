@@ -428,8 +428,8 @@ async function main() {
 
   // Payload de injeção: tem EXATAMENTE o formato aceito pelas regras (mesmas
   // chaves, tipos válidos, pontos plausíveis). A única coisa "errada" é o id,
-  // que não existe no catálogo publicado pelo app. Assim a negação nas regras
-  // novas é atribuível à allowlist, não a validação de tipo.
+  // que não existe no catálogo publicado pelo app. As regras novas negam
+  // qualquer escrita do cliente, independentemente de formato ou id.
   const INJECTED_ACTIVITY = {
     id: "act-evil-injected",
     name: "Oferta imperdível",
@@ -531,12 +531,12 @@ async function main() {
   );
 
   console.log(
-    "\n=== FASE 5 (A-1): regras NOVAS — o SEED legítimo continua funcionando ==="
+    "\n=== FASE 5 (A-1): regras NOVAS — seed só pelo servidor; cliente não escreve ==="
   );
   await teste(
-    "NOVAS: seed do catálogo (batch de ids reais) é PERMITIDO",
+    "NOVAS: seed direto do cliente (batch de ids reais) é NEGADO",
     async () => {
-      await assertSucceeds(
+      await assertFails(
         (async () => {
           const batch = writeBatch(dbInjetorNovo);
           batch.set(
@@ -559,8 +559,31 @@ async function main() {
     }
   );
 
+  for (const [name, item] of [['contentActivities', LEGIT_ACTIVITY], ['contentChallenges', LEGIT_CHALLENGE]]) {
+    await teste(`NOVAS: create individual do cliente em ${name} é NEGADO`, async () => {
+      await assertFails(setDoc(doc(dbInjetorNovo, name, item.id), item));
+    });
+  }
+
+  await seed(env, async (db) => {
+    await setDoc(doc(db, "contentActivities", LEGIT_ACTIVITY.id), LEGIT_ACTIVITY);
+    await setDoc(doc(db, "contentChallenges", LEGIT_CHALLENGE.id), LEGIT_CHALLENGE);
+  });
+
+  for (const [name, item] of [['contentActivities', LEGIT_ACTIVITY], ['contentChallenges', LEGIT_CHALLENGE]]) {
+    await teste(`NOVAS: update do cliente em ${name} é NEGADO`, async () => {
+      await assertFails(setDoc(doc(dbInjetorNovo, name, item.id), { ...item, points: 99 }));
+    });
+    await teste(`NOVAS: delete do cliente em ${name} é NEGADO`, async () => {
+      await assertFails(deleteDoc(doc(dbInjetorNovo, name, item.id)));
+    });
+    await teste(`NOVAS: leitura anônima de ${name} é NEGADA`, async () => {
+      await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), name, item.id)));
+    });
+  }
+
   await teste(
-    "NOVAS: os itens semeados são legíveis e idênticos ao catálogo do app",
+    "NOVAS: itens semeados pelo servidor são legíveis e idênticos ao catálogo",
     async () => {
       const dbLeitor = env.authenticatedContext("injetor").firestore();
       const snap = await getDoc(
@@ -574,7 +597,7 @@ async function main() {
   );
 
   await teste(
-    "NOVAS: re-seed é idempotente (create sobre id já existente é NEGADO)",
+    "NOVAS: cliente não pode regravar id já semeado pelo servidor",
     async () => {
       await assertFails(
         setDoc(

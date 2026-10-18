@@ -17,7 +17,8 @@
     "test": "jest --runInBand",
     "lint": "eslint \"src/**/*.{js,jsx}\"",
     "preview": "vite preview",
-    "test:e2e": "firebase emulators:exec --only auth,firestore --project demo-duomatch-e2e --config firebase.e2e.json \"playwright test\"",
+    "pretest:e2e": "npm --prefix functions run build:catalog",
+    "test:e2e": "firebase emulators:exec --only auth,firestore,functions --project demo-duomatch-e2e --config firebase.e2e.json \"playwright test\"",
     "test:e2e:browser": "playwright test",
     "test:build": "node --test test/vite-migration.test.cjs"
   },
