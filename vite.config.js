@@ -15,6 +15,20 @@ export default defineConfig(({ mode, command }) => {
   return {
     define,
     plugins: [
+      // Test-only module instrumentation: never included in production builds.
+      // No emulator support exists in src/infrastructure/firebase today.
+      ...(mode === 'e2e' && command === 'serve' ? [{
+        name: 'duomatch-e2e-emulators',
+        enforce: 'pre',
+        transform(code, id) {
+          if (!id.split('?')[0].endsWith('/src/infrastructure/firebase/index.js')) return null;
+          return `${code}\nimport { connectAuthEmulator } from 'firebase/auth';
+import { connectFirestoreEmulator } from 'firebase/firestore';
+if (firebaseConfig.projectId !== 'demo-duomatch-e2e') throw new Error('E2E requires demo project');
+connectAuthEmulator(auth, 'http://127.0.0.1:9199', { disableWarnings: true });
+connectFirestoreEmulator(db, '127.0.0.1', 8180);`;
+        },
+      }] : []),
       {
         name: 'duomatch-js-as-jsx',
         enforce: 'pre',
