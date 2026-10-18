@@ -218,16 +218,17 @@ export default function MainView(props) {
     streak: coupleData?.streak || 0,
     messageCount: coupleData?.messageCount || 0
   }), [
-    coupleData?.achievements?.length,
+    // B2-13: depende da IDENTIDADE do array, e não de `.length`. A identidade é
+    // estável entre snapshots (os hooks só setam estado em mudança real), então
+    // isto não provoca reavaliação extra — mas depender só do comprimento
+    // mascarava trocas de STATUS (ex.: reward vira "purchased" sem mudar o
+    // tamanho), e as conquistas ficavam presas. Coberto por
+    // MainView.errors.test.js ("same-length replacement reaches the hook").
+    coupleData?.achievements,
     coupleData?.partnerId,
     coupleData?.streak,
     coupleData?.messageCount
   ]);
-
-  // B2-13: NÃO memoizar por `.length` — a identidade dos arrays é estável
-  // entre snapshots (os hooks só setam estado em mudança real), e depender
-  // só do comprimento mascarava trocas de STATUS (ex.: reward vira
-  // "purchased" sem mudar tamanho), deixando conquistas presas.
   const { operationError: achievementsOperationError } = useAchievements({
     userData: memoizedUserData,
     coupleData: memoizedCoupleData,

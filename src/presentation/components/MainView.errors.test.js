@@ -98,15 +98,18 @@ test.each([undefined, { nextSelection: { status: 'unconfirmed' } }])('does not u
   expect(updateStreak).not.toHaveBeenCalled();
 });
 
-test('documents pending stale achievements bug: same-length replacement is hidden from the achievements hook', async () => {
+test('same-length replacement reaches the achievements hook (B2-13)', async () => {
   const previous = [{ id: 'old' }];
   props.coupleData = { achievements: previous };
   await render();
-  props.coupleData = { achievements: [{ id: 'new' }] };
+  // Mesmo comprimento, conteúdo diferente: era exatamente o caso que o memo
+  // por `.length` engolia, deixando as conquistas presas no estado anterior.
+  const replacement = [{ id: 'new' }];
+  props.coupleData = { achievements: replacement };
   await render();
   const latestInputs = useAchievements.mock.calls[useAchievements.mock.calls.length - 1][0];
-  expect(latestInputs.coupleData.achievements).toBe(previous);
-  expect(latestInputs.coupleData.achievements).not.toBe(props.coupleData.achievements);
+  expect(latestInputs.coupleData.achievements).toBe(replacement);
+  expect(latestInputs.coupleData.achievements).not.toBe(previous);
 });
 
 test('suggestion streak preserves the snapshot and suggestion catalogs used before', async () => {
