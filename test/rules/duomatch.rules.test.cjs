@@ -797,6 +797,7 @@ async function main() {
   );
 
   await require('./integrity.cjs')({ env, seed, teste, host: EMU_HOST, port: Number(EMU_PORT) });
+  await require('./revision-i123.cjs')({ env, seed, teste });
   await envLegado.cleanup();
   await env.cleanup();
 

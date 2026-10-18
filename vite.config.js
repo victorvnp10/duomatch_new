@@ -21,7 +21,8 @@ export default defineConfig(({ mode, command }) => {
         name: 'duomatch-e2e-emulators',
         enforce: 'pre',
         transform(code, id) {
-          if (id.split('?')[0].endsWith('/src/infrastructure/firebase/repositories/contentCatalogCallable.js')) {
+          if (['contentCatalogCallable.js', 'weeklyProgressCallable.js'].some(file =>
+            id.split('?')[0].endsWith(`/src/infrastructure/firebase/repositories/${file}`))) {
             return `import { connectFunctionsEmulator } from 'firebase/functions';\n${code.replace(
               'const functions = getFunctions(app, "southamerica-east1");',
               `const functions = getFunctions(app, "southamerica-east1");

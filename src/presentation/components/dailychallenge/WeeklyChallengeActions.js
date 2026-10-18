@@ -43,7 +43,7 @@ const WeeklyChallengeActions = ({
                 {challengeState.myConfirmation.status === 'confirmed' && 
                   `✅ Confirmado! +${challengeState.myConfirmation.pointsAwarded || selectedChallenge.points} pontos`}
                 {challengeState.myConfirmation.status === 'denied' && 
-                  '❌ Negado pelo parceiro - você pode tentar novamente'}
+                  '❌ Negado pelo parceiro. A primeira decisão é definitiva nesta semana.'}
               </p>
             </div>
           )}
@@ -78,6 +78,10 @@ const WeeklyChallengeActions = ({
             <div className="p-3 bg-gray-900/30 rounded-lg">
               <p className="text-gray-300 text-sm font-semibold mb-1">Reivindicação do parceiro:</p>
               <p className="text-gray-300 text-sm">
+                {challengeState.partnerConfirmation.status === 'rejected' &&
+                  '❌ Não foi possível processar esta decisão. Contate o suporte; ela não será repetida automaticamente.'}
+                {challengeState.partnerConfirmation.status === 'processing' &&
+                  '⏳ Decisão registrada. Aguardando processamento automático.'}
                 {challengeState.partnerConfirmation.status === 'confirmed' && 
                   `✅ Confirmado por você! Parceiro ganhou +${challengeState.partnerConfirmation.pointsAwarded || selectedChallenge.points} pontos`}
                 {challengeState.partnerConfirmation.status === 'denied' && 

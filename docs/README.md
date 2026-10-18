@@ -8,6 +8,7 @@ são documentos de referência, planos e dados históricos.
 | Documento | O que é | Estado |
 |---|---|---|
 | [`ARCHITECTURE.md`](./ARCHITECTURE.md) | Organização em camadas (domínio, aplicação, infraestrutura, apresentação), racional e falhas corrigidas na reestruturação. | **Atualizado** — bate com a estrutura real de `src/`. Referência principal de arquitetura. |
+| [`weekly-actions-recovery.md`](./weekly-actions-recovery.md) | Reconciliação de origens semanais, CLI de replay, rejeições, alertas e compatibilidade. | Runbook operacional; implantação e alertas dependem do operador. |
 | [`specs/SPEC-scoring.md`](./specs/SPEC-scoring.md) | Spec do sistema de pontuação (dois sistemas: regra cíclica e conclusão). | Espec de trabalho. |
 
 ## Planos de correção (histórico)

@@ -5,6 +5,7 @@ import { Simulate } from 'react-dom/test-utils';
 import * as firebase from '../../infrastructure/firebase';
 import { getChallengeCatalog } from '../../infrastructure/firebase/repositories/ContentRepository';
 import { useDailyChallenge } from './useDailyChallenge';
+import { recordWeeklyProgress } from '../../infrastructure/firebase/repositories/weeklyProgressCallable';
 import { useRoundRules } from './useRoundRules';
 import SetPointsModal from '../../presentation/components/SetPointsModal';
 import OnboardingView from '../../presentation/components/OnboardingView';
@@ -12,9 +13,10 @@ import { getDateString } from '../../shared/lib/dateUtils';
 import { getStartOfWeek } from '../../domain/services/WeeklyChallengeSchedule';
 
 jest.mock('../../infrastructure/firebase', () => ({
-  db: {}, doc: jest.fn(), increment: jest.fn(), runTransaction: jest.fn(),
+  db: {}, doc: jest.fn(), increment: jest.fn(), runTransaction: jest.fn(), onSnapshot: jest.fn(),
 }));
 jest.mock('firebase/firestore', () => jest.requireMock('../../infrastructure/firebase'));
+jest.mock('../../infrastructure/firebase/repositories/weeklyProgressCallable', () => ({ recordWeeklyProgress: jest.fn() }));
 jest.mock('../../infrastructure/firebase/repositories/ContentRepository', () => ({
   getChallengeCatalog: jest.fn(),
 }));
@@ -34,6 +36,7 @@ beforeEach(() => {
   root = createRoot(container);
   firebase.doc.mockReturnValue('round-ref');
   firebase.runTransaction.mockResolvedValue();
+  firebase.onSnapshot.mockReturnValue(jest.fn());
   getChallengeCatalog.mockResolvedValue([{ id: 'challenge', points: 10 }]);
   jest.spyOn(window, 'scrollTo').mockImplementation(() => {});
 });
@@ -52,7 +55,7 @@ test('weekly optimistic acceptance survives local rerenders until a new server s
     value = useDailyChallenge({ userData, coupleData, rounds: [] });
     return null;
   }
-  firebase.runTransaction.mockResolvedValue(localEntry);
+  recordWeeklyProgress.mockResolvedValue({ challengeData: localEntry });
   await render(<Probe coupleData={server} />);
   await act(async () => { await value.handleAcceptWeeklyChallenge(); });
   expect(value.challengeState.myAccepted).toBe(true);

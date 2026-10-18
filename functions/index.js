@@ -30,6 +30,7 @@ const { onDocumentCreated, onDocumentUpdated } = require("firebase-functions/v2/
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { onCall } = require("firebase-functions/v2/https");
 const { createSyncContentCatalogHandler } = require("./syncContentCatalog");
+const { createRecordWeeklyProgressHandler } = require("./recordWeeklyProgress");
 const { initializeApp } = require("firebase-admin/app");
 const { getFirestore, FieldValue } = require("firebase-admin/firestore");
 const { getMessaging } = require("firebase-admin/messaging");
@@ -46,6 +47,21 @@ exports.syncContentCatalog = onCall(
   { region: "southamerica-east1", timeoutSeconds: 120, maxInstances: 3 },
   createSyncContentCatalogHandler(db)
 );
+exports.recordWeeklyProgress = onCall(
+  { region: "southamerica-east1", maxInstances: 3 },
+  createRecordWeeklyProgressHandler(db)
+);
+
+// Persisted actions are the durable source of truth; the callable is optional.
+const { weeklyActionOptions, createWeeklyActionHandler } = require('./weeklyAction');
+exports.consumeWeeklyAction = onDocumentCreated(weeklyActionOptions, createWeeklyActionHandler(db, { indexPending: true }));
+
+const { reconcileWeeklyActions } = require('./reconcileWeeklyActions');
+exports.reconcilePendingWeeklyActions = onSchedule(
+  { schedule: 'every 30 minutes', region: 'southamerica-east1', timeoutSeconds: 540, maxInstances: 1 },
+  () => reconcileWeeklyActions(db)
+);
+
 // Scheduler (lembrete diário) — Pub/Sub funciona em qualquer região.
 const SCHEDULER_REGION = "us-central1";
 const TIME_ZONE = "America/Sao_Paulo";

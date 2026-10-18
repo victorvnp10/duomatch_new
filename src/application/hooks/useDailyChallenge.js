@@ -1,12 +1,9 @@
 import { useOperationError } from "./useOperationError";
 import { useState, useEffect, useMemo } from 'react';
-import { doc, runTransaction, increment, arrayUnion } from 'firebase/firestore';
+import { doc, runTransaction, increment, onSnapshot } from 'firebase/firestore';
 import { db } from '../../infrastructure/firebase';
 import { getChallengeCatalog } from '../../infrastructure/firebase/repositories/ContentRepository';
-import {
-  mergeWeeklyAcceptance,
-  mergeWeeklyClaim,
-} from '../../domain/services/WeeklyChallengeState';
+import { recordWeeklyProgress } from '../../infrastructure/firebase/repositories/weeklyProgressCallable';
 import {
   calculateWeeklyProgress,
   getWeeklyChallenge,
@@ -25,7 +22,8 @@ import { getTodayDateString, getDateString } from '../../shared/lib/dateUtils';
  * volta a ser só apresentação.
  *
  * Os cálculos puros vivem em `src/domain/services/WeeklyChallengeSchedule.js`;
- * a mesclagem transacional em `src/domain/services/WeeklyChallengeState.js`.
+ * a persistência semanal é responsabilidade do servidor: callable para aceite/
+ * reivindicação e gatilho durável para as origens de confirmação/negação.
  * Este hook apenas orquestra quando ler/gravar e mantém o estado local
  * otimista para resposta imediata na UI.
  *
@@ -56,24 +54,65 @@ export const useDailyChallenge = ({ userData, coupleData, rounds }) => {
     };
   }, [reportOperationError]);
 
+  // Poll while open, refresh immediately on resume, and also guard actions at
+  // click time: a suspended tab can invoke an old callback before the timer.
+  const [clock, setClock] = useState(() => new Date());
+  useEffect(() => {
+    const refresh = () => setClock(new Date());
+    const timer = setInterval(refresh, 60000);
+    window.addEventListener('focus', refresh);
+    document.addEventListener('visibilitychange', refresh);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener('focus', refresh);
+      document.removeEventListener('visibilitychange', refresh);
+    };
+  }, []);
+
   // Função para obter o desafio da semana
   const getWeeklyChallengeValue = useMemo(
     () =>
       getWeeklyChallenge({
         catalog: challengeCatalog,
         recentChallengeIds: coupleData?.recentChallengeIds,
-        now: new Date(),
+        now: clock,
       }),
-    [challengeCatalog, coupleData?.recentChallengeIds]
+    [challengeCatalog, coupleData?.recentChallengeIds, clock]
   );
 
   // Calcular progresso da semana
   const calculateWeeklyProgressValue = useMemo(
-    () => calculateWeeklyProgress(new Date()),
-    []
+    () => calculateWeeklyProgress(clock),
+    [clock]
   );
 
   const weekKey = getDateString(calculateWeeklyProgressValue.startOfWeek);
+  const [decisionSources, setDecisionSources] = useState({});
+  const [decisionResults, setDecisionResults] = useState({});
+
+  // Durable origins survive reload and are visible in the other tab too. This
+  // listener only renders pending work; retry belongs to the server trigger.
+  useEffect(() => {
+    setDecisionSources({});
+    setDecisionResults({});
+    if (!userData?.coupleId || !userData?.uid || !userData?.partnerId) return;
+    let active = true;
+    const unsubscribe = ['confirm', 'deny'].map(kind => onSnapshot(
+      doc(db, `duomatches/${userData.coupleId}/weeklyActions`, `${weekKey}_${kind}_${userData.uid}_${userData.partnerId}`),
+      snapshot => {
+        if (active) setDecisionSources(current => ({ ...current, [kind]: snapshot.exists() ? snapshot.data() : null }));
+      },
+      error => reportOperationError('Não foi possível acompanhar a confirmação do desafio.', error)
+    ));
+    const resultUnsubscribe = ['confirm', 'deny'].map(kind => onSnapshot(
+      doc(db, `duomatches/${userData.coupleId}/weeklyEvents`, `${weekKey}_${kind}_${userData.uid}_${userData.partnerId}`),
+      snapshot => {
+        if (active) setDecisionResults(current => ({ ...current, [kind]: snapshot.exists() ? snapshot.data() : null }));
+      },
+      error => reportOperationError('Não foi possível acompanhar o resultado da confirmação.', error)
+    ));
+    return () => { active = false; [...unsubscribe, ...resultUnsubscribe].forEach(stop => stop()); };
+  }, [userData?.coupleId, userData?.uid, userData?.partnerId, weekKey, reportOperationError]);
 
   // Verificar estado do desafio para o usuário atual
   const getChallengeStateValue = useMemo(
@@ -84,9 +123,7 @@ export const useDailyChallenge = ({ userData, coupleData, rounds }) => {
         coupleData,
         weekKey,
       }),
-    // `weekKey` deriva de `calculateWeeklyProgressValue.startOfWeek`, que é
-    // estável após o mount — mantê-lo nas deps preserva o comportamento
-    // anterior (que dependia de `calculateWeeklyProgress.startOfWeek`).
+    // Week changes while an open/suspended tab crosses the boundary.
     [coupleData, userData, weekKey, localChallengeData]
   );
 
@@ -114,30 +151,11 @@ export const useDailyChallenge = ({ userData, coupleData, rounds }) => {
         getChallengeStateValue?.weekKey ||
         getDateString(calculateWeeklyProgressValue.startOfWeek);
 
-      const coupleRef = doc(db, 'duomatches', userData.coupleId);
-      const challengeData = await runTransaction(db, async (transaction) => {
-        const coupleSnap = await transaction.get(coupleRef);
-        if (!coupleSnap.exists()) {
-          throw new Error('Casal não encontrado.');
-        }
-
-        const serverData = coupleSnap.data()?.weeklyChallenge?.[acceptWeekKey] || {};
-        const persistedChallenge =
-          challengeCatalog?.find((challenge) => challenge.id === serverData.challengeId) ||
-          selectedChallenge;
-        const mergedData = mergeWeeklyAcceptance({
-          existingData: serverData,
-          userId: userData.uid,
-          challenge: persistedChallenge,
-          weekStartDate: getDateString(calculateWeeklyProgressValue.startOfWeek),
-          acceptedAt: new Date(),
-        });
-
-        transaction.update(coupleRef, {
-          [`weeklyChallenge.${acceptWeekKey}`]: mergedData,
-          recentChallengeIds: arrayUnion(mergedData.challengeId),
-        });
-        return mergedData;
+      const { challengeData } = await recordWeeklyProgress({
+        coupleId: userData.coupleId,
+        eventId: `${acceptWeekKey}_accept_${userData.uid}`,
+        kind: 'accept',
+        payload: { weekKey: acceptWeekKey, challengeId: selectedChallenge.id },
       });
 
       // Atualizar estado local para resposta imediata na UI
@@ -162,27 +180,11 @@ export const useDailyChallenge = ({ userData, coupleData, rounds }) => {
     setIsLoading(true);
     try {
       const claimWeekKey = getChallengeStateValue.weekKey;
-      const coupleRef = doc(db, 'duomatches', userData.coupleId);
-      const updatedChallengeData = await runTransaction(db, async (transaction) => {
-        const coupleSnap = await transaction.get(coupleRef);
-        if (!coupleSnap.exists()) {
-          throw new Error('Casal não encontrado.');
-        }
-
-        const existingData = coupleSnap.data()?.weeklyChallenge?.[claimWeekKey] || {};
-        const mergedData = mergeWeeklyClaim({
-          existingData,
-          userId: userData.uid,
-          claimedAt: new Date(),
-        });
-        if (!mergedData) {
-          throw new Error('Aceite o desafio antes de reivindicar.');
-        }
-
-        transaction.update(coupleRef, {
-          [`weeklyChallenge.${claimWeekKey}`]: mergedData,
-        });
-        return mergedData;
+      const { challengeData: updatedChallengeData } = await recordWeeklyProgress({
+        coupleId: userData.coupleId,
+        eventId: `${claimWeekKey}_claim_${userData.uid}`,
+        kind: 'claim',
+        payload: { weekKey: claimWeekKey, challengeId: selectedChallenge.id },
       });
 
       // Atualizar estado local para resposta imediata na UI
@@ -210,6 +212,10 @@ export const useDailyChallenge = ({ userData, coupleData, rounds }) => {
     setIsLoading(true);
     try {
       const confirmWeekKey = getChallengeStateValue.weekKey;
+      if (confirmWeekKey !== getDateString(calculateWeeklyProgress(new Date()).startOfWeek)) {
+        setClock(new Date());
+        throw new Error('A semana mudou. Confira o desafio da semana atual antes de continuar.');
+      }
       const coupleRef = doc(db, 'duomatches', userData.coupleId);
       const partnerUid = getChallengeStateValue.partnerUid;
 
@@ -218,21 +224,25 @@ export const useDailyChallenge = ({ userData, coupleData, rounds }) => {
         return;
       }
 
-      // Se confirmado, registrar status E pontos na MESMA transação,
-      // relendo o servidor para garantir que os pontos sejam concedidos
-      // apenas na PRIMEIRA confirmação (idempotência contra duplo clique
-      // ou falha entre a transação e a gravação do status).
+      // Keep the confirmation source and existing round award atomic.
+      // The Firestore trigger consumes the source even after this tab closes.
       const today = getTodayDateString();
       const activeRoundForWrite = findActiveRound(rounds, today);
       const roundRef = activeRoundForWrite
         ? doc(db, `duomatches/${userData.coupleId}/rounds`, activeRoundForWrite.id)
         : null;
 
-      let updatedChallengeDataForLocal = null;
+      const kind = confirmed ? 'confirm' : 'deny';
+      const eventId = `${confirmWeekKey}_${kind}_${userData.uid}_${partnerUid}`;
+      const actionRef = doc(db, `duomatches/${userData.coupleId}/weeklyActions`, eventId);
+      const oppositeKind = confirmed ? 'deny' : 'confirm';
+      const oppositeRef = doc(db, `duomatches/${userData.coupleId}/weeklyActions`, `${confirmWeekKey}_${oppositeKind}_${userData.uid}_${partnerUid}`);
 
-      await runTransaction(db, async (transaction) => {
+      const decision = await runTransaction(db, async (transaction) => {
         const coupleSnap = await transaction.get(coupleRef);
         const roundSnap = roundRef ? await transaction.get(roundRef) : null;
+        const actionSnap = await transaction.get(actionRef);
+        const oppositeSnap = await transaction.get(oppositeRef);
 
         // Estado REAL do servidor (não o snapshot React possivelmente antigo)
         const serverData =
@@ -241,38 +251,30 @@ export const useDailyChallenge = ({ userData, coupleData, rounds }) => {
             : {};
         const serverConfirmations = serverData.confirmations || {};
         const partnerServerConfirmation = serverConfirmations[partnerUid] || {};
-        const persistedChallenge =
-          challengeCatalog?.find((challenge) => challenge.id === serverData.challengeId) ||
-          selectedChallenge;
-        if (!persistedChallenge) {
-          throw new Error('Desafio semanal não encontrado.');
+        // Legacy acceptances are bound against a fresh server catalog read in
+        // this SAME transaction; never use the loaded browser catalog for points.
+        const catalogSnap = serverData.awardPoints == null && serverData.challengeId
+          ? await transaction.get(doc(db, 'contentChallenges', serverData.challengeId)) : null;
+        const awardPoints = serverData.awardPoints ?? catalogSnap?.data()?.points;
+        const persistedChallenge = { id: serverData.challengeId, points: awardPoints };
+        if (!persistedChallenge.id || !Number.isSafeInteger(awardPoints) || awardPoints < 0) {
+          throw new Error('Desafio semanal sem valor autoritativo. Atualize a tela.');
         }
 
+        // First committed decision wins, including concurrent tabs. Reading
+        // both origins makes Firestore retry a racing transaction before scores.
+        if (oppositeSnap.exists()) return oppositeSnap.data();
+        if (actionSnap.exists()) return actionSnap.data();
+        if (['confirmed', 'denied'].includes(partnerServerConfirmation.status)) return null;
         const alreadyAwarded =
           partnerServerConfirmation.status === 'confirmed' &&
           partnerServerConfirmation.pointsAwarded != null;
 
-        const updatedPartnerConfirmation = {
-          ...partnerServerConfirmation,
-          status: confirmed ? 'confirmed' : 'denied',
-          confirmedBy: userData.uid,
-          confirmedAt: new Date()
-        };
-
-        if (confirmed) {
-          updatedPartnerConfirmation.pointsAwarded = persistedChallenge.points;
-        }
-
-        updatedChallengeDataForLocal = {
-          ...serverData,
-          confirmations: {
-            ...serverConfirmations,
-            [partnerUid]: updatedPartnerConfirmation
-          }
-        };
-
-        transaction.update(coupleRef, {
-          [`weeklyChallenge.${confirmWeekKey}`]: updatedChallengeDataForLocal
+        // Persist the source atomically with the existing round increment.
+        // Weekly state/points are exclusively written by the server consumer.
+        transaction.set(actionRef, {
+          weekKey: confirmWeekKey, kind, actorUid: userData.uid,
+          targetUid: partnerUid, challengeId: persistedChallenge.id, awardPoints,
         });
 
         if (
@@ -285,16 +287,12 @@ export const useDailyChallenge = ({ userData, coupleData, rounds }) => {
             [`scores.${partnerUid}`]: increment(persistedChallenge.points)
           });
         }
+        return { kind };
       });
 
-      // Atualizar estado local para resposta imediata na UI
-      if (updatedChallengeDataForLocal) {
-        const currentLocal = localChallengeData || coupleData?.weeklyChallenge || {};
-        setLocalChallengeData({
-          ...currentLocal,
-          [confirmWeekKey]: updatedChallengeDataForLocal
-        });
-      }
+      // A successful source commit means the server owns completion. Do not
+      // await a callable or show retry buttons for work already durably queued.
+      if (decision) setDecisionSources(current => ({ ...current, [decision.kind]: decision }));
     } catch (error) {
       console.error('Erro ao confirmar parceiro:', error);
       reportOperationError("Não foi possível confirmar o desafio do parceiro. Tente novamente.", error);
@@ -322,11 +320,22 @@ export const useDailyChallenge = ({ userData, coupleData, rounds }) => {
     [rounds]
   );
 
+  const decisionPending = (decisionSources.confirm || decisionSources.deny) &&
+    getChallengeStateValue?.partnerConfirmation?.status === 'pending_partner_confirmation';
+  const rejected = Object.values(decisionResults).find(result => result?.status === 'rejected');
+  const challengeState = rejected ? {
+    ...getChallengeStateValue,
+    partnerConfirmation: { ...getChallengeStateValue?.partnerConfirmation, status: 'rejected', errorCode: rejected.errorCode },
+  } : decisionPending ? {
+    ...getChallengeStateValue,
+    partnerConfirmation: { ...getChallengeStateValue.partnerConfirmation, status: 'processing' },
+  } : getChallengeStateValue;
+
   return {
     operationError,
     clearOperationError,
     selectedChallenge,
-    challengeState: getChallengeStateValue,
+    challengeState,
     calculateWeeklyProgress: calculateWeeklyProgressValue,
     activeRound,
     isLoading,
