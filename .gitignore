@@ -15,3 +15,7 @@ firestore.rules.bak
 
 /dist
 # log do emulador do Firestore
+
+# Generated Playwright artifacts (uploaded by CI)
+/playwright-report/
+/test-results/

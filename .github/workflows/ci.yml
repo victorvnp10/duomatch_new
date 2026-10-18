@@ -81,6 +81,24 @@ jobs:
             --only firestore --project demo-duomatch \
             "node test/rules/duomatch.rules.test.cjs"
 
+      # Chromium only, two isolated workers, reuse the Firebase CLI above.
+      - name: Instalar Chromium do Playwright
+        run: npx playwright install chromium --with-deps
+
+      - name: E2E (Auth + Firestore reais no emulador)
+        run: PATH="/tmp/fb-tools/node_modules/.bin:$PATH" npm run test:e2e
+
+      - name: Relatório E2E
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-chromium
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 7
+
       # BUILD — sem secrets reais.
       # O shim Vite inlina as REACT_APP_* em tempo de build. Os valores abaixo são
       # placeholders SÓ para o smoke-build do CI (o artefato do CI não é
