@@ -138,15 +138,16 @@ module.exports = async ({ env, seed, teste, host, port }) => {
       assert.equal((await getDoc(ref)).data().cycleTracking.periods.length, 0);
     });
     await legit('cycleTracking', 'migracao formato legado', { cycleTracking: { ownerId: 'alice', lastPeriodStart: date, periodLength: 5, cycleLength: 28 } }, ref => updateDoc(ref, { cycleTracking: cycle }));
-    await legit('weeklyChallenge', 'aceite, reivindicacao, confirmacao, negacao e nova semana', {}, async ref => {
-      await updateDoc(ref, { [`weeklyChallenge.${date}`]: weekly, recentChallengeIds: arrayUnion('week-walk') });
-      const claimed = { ...weekly, state: 'pending_confirmations', confirmations: { alice: { claimed: true, claimedAt: new Date(), status: 'pending_partner_confirmation' } } };
-      await updateDoc(ref, { [`weeklyChallenge.${date}`]: claimed });
-      const bobRef = doc(env.authenticatedContext('bob').firestore(), ref.path);
-      await updateDoc(bobRef, { [`weeklyChallenge.${date}`]: { ...claimed, confirmations: { alice: { ...claimed.confirmations.alice, status: 'confirmed', confirmedBy: 'bob', confirmedAt: new Date(), pointsAwarded: 20 } } } });
-      await updateDoc(bobRef, { [`weeklyChallenge.${date}.confirmations.alice.status`]: 'denied' });
-      await updateDoc(ref, { 'weeklyChallenge.2026-10-19': { ...weekly, weekStartDate: '2026-10-19' } });
-      assert.equal(Object.keys((await getDoc(ref)).data().weeklyChallenge).length, 2);
+    await teste('WEEKLY SERVER: aceite/reivindicacao/confirmacao/negacao/nova semana diretos NEGADOS', async () => {
+      const ref = await fresh(env, { weeklyChallenge: { [date]: weekly } });
+      for (const patch of [
+        { [`weeklyChallenge.${date}`]: { ...weekly, acceptedBy: ['alice', 'bob'] }, recentChallengeIds: arrayUnion('week-walk') },
+        { [`weeklyChallenge.${date}.state`]: 'pending_confirmations' },
+        { [`weeklyChallenge.${date}.confirmations.alice`]: { claimed: true, status: 'confirmed', pointsAwarded: 20 } },
+        { [`weeklyChallenge.${date}.confirmations.alice.status`]: 'denied' },
+        { 'weeklyChallenge.2026-10-19': { ...weekly, weekStartDate: '2026-10-19' } },
+      ]) await assertFails(updateDoc(ref, patch));
+      assert.deepEqual((await getDoc(ref)).data().weeklyChallenge[date].acceptedBy, ['alice']);
     });
     for (const field of ['streak', 'intimacyPoints', 'messageCount']) {
       await legit(field, 'inicializacao de campo legado null', { [field]: null }, ref => updateDoc(ref, { [field]: field === 'streak' ? 1 : increment(1) }));
@@ -159,10 +160,36 @@ module.exports = async ({ env, seed, teste, host, port }) => {
       assert.deepEqual((await getDoc(ref)).data().dailySignals.signals, { alice: 'willing', bob: 'unsure' });
     }, 'bob');
     await legit('cycleTracking', 'limite real de 12 entradas', {}, ref => updateDoc(ref, { cycleTracking: { ...cycle, periods: Array.from({ length: 12 }, (_, i) => ({ startDate: `2025-${String(i + 1).padStart(2, '0')}-01`, periodLength: 5 })) } }));
-    await teste('RESIDUAL DOCUMENTADO: weeklyChallenge pontos internos forjados ainda PASSAM (nao alegar integridade completa)', async () => {
+    await teste('WEEKLY SERVER: pontos internos forjados NEGADOS', async () => {
       const ref = await fresh(env, { weeklyChallenge: { [date]: weekly } });
-      await assertSucceeds(updateDoc(ref, { [`weeklyChallenge.${date}.confirmations.alice`]: { status: 'confirmed', pointsAwarded: 999999 } }));
-      assert.equal((await getDoc(ref)).data().weeklyChallenge[date].confirmations.alice.pointsAwarded, 999999);
+      await assertFails(updateDoc(ref, { [`weeklyChallenge.${date}.confirmations.alice`]: { status: 'confirmed', pointsAwarded: 999999 } }));
+      assert.equal((await getDoc(ref)).data().weeklyChallenge[date].confirmations.alice, undefined);
+    });
+    await teste('WEEKLY SERVER: marcadores nao podem ser criados, alterados ou apagados pelo membro', async () => {
+      const ref = await fresh(env);
+      const marker = doc(ref, 'weeklyEvents', 'event');
+      await assertFails(setDoc(marker, { points: 999999 }));
+      await seed(env, db => setDoc(doc(db, marker.path), { points: 20 }));
+      await assertSucceeds(getDoc(marker));
+      await assertFails(updateDoc(marker, { points: 999999 }));
+      await assertFails(require(NM + '/firebase/firestore').deleteDoc(marker));
+    });
+    await teste('WEEKLY SERVER: origem exige claim e autor correto; imutavel; scores de rodada permitidos', async () => {
+      const initial = { ...weekly, confirmations: { alice: { claimed: true, status: 'pending_partner_confirmation' } } };
+      const ref = await fresh(env, { weeklyChallenge: { [date]: initial } }, 'bob');
+      const action = { weekKey: date, kind: 'confirm', actorUid: 'bob', targetUid: 'alice', challengeId: 'week-walk' };
+      const source = doc(ref, 'weeklyActions', `${date}_confirm_bob_alice`);
+      const round = doc(ref, 'rounds', 'active');
+      await seed(env, db => setDoc(doc(db, round.path), { scores: { alice: 0 } }));
+      const batch = writeBatch(ref.firestore);
+      batch.set(source, action); batch.update(round, { 'scores.alice': increment(20) });
+      await assertSucceeds(batch.commit());
+      assert.equal((await getDoc(round)).data().scores.alice, 20);
+      await assertFails(updateDoc(source, { kind: 'deny' }));
+      await assertFails(require(NM + '/firebase/firestore').deleteDoc(source));
+      await assertFails(setDoc(doc(ref, 'weeklyActions', `${date}_confirm_alice_bob`), { ...action, actorUid: 'alice', targetUid: 'bob' }));
+      const noClaim = await fresh(env, { weeklyChallenge: { [date]: weekly } }, 'bob');
+      await assertFails(setDoc(doc(noClaim, 'weeklyActions', `${date}_confirm_bob_alice`), action));
     });
     // Mesmo um convite real não deve habilitar o bypass dos validadores via create.
     for (const field of ['streak', 'intimacyPoints', 'messageCount', 'achievements', 'recentActivityIds', 'recentChallengeIds', 'dailySignals', 'cycleTracking', 'weeklyChallenge']) {

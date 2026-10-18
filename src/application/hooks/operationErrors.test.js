@@ -12,6 +12,7 @@ import { useAchievements } from './useAchievements';
 import { useChat } from './useChat';
 import { useCouple } from './useCouple';
 import { useDailyChallenge } from './useDailyChallenge';
+import { recordWeeklyProgress } from '../../infrastructure/firebase/repositories/weeklyProgressCallable';
 import { useMenstrualCycle } from './useMenstrualCycle';
 import { useRewards } from './useRewards';
 import { useRoundRules } from './useRoundRules';
@@ -31,6 +32,7 @@ jest.mock('../../infrastructure/firebase', () => ({
   runTransaction: jest.fn(), writeBatch: jest.fn(), getDocs: jest.fn(), getDoc: jest.fn(),
 }));
 jest.mock('firebase/firestore', () => jest.requireMock('../../infrastructure/firebase'));
+jest.mock('../../infrastructure/firebase/repositories/weeklyProgressCallable', () => ({ recordWeeklyProgress: jest.fn() }));
 jest.mock('firebase/auth', () => ({ signOut: jest.fn() }));
 jest.mock('../../infrastructure/firebase/repositories/ContentRepository', () => ({
   getActivityCatalog: jest.fn(), getChallengeCatalog: jest.fn(), pickVaried: jest.fn(() => []),
@@ -82,6 +84,7 @@ beforeEach(() => {
   firebase.updateDoc.mockResolvedValue();
   firebase.deleteDoc.mockResolvedValue();
   firebase.runTransaction.mockResolvedValue();
+  recordWeeklyProgress.mockResolvedValue({});
   firebase.getDoc.mockResolvedValue(snapshot({ coupleId: 'couple' }));
   firebase.getDocs.mockResolvedValue({ docs: [] });
   commit = jest.fn().mockResolvedValue();
@@ -105,9 +108,9 @@ const handlers = [
   ['chat editing', () => useChat(user, userData, []), 'handleEditComment', ['activity', 'comment', 'Edited'], 'updateDoc', 'Não foi possível salvar a edição da mensagem ou atualizar seu resumo.'],
   ['chat deletion', () => useChat(user, userData, []), 'handleDeleteComment', ['activity', 'comment'], 'deleteDoc', 'Não foi possível concluir a exclusão da mensagem e atualizar seu resumo.'],
   ['unlinking', () => useCouple(user, userData), 'handleUnlinkCouple', [], 'getDoc', 'Não foi possível concluir a desvinculação do casal. Alguns dados podem já ter sido removidos.'],
-  ['weekly acceptance', () => useDailyChallenge({ userData, coupleData, rounds }), 'handleAcceptWeeklyChallenge', [], 'runTransaction', 'Não foi possível aceitar o desafio semanal. Tente novamente.'],
-  ['weekly claim', () => useDailyChallenge({ userData, coupleData, rounds }), 'handleClaimCompletion', [], 'runTransaction', 'Não foi possível registrar a conclusão do desafio semanal. Tente novamente.'],
-  ['weekly confirmation', () => useDailyChallenge({ userData, coupleData, rounds }), 'handleConfirmPartner', [true], 'runTransaction', 'Não foi possível confirmar o desafio do parceiro. Tente novamente.'],
+  ['weekly acceptance', () => useDailyChallenge({ userData, coupleData, rounds }), 'handleAcceptWeeklyChallenge', [], 'recordWeeklyProgress', 'Não foi possível aceitar o desafio semanal. Tente novamente.'],
+  ['weekly claim', () => useDailyChallenge({ userData, coupleData, rounds }), 'handleClaimCompletion', [], 'recordWeeklyProgress', 'Não foi possível registrar a conclusão do desafio semanal. Tente novamente.'],
+  ['weekly confirmation', () => useDailyChallenge({ userData, coupleData, rounds }), 'handleConfirmPartner', [true], 'recordWeeklyProgress', 'Não foi possível confirmar o desafio do parceiro. Tente novamente.'],
   ['period logging', () => useMenstrualCycle({ user, userData, coupleData: {} }), 'handleLogPeriodStart', [{ startDate: '2026-10-01', periodLength: 5 }], 'runTransaction', 'Não foi possível registrar o período. Tente novamente.'],
   ['period deletion', () => useMenstrualCycle({ user, userData, coupleData: {} }), 'handleDeletePeriodEntry', ['2026-10-01'], 'runTransaction', 'Não foi possível remover o registro do período. Tente novamente.'],
   ['reward creation', () => useRewards(user, userData, {}, rounds), 'handleCreateReward', [{ name: 'Reward' }], 'addDoc', 'Não foi possível criar a recompensa. Tente novamente.'],
@@ -122,7 +125,7 @@ const handlers = [
 test.each(handlers)('%s exposes contextual operationError instead of an unobservable resolved failure', async (_name, useHook, method, args, dependency, message) => {
   const read = mount(useHook);
   await flush();
-  (dependency === 'commit' ? commit : firebase[dependency]).mockRejectedValueOnce(failure);
+  (dependency === 'commit' ? commit : dependency === 'recordWeeklyProgress' ? recordWeeklyProgress : firebase[dependency]).mockRejectedValueOnce(failure);
   await flush(() => read()[method](...args));
   assertError(read(), message);
   // eslint-disable-next-line jest/no-conditional-expect -- asserção dirigida pela tabela de casos: cada caso executa exatamente um ramo

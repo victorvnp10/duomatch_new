@@ -146,6 +146,34 @@ test('desafio diário/semanal aceita, reivindica e persiste no servidor após re
     await expect.poll(async () => JSON.stringify((await adminRead(`duomatches/${profile.coupleId}`)).fields.weeklyChallenge)).toContain('pending_partner_confirmation');
     await inviter.reload();
     await expect(inviter.getByText('⏳ Aguardando confirmação do parceiro', { exact: true })).toBeVisible();
+    // The confirmer need not accept separately: this was already allowed by the UI.
+    const roundId = randomUUID();
+    await adminSet(`duomatches/${profile.coupleId}/rounds/${roundId}`, {
+      startDate: '2000-01-01', endDate: '2099-12-31', scores: { [profile.uid]: 0 }, rules: {},
+    });
+    await acceptor.reload();
+    await acceptor.getByRole('button', { name: '✅ Confirmar', exact: true }).click();
+    await expect(inviter.getByText(/^✅ Confirmado! \+/)).toBeVisible();
+    await expect(acceptor.getByText(/^✅ Confirmado por você!/)).toBeVisible();
+    const server = await adminRead(`duomatches/${profile.coupleId}`);
+    const week = Object.values(server.fields.weeklyChallenge.mapValue.fields)[0].mapValue.fields;
+    const awarded = Number(week.confirmations.mapValue.fields[profile.uid].mapValue.fields.pointsAwarded.integerValue);
+    expect(awarded).toBeGreaterThan(0);
+    expect(Number((await adminRead(`duomatches/${profile.coupleId}/rounds/${roundId}`)).fields.scores.mapValue.fields[profile.uid].integerValue)).toBe(awarded);
+    // Retry the same callable through the authenticated browser, not a network mock.
+    const repeated = await acceptor.evaluate(async ({ coupleId, targetUid, weekKey, challengeId }) => {
+      const { auth } = await import('/src/infrastructure/firebase/index.js');
+      const { recordWeeklyProgress } = await import('/src/infrastructure/firebase/repositories/weeklyProgressCallable.js');
+      return recordWeeklyProgress({ coupleId, kind: 'confirm',
+        eventId: `${weekKey}_confirm_${auth.currentUser.uid}_${targetUid}`,
+        payload: { weekKey, targetUid, challengeId } });
+    }, { coupleId: profile.coupleId, targetUid: profile.uid,
+      weekKey: week.weekStartDate.stringValue, challengeId: week.challengeId.stringValue });
+    expect(repeated.duplicate).toBe(true);
+    expect(Number((await adminRead(`duomatches/${profile.coupleId}/rounds/${roundId}`)).fields.scores.mapValue.fields[profile.uid].integerValue)).toBe(awarded);
+    await inviter.reload(); await acceptor.reload();
+    await expect(inviter.getByText(/^✅ Confirmado! \+/)).toBeVisible();
+    await expect(acceptor.getByText(/^✅ Confirmado por você!/)).toBeVisible();
   } finally { await Promise.all(contexts.map(c => c.close())); }
 });
 
