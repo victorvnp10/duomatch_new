@@ -56,10 +56,11 @@ exports.recordWeeklyProgress = onCall(
 const { weeklyActionOptions, createWeeklyActionHandler } = require('./weeklyAction');
 exports.consumeWeeklyAction = onDocumentCreated(weeklyActionOptions, createWeeklyActionHandler(db, { indexPending: true }));
 
-const { reconcileWeeklyActions } = require('./reconcileWeeklyActions');
+const { TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, createReconciliationAlertHandler } = require('./alert');
 exports.reconcilePendingWeeklyActions = onSchedule(
-  { schedule: 'every 30 minutes', region: 'southamerica-east1', timeoutSeconds: 540, maxInstances: 1 },
-  () => reconcileWeeklyActions(db)
+  { schedule: 'every 30 minutes', region: 'southamerica-east1', timeoutSeconds: 540, maxInstances: 1,
+    secrets: [TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID] },
+  createReconciliationAlertHandler(db)
 );
 
 // Scheduler (lembrete diário) — Pub/Sub funciona em qualquer região.
