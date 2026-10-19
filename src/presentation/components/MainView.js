@@ -120,6 +120,7 @@ export default function MainView(props) {
     dailySuggestions,
     handleSelectSuggestion,
     hotSuggestions,
+    windowSuggestions,
     handleAcceptChallenge,
     handleDeclineChallenge,
     handleOpenTour,
@@ -179,8 +180,12 @@ export default function MainView(props) {
         userId: user.uid,
         partnerId: userData.partnerId,
         todayStr,
+        // As sugestões da janela (diárias e da hot zone) também contam como
+        // marcação: é o que faz o painel reagir quando o usuário marca uma
+        // sugestão — e o que mantém painel e avaliador contando os mesmos dias.
+        suggestions: [windowSuggestions],
       }),
-    [activeRound, allActivities, user.uid, userData.partnerId, todayStr]
+    [activeRound, allActivities, user.uid, userData.partnerId, todayStr, windowSuggestions]
   );
   // Separar matches de hoje dos da jornada do casal
   const todayMatches = useMemo(

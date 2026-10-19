@@ -198,6 +198,13 @@ export const useSuggestions = (userData, _handleAddActivity, suggestionType) => 
               [suggestionId]: {
                 ...freshSuggestion,
                 selections: { [userData.uid]: newStatus },
+                // Data da marcação, em campo paralelo. `selections` continua
+                // sendo a string ("selected"/null) porque é assim que o
+                // parceiro, o streak e as sugestões especiais a leem — mudar o
+                // formato quebraria esses leitores. As regras da rodada
+                // precisam da data para situar a marcação na janela do ciclo;
+                // sem ela, marcar não moveria o painel de progresso.
+                selectionDates: { [userData.uid]: newStatus === "selected" ? today : null },
               },
             };
             transaction.set(suggestionsRef, {
@@ -220,6 +227,11 @@ export const useSuggestions = (userData, _handleAddActivity, suggestionType) => 
             transaction.update(suggestionsRef, {
               [`suggestions.${suggestionId}.selections.${userData.uid}`]:
                 newStatus,
+              // Desmarcar no mesmo dia apaga a data: a contagem do ciclo
+              // precisa acompanhar o arrependimento, como o painel de
+              // atividades já faz.
+              [`suggestions.${suggestionId}.selectionDates.${userData.uid}`]:
+                newStatus === "selected" ? today : null,
               ...(isMatch && {
                 [`suggestions.${suggestionId}.matched`]: true,
               }),

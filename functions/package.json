@@ -9,8 +9,10 @@
   "main": "index.js",
   "scripts": {
     "build:catalog": "node ../scripts/build-functions-catalog.mjs",
-    "predeploy": "npm run build:catalog",
-    "preserve": "npm run build:catalog",
+    "build:round-rules": "node ../scripts/build-functions-round-rules.mjs",
+    "build:generated": "npm run build:catalog && npm run build:round-rules",
+    "predeploy": "npm run build:generated",
+    "preserve": "npm run build:generated",
     "deploy": "firebase deploy --only functions",
     "serve": "firebase emulators:start --only functions"
   },

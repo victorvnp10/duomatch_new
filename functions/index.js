@@ -63,6 +63,17 @@ exports.reconcilePendingWeeklyActions = onSchedule(
   createReconciliationAlertHandler(db)
 );
 
+// Regras cíclicas da rodada (mínimo de atividades marcadas / de desafios
+// lançados). Rodava só no cliente, quando o app abria — então quem não abria
+// não era avaliado. A cada 6 horas: a regra fecha em janelas de dias, e rodar
+// de hora em hora seria desperdício sem ganho de precisão.
+const { createRoundRulesJobHandler } = require('./evaluateRoundRules');
+exports.evaluateRoundRules = onSchedule(
+  { schedule: 'every 6 hours', region: 'southamerica-east1', timeoutSeconds: 540, maxInstances: 1,
+    secrets: [TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID] },
+  createRoundRulesJobHandler(db)
+);
+
 // Scheduler (lembrete diário) — Pub/Sub funciona em qualquer região.
 const SCHEDULER_REGION = "us-central1";
 const TIME_ZONE = "America/Sao_Paulo";

@@ -22,7 +22,7 @@ import {
  * período, o intervalo ainda não se passou de novo e o plano sai vazio
  * (compare-and-set), impedindo penalidade/bônus aplicado em dobro.
  */
-export const useRoundRules = ({ user, userData, rounds, allActivities }) => {
+export const useRoundRules = ({ user, userData, rounds, allActivities, suggestions = null }) => {
   const { operationError, reportOperationError, clearOperationError } = useOperationError();
   // O tamanho dos arrays nao muda quando alguem marca/desmarca uma atividade.
   // Estas revisoes incluem apenas campos que alteram a contagem das regras.
@@ -53,6 +53,22 @@ export const useRoundRules = ({ user, userData, rounds, allActivities }) => {
     })
     .join("|");
 
+  // Marcar uma sugestão (diária ou da hot zone) também altera a contagem das
+  // regras: sem esta revisão, o painel continuaria em zero e a avaliação não
+  // dispararia até algo da coleção `activities` mudar.
+  const suggestionsRevision = (Array.isArray(suggestions)
+    ? suggestions
+    : [suggestions]
+  )
+    .map((map) =>
+      Object.entries(map || {})
+        .map(([id, s]) =>
+          [id, s?.selections?.[user?.uid], s?.selectionDates?.[user?.uid], s?.matched].join(":")
+        )
+        .join("|")
+    )
+    .join("||");
+
   const runEvaluation = useCallback(async () => {
     if (!userData?.coupleId || !rounds.length) return;
 
@@ -75,6 +91,7 @@ export const useRoundRules = ({ user, userData, rounds, allActivities }) => {
           userId: user.uid,
           partnerId: userData.partnerId,
           todayStr,
+          suggestions,
         });
         if (!plan) return;
 
@@ -102,7 +119,7 @@ export const useRoundRules = ({ user, userData, rounds, allActivities }) => {
       console.error("Erro ao processar regras cíclicas da rodada:", error);
       reportOperationError("Não foi possível aplicar as regras da rodada. O placar pode estar desatualizado.", error);
     }
-  }, [rounds, allActivities, user?.uid, userData?.partnerId, userData?.coupleId, reportOperationError]);
+  }, [rounds, allActivities, suggestions, user?.uid, userData?.partnerId, userData?.coupleId, reportOperationError]);
 
   // Mantém sempre a versão mais recente da avaliação sem recriar o listener.
   // O efeito depende das revisões primitivas acima: uma marcação/desmarcação
@@ -117,6 +134,6 @@ export const useRoundRules = ({ user, userData, rounds, allActivities }) => {
     // A guarda equivalente já vive em runEvaluation; a ref fornece os
     // dados mais recentes sem disparar transações em snapshots só de placar.
     runEvaluationRef.current();
-  }, [rulesRevision, activitiesRevision, userData?.coupleId]);
+  }, [rulesRevision, activitiesRevision, suggestionsRevision, userData?.coupleId]);
   return { operationError, clearOperationError };
 };

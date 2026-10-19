@@ -9,6 +9,8 @@ import { useWishlist } from "../../application/hooks/useWishlist";
 import { useRewards } from "../../application/hooks/useRewards";
 import { useChat } from "../../application/hooks/useChat";
 import { useSuggestions } from "../../application/hooks/useSuggestions";
+import { useSuggestionWindow } from "../../application/hooks/useSuggestionWindow";
+import { getTodayDateString } from "../../shared/lib/dateUtils";
 import { useRoundRules } from "../../application/hooks/useRoundRules";
 import { getAchievementById } from "../../domain/entities/Achievement";
 
@@ -105,9 +107,6 @@ export default function DuoMatchApp({ user, userData }) {
     ...activityHandlers
   } = useActivities(user, userData, coupleData, rounds);
 
-  const { operationError: rulesOperationError } = useRoundRules({ user, userData, rounds, allActivities });
-
-
   const {
     operationError: hotSuggestionsOperationError,
     suggestions: hotSuggestions,
@@ -118,6 +117,33 @@ export default function DuoMatchApp({ user, userData }) {
     suggestions: dailySuggestions,
     handleSelectSuggestion: handleSelectDailySuggestion,
   } = useSuggestions(userData, activityHandlers.handleAddActivity, "daily");
+
+  // Depois das sugestões: a meta cíclica da rodada conta TAMBÉM as sugestões
+  // marcadas (diárias e da hot zone), que vivem em documentos próprios e não
+  // na coleção `activities`. Sem elas, marcar uma sugestão não movia o painel.
+  // A janela vem da rodada ativa: o painel e o avaliador precisam contar os
+  // MESMOS dias, senão o usuário vê um número e é pontuado por outro.
+  const rulesToday = getTodayDateString();
+  const activeRoundForRules = rounds.find(
+    (r) => rulesToday >= r.startDate && rulesToday <= r.endDate
+  );
+  const rulesWindowStart =
+    activeRoundForRules?.rulesLastChecked?.activities ||
+    activeRoundForRules?.startDate ||
+    null;
+  const windowSuggestions = useSuggestionWindow(
+    userData?.coupleId,
+    rulesWindowStart,
+    activeRoundForRules?.endDate
+  );
+
+  const { operationError: rulesOperationError } = useRoundRules({
+    user,
+    userData,
+    rounds,
+    allActivities,
+    suggestions: [windowSuggestions],
+  });
 
   const { wishlistItems, operationError: wishlistOperationError, ...wishlistHandlers } = useWishlist(
     user,
@@ -222,6 +248,9 @@ export default function DuoMatchApp({ user, userData }) {
     dailySuggestions,
     handleSelectSuggestion: handleSelectDailySuggestion,
     hotSuggestions,
+    // Sugestões de toda a janela da rodada, para o painel de metas contar os
+    // mesmos dias que o avaliador.
+    windowSuggestions,
     handleSelectHotSuggestion,
     handleOpenTour,
     handleSetDailySignal,

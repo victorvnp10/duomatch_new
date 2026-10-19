@@ -70,45 +70,95 @@ const activityCreationDate = (activity, fallback) => {
 const MARKED_SELECTION_STATUSES = new Set(["confirmed", "selected"]);
 
 /**
+ * Normaliza uma marcação para `{ status, date }`, seja qual for o formato
+ * gravado:
+ *
+ *  - objeto `{ status, date }` — formato atual (atividades);
+ *  - string `"selected"` — formato legado, gravado em versões anteriores e
+ *    ainda usado nas sugestões.
+ *
+ * Devolve `null` quando o valor não é uma marcação.
+ *
+ * LIMITE CONHECIDO: o formato string não carrega data. Sem data não há como
+ * situar a marcação numa janela de ciclo, então `date` sai `null` e as
+ * contagens por período não a incluem — em vez de somá-la a um ciclo
+ * arbitrário (o que inflaria o progresso) ou descartá-la em silêncio (o que
+ * era o defeito anterior: `selection?.status` sobre uma string é `undefined`).
+ */
+export const normalizeSelection = (selection) => {
+  if (!selection) return null;
+  if (typeof selection === "string") {
+    return MARKED_SELECTION_STATUSES.has(selection)
+      ? { status: selection, date: null }
+      : null;
+  }
+  if (typeof selection === "object" && MARKED_SELECTION_STATUSES.has(selection.status)) {
+    return { status: selection.status, date: selection.date || null };
+  }
+  return null;
+};
+
+/**
  * Conta quantas atividades (não-desafio) um usuário MARCOU dentro da
  * JANELA DE AVALIAÇÃO corrente (desde `periodStartDate` até hoje).
  *
  * CRITÉRIO = MARCAR. A meta cíclica do placar recompensa a PARTICIPAÇÃO:
  * basta o usuário marcar a atividade no período — NÃO exige match nem
  * conclusão (o "cumprir a atividade" pontua à parte, na conclusão). Assim,
- * marcar e depois declarar "não concluída" continua contando a marca. O
- * status legado "selected" também é reconhecido para não perder progresso
- * de atividades criadas em versões anteriores.
+ * marcar e depois declarar "não concluída" continua contando a marca.
+ *
+ * CONTA AS DUAS FONTES de marcação, porque o app tem duas:
+ *  1. a coleção `activities` (formato `{ status, date }`);
+ *  2. o mapa `suggestions` do documento do casal — as sugestões diárias e
+ *     as da hot zone, marcadas como `"selected"`. Antes o contador lia
+ *     apenas a coleção, então marcar uma sugestão não movia o painel: o
+ *     usuário marcava e continuava vendo zero. Como a sugestão só vira
+ *     atividade quando OS DOIS marcam, exigir a coleção invertia o
+ *     propósito da regra — que é justamente não depender do parceiro.
+ *
+ * Sugestão já `matched` NÃO é contada: nesse momento ela gera uma atividade
+ * real, que passa a ser a fonte contável. Contar as duas dobraria o número.
  *
  * O `periodStartDate` é derivado de `rulesLastChecked` (ou `startDate` da
  * rodada se nunca houve checagem). Isso garante que o painel e o avaliador
- * contem EXATAMENTE as mesmas atividades — antes, os contadores usavam
- * `startDate` da rodada inteira, acumulando contagens de períodos
- * anteriores e inflando o progresso do painel.
+ * contem EXATAMENTE as mesmas atividades.
  *
  * EXPORTADA também para a UI (MainView): o painel de progresso precisa
  * exibir EXATAMENTE o mesmo critério que o avaliador usa para pontuar —
  * critérios divergentes faziam o usuário ver "meta cumprida" e ainda
  * assim levar penalidade.
  */
-export const countMarkedActivitiesInRound = (allActivities, userId, activeRound, todayStr, periodStartDate) => {
+export const countMarkedActivitiesInRound = (
+  allActivities,
+  userId,
+  activeRound,
+  todayStr,
+  periodStartDate,
+  suggestions = null
+) => {
   const effectivePeriodStart = periodStartDate || activeRound.startDate;
-  return allActivities.filter((activity) => {
+  const inWindow = (date) =>
+    Boolean(date) && date >= effectivePeriodStart && date <= todayStr;
+
+  const fromActivities = allActivities.filter((activity) => {
     if (activity.type?.startsWith("desafio")) return false;
-
-    const selection = activity.selections?.[userId];
-    if (!MARKED_SELECTION_STATUSES.has(selection?.status)) return false;
-
-    // Conta apenas marções feitas DENTRO da janela de avaliação corrente.
-    //selection.date é a data em que o usuário MARCOU (não a de criação).
-    // Atividades marcadas e desmarcadas no mesmo dia não contam porque
-    // desmarcar seta `status: null` — o filtro acima já exclui.
-    if (!selection.date) return false;
-    return (
-      selection.date >= effectivePeriodStart &&
-      selection.date <= todayStr
-    );
+    const selection = normalizeSelection(activity.selections?.[userId]);
+    if (!selection) return false;
+    return inWindow(selection.date);
   }).length;
+
+  const suggestionList = Array.isArray(suggestions)
+    ? suggestions.flatMap((map) => Object.values(map || {}))
+    : Object.values(suggestions || {});
+
+  const fromSuggestions = suggestionList.filter((suggestion) => {
+    if (suggestion?.matched) return false;
+    const selection = normalizeSelection(suggestion?.selections?.[userId]);
+    if (!selection) return false;
+    return inWindow(suggestion?.selectionDates?.[userId] || selection.date);
+  }).length;
+
+  return fromActivities + fromSuggestions;
 };
 
 /**
@@ -183,6 +233,7 @@ export const evaluateCyclicalRules = ({
   userId,
   partnerId,
   todayStr,
+  suggestions = null,
 }) => {
   if (!activeRound) return null;
 
@@ -210,7 +261,8 @@ export const evaluateCyclicalRules = ({
         uid,
         activeRound,
         todayStr,
-        activitiesPeriodStart
+        activitiesPeriodStart,
+        suggestions
       ),
   });
   if (activitiesResult) {
@@ -280,6 +332,7 @@ export const buildRoundRulesProgress = ({
   userId,
   partnerId,
   todayStr,
+  suggestions = null,
 }) => {
   if (!activeRound || !activeRound.rules) return {};
 
@@ -299,14 +352,16 @@ export const buildRoundRulesProgress = ({
       userId,
       activeRound,
       todayStr,
-      activitiesPeriodStart
+      activitiesPeriodStart,
+      suggestions
     );
     const partnerCount = countMarkedActivitiesInRound(
       allActivities,
       partnerId,
       activeRound,
       todayStr,
-      activitiesPeriodStart
+      activitiesPeriodStart,
+      suggestions
     );
 
     // Alinhado ao gate do avaliador: `daysBetween(today, reference) >=
