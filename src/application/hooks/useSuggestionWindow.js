@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { db, doc, getDoc } from "../../infrastructure/firebase";
+import { useEffect, useMemo, useState } from "react";
+import { db, doc, getDoc, onSnapshot } from "../../infrastructure/firebase";
 import { getTodayDateString } from "../../shared/lib/dateUtils";
 
 /**
@@ -14,6 +14,18 @@ import { getTodayDateString } from "../../shared/lib/dateUtils";
  * veria "1 de 5" e poderia ser avaliado como "3 de 5". Painel e avaliador
  * precisam do MESMO conjunto de dados.
  *
+ * Duas partes, de propósito:
+ *
+ *  1. JANELA — os dias passados são imutáveis (a marcação só existe no dia em
+ *     que foi feita), então uma leitura única basta e evita dezenas de
+ *     listeners abertos.
+ *  2. HOJE — ao vivo, por `onSnapshot`. É a única parte que muda enquanto o
+ *     usuário está na tela. Sem isso o painel recalcula com o dado velho e o
+ *     contador NÃO ANDA quando a pessoa marca uma sugestão — que é exatamente
+ *     o defeito relatado ("marco as sugestões especiais e o placar não conta").
+ *     Reagir à marcação por dependência de estado não resolve: quem escreve é
+ *     `useSuggestions`, e o estado dele não é o dado.
+ *
  * Somente leitura e somente para exibição: a marcação continua sendo feita por
  * `useSuggestions`. Este hook não escreve nada.
  *
@@ -24,14 +36,18 @@ import { getTodayDateString } from "../../shared/lib/dateUtils";
  */
 export const useSuggestionWindow = (coupleId, startDate, endDate) => {
   const [windowSuggestions, setWindowSuggestions] = useState({});
+  const [dailyToday, setDailyToday] = useState({});
+  const [hotToday, setHotToday] = useState({});
 
+  const today = getTodayDateString();
+
+  // Parte 1 — a janela, uma leitura por janela.
   useEffect(() => {
     if (!coupleId || !startDate) {
       setWindowSuggestions({});
       return;
     }
 
-    const today = getTodayDateString();
     const end = endDate && endDate < today ? endDate : today;
     if (startDate > end) {
       setWindowSuggestions({});
@@ -81,7 +97,37 @@ export const useSuggestionWindow = (coupleId, startDate, endDate) => {
     return () => {
       cancelled = true;
     };
-  }, [coupleId, startDate, endDate]);
+  }, [coupleId, startDate, endDate, today]);
 
-  return windowSuggestions;
+  // Parte 2 — HOJE, ao vivo. É aqui que a marcação aparece.
+  useEffect(() => {
+    if (!coupleId) {
+      setDailyToday({});
+      setHotToday({});
+      return;
+    }
+
+    const subscribe = (collectionName, setter) =>
+      onSnapshot(
+        doc(db, `duomatches/${coupleId}/${collectionName}`, today),
+        (snap) => setter(snap.exists() ? snap.data()?.suggestions || {} : {}),
+        () => {
+          // Erro de assinatura não pode derrubar o painel.
+        }
+      );
+
+    const unsubscribeDaily = subscribe("dailySuggestions", setDailyToday);
+    const unsubscribeHot = subscribe("hotSuggestions", setHotToday);
+
+    return () => {
+      unsubscribeDaily();
+      unsubscribeHot();
+    };
+  }, [coupleId, today]);
+
+  // Hoje por último: se um id existir nos dois, o dado ao vivo prevalece.
+  return useMemo(
+    () => ({ ...windowSuggestions, ...dailyToday, ...hotToday }),
+    [windowSuggestions, dailyToday, hotToday]
+  );
 };
