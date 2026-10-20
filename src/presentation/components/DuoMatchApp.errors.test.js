@@ -20,6 +20,7 @@ jest.mock('../../application/hooks/useWishlist');
 jest.mock('../../application/hooks/useRewards');
 jest.mock('../../application/hooks/useChat');
 jest.mock('../../application/hooks/useSuggestions');
+jest.mock('../../application/hooks/useSuggestionWindow');
 jest.mock('../../application/hooks/useRoundRules');
 jest.mock('../../application/hooks/useNotificationCenter');
 jest.mock('../../infrastructure/firebase', () => ({ db: {}, auth: {} }));
