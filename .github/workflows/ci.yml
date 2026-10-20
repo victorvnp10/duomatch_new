@@ -36,7 +36,13 @@ jobs:
         run: |
           npm ci
           npm ci --prefix functions
-          npm --prefix functions run build:catalog
+          # Gera TODOS os artefatos que as Functions carregam no require().
+          # Era só `build:catalog`; quando a regra cíclica da rodada passou a ser
+          # empacotada em `functions/generated/roundRules.cjs`, o arquivo deixou
+          # de existir no CI e `functions/index.js` falhava ao carregar — o que
+          # derrubava 9 testes de arquivos sem relação com a mudança. O
+          # `build:generated` cobre os dois; `predeploy` já o usa no deploy.
+          npm --prefix functions run build:generated
 
       # LINT — BLOQUEANTE.
       # Antes isto era `continue-on-error` por causa de débito pré-existente,
