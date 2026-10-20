@@ -249,12 +249,16 @@ module.exports = async ({ env, seed, teste, host, port }) => {
       // Contending blind writes may both abort (the emulator's existsAfter
       // dependency locks); neither outcome may persist opposing decisions.
       assert.ok(result.filter(x => x.status === 'fulfilled').length <= 1);
-      const confirmRef = doc(ref, 'weeklyActions', `${date}_confirm_bob_alice`);
-      const denyRef = doc(ref, 'weeklyActions', `${date}_deny_bob_alice`);
+      // A leitura e o fallback usam `weekKey`, o MESMO valor da escrita acima.
+      // Com `date` (data antiga) a leitura nunca encontrava o que foi gravado e
+      // o fallback era recusado pela regra, que exige `isCurrentWeek(weekKey)`:
+      // o teste terminava em PERMISSION_DENIED sem nunca exercitar a corrida.
+      const confirmRef = doc(ref, 'weeklyActions', `${weekKey}_confirm_bob_alice`);
+      const denyRef = doc(ref, 'weeklyActions', `${weekKey}_deny_bob_alice`);
       const persisted = [(await getDoc(confirmRef)).exists(), (await getDoc(denyRef)).exists()];
       assert.ok(persisted.filter(Boolean).length <= 1);
       if (!persisted.some(Boolean)) await assertSucceeds(setDoc(confirmRef, {
-        weekKey: date, kind: 'confirm', actorUid: 'bob', targetUid: 'alice', challengeId: 'week-walk', awardPoints: 20,
+        weekKey, kind: 'confirm', actorUid: 'bob', targetUid: 'alice', challengeId: 'week-walk', awardPoints: 20,
       }));
       assert.equal([(await getDoc(confirmRef)).exists(), (await getDoc(denyRef)).exists()].filter(Boolean).length, 1);
     });
