@@ -5,6 +5,7 @@ import {
   shouldEvaluateCyclicalRules,
   buildRoundRulesProgress,
   resolveRulePeriodStart,
+  normalizeSelection,
   daysBetween,
 } from "./RoundRulesEvaluator";
 
@@ -392,6 +393,125 @@ describe("RoundRulesEvaluator", () => {
           todayStr: dueDay,
         })
       ).not.toBeNull();
+    });
+  });
+
+  // As sugestões (diárias e da hot zone) vivem no documento do casal, não na
+  // coleção `activities`. Antes o contador lia só a coleção, então marcar uma
+  // sugestão não movia o painel: o usuário marcava e continuava vendo zero.
+  describe("markings made on suggestions", () => {
+    const round = {
+      id: "round-suggestions",
+      startDate: "2026-09-01",
+      endDate: "2026-09-30",
+      rules: { minActivities: { days: 7, quantity: 5, penalty: 10 } },
+      rulesLastChecked: { activities: "2026-09-01" },
+      scores: {},
+    };
+
+    const suggestion = (uid, date, extra = {}) => ({
+      selections: { [uid]: "selected" },
+      selectionDates: date ? { [uid]: date } : {},
+      ...extra,
+    });
+
+    it("counts a suggestion marked inside the current window", () => {
+      expect(
+        countMarkedActivitiesInRound([], "userA", round, "2026-09-08", "2026-09-01", [
+          { s1: suggestion("userA", "2026-09-05") },
+        ])
+      ).toBe(1);
+    });
+
+    it("does not count a suggestion marked outside the current window", () => {
+      expect(
+        countMarkedActivitiesInRound([], "userA", round, "2026-09-08", "2026-09-01", [
+          { s1: suggestion("userA", "2026-08-20") },
+        ])
+      ).toBe(0);
+    });
+
+    it("does not count a matched suggestion, because it became a real activity", () => {
+      // Contar as duas fontes dobraria o número do usuário.
+      expect(
+        countMarkedActivitiesInRound([], "userA", round, "2026-09-08", "2026-09-01", [
+          { s1: suggestion("userA", "2026-09-05", { matched: true }) },
+        ])
+      ).toBe(0);
+    });
+
+    it("drops the count when the marking is removed on the same day", () => {
+      expect(
+        countMarkedActivitiesInRound([], "userA", round, "2026-09-08", "2026-09-01", [
+          { s1: { selections: { userA: null }, selectionDates: { userA: null } } },
+        ])
+      ).toBe(0);
+    });
+
+    it("does not place a suggestion marked before dates were recorded", () => {
+      // Sem data não há como situar a marcação num ciclo — somá-la a um ciclo
+      // arbitrário inflaria o progresso.
+      expect(
+        countMarkedActivitiesInRound([], "userA", round, "2026-09-08", "2026-09-01", [
+          { s1: suggestion("userA", null) },
+        ])
+      ).toBe(0);
+    });
+
+    it("merges the daily and the hot zone maps", () => {
+      expect(
+        countMarkedActivitiesInRound([], "userA", round, "2026-09-08", "2026-09-01", [
+          { s1: suggestion("userA", "2026-09-05") },
+          { s2: suggestion("userA", "2026-09-06") },
+        ])
+      ).toBe(2);
+    });
+
+    it("adds suggestions and activities instead of replacing one with the other", () => {
+      const activity = {
+        id: "a1",
+        type: "atividade",
+        selections: { userA: { status: "confirmed", date: "2026-09-04" } },
+      };
+      expect(
+        countMarkedActivitiesInRound([activity], "userA", round, "2026-09-08", "2026-09-01", [
+          { s1: suggestion("userA", "2026-09-05") },
+        ])
+      ).toBe(2);
+    });
+
+    it("shows suggestions in the panel progress", () => {
+      const progress = buildRoundRulesProgress({
+        activeRound: round,
+        allActivities: [],
+        userId: "userA",
+        partnerId: "userB",
+        todayStr: "2026-09-08",
+        suggestions: [{ s1: suggestion("userA", "2026-09-05") }],
+      });
+      expect(progress.activitiesRule.myProgress).toEqual({ count: 1, target: 5 });
+      expect(progress.activitiesRule.partnerProgress).toEqual({ count: 0, target: 5 });
+    });
+  });
+
+  describe("normalizeSelection", () => {
+    it("recognizes the current object shape", () => {
+      expect(normalizeSelection({ status: "confirmed", date: "2026-09-05" })).toEqual({
+        status: "confirmed",
+        date: "2026-09-05",
+      });
+    });
+
+    it("recognizes the bare string shape used by suggestions", () => {
+      // Antes isto era descartado em silêncio: `selection?.status` sobre uma
+      // string é `undefined`, e a marcação desaparecia sem erro.
+      expect(normalizeSelection("selected")).toEqual({ status: "selected", date: null });
+    });
+
+    it("rejects values that are not a marking", () => {
+      expect(normalizeSelection("accepted")).toBeNull();
+      expect(normalizeSelection(null)).toBeNull();
+      expect(normalizeSelection({ status: null })).toBeNull();
     });
   });
 });

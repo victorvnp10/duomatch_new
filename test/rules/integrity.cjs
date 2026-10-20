@@ -9,6 +9,20 @@ module.exports = async ({ env, seed, teste, host, port }) => {
   const before = await initializeTestEnvironment({ projectId: 'demo-duomatch-pre-integrity', firestore: { host, port, rules: fs.readFileSync(path.join(__dirname, 'firestore.pre-integrity.rules'), 'utf8') } });
   const base = { members: ['alice', 'bob'], memberNicknames: { alice: 'A', bob: 'B' }, createdBy: 'alice', invitedUserId: 'bob' };
   const date = '2026-10-12';
+
+  // A semana CORRENTE, calculada como o `weekAt()` das regras: a segunda-feira
+  // da semana UTC. `date` acima é uma data FIXA e continua valendo para os testes
+  // que dependem de uma data antiga (ex.: reset de dailySignals de um dia anterior).
+  // Os testes semanais, porém, precisam de uma semana que `isCurrentWeek` aceite —
+  // cravada, o teste passava enquanto a janela de fuso ainda aceitava a semana
+  // anterior e FALHAVA depois das 12h UTC de uma segunda-feira, deixando a suíte
+  // em 131/135 sem nenhuma mudança de código. `weekAt(agora)` está sempre dentro
+  // do envelope aceito (`weekAt(agora-12h)` ∪ `weekAt(agora+14h)`).
+  const weekKey = (() => {
+    const d = new Date();
+    d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7));
+    return d.toISOString().slice(0, 10);
+  })();
   const cycle = { ownerId: 'alice', periods: [{ startDate: '2026-09-01', periodLength: 5 }], cycleLengthOverride: null };
   const a = ['act-normal-1-maratona-de-um-filme-que', 'act-normal-2-recriar-uma-foto-antiga-', 'act-normal-3-passeio-sem-destino', 'act-normal-4-noite-de-detox-digital', 'act-normal-5-montar-uma-playlist-cola'];
   const weekly = { challengeId: 'week-walk', awardPoints: 20, acceptedBy: ['alice'], acceptedAt: new Date(), weekStartDate: date, state: 'in_progress', confirmations: {} };
@@ -139,15 +153,15 @@ module.exports = async ({ env, seed, teste, host, port }) => {
     });
     await legit('cycleTracking', 'migracao formato legado', { cycleTracking: { ownerId: 'alice', lastPeriodStart: date, periodLength: 5, cycleLength: 28 } }, ref => updateDoc(ref, { cycleTracking: cycle }));
     await teste('WEEKLY SERVER: aceite/reivindicacao/confirmacao/negacao/nova semana diretos NEGADOS', async () => {
-      const ref = await fresh(env, { weeklyChallenge: { [date]: weekly } });
+      const ref = await fresh(env, { weeklyChallenge: { [weekKey]: weekly } });
       for (const patch of [
-        { [`weeklyChallenge.${date}`]: { ...weekly, acceptedBy: ['alice', 'bob'] }, recentChallengeIds: arrayUnion('week-walk') },
-        { [`weeklyChallenge.${date}.state`]: 'pending_confirmations' },
-        { [`weeklyChallenge.${date}.confirmations.alice`]: { claimed: true, status: 'confirmed', pointsAwarded: 20 } },
-        { [`weeklyChallenge.${date}.confirmations.alice.status`]: 'denied' },
+        { [`weeklyChallenge.${weekKey}`]: { ...weekly, acceptedBy: ['alice', 'bob'] }, recentChallengeIds: arrayUnion('week-walk') },
+        { [`weeklyChallenge.${weekKey}.state`]: 'pending_confirmations' },
+        { [`weeklyChallenge.${weekKey}.confirmations.alice`]: { claimed: true, status: 'confirmed', pointsAwarded: 20 } },
+        { [`weeklyChallenge.${weekKey}.confirmations.alice.status`]: 'denied' },
         { 'weeklyChallenge.2026-10-19': { ...weekly, weekStartDate: '2026-10-19' } },
       ]) await assertFails(updateDoc(ref, patch));
-      assert.deepEqual((await getDoc(ref)).data().weeklyChallenge[date].acceptedBy, ['alice']);
+      assert.deepEqual((await getDoc(ref)).data().weeklyChallenge[weekKey].acceptedBy, ['alice']);
     });
     for (const field of ['streak', 'intimacyPoints', 'messageCount']) {
       await legit(field, 'inicializacao de campo legado null', { [field]: null }, ref => updateDoc(ref, { [field]: field === 'streak' ? 1 : increment(1) }));
@@ -161,9 +175,9 @@ module.exports = async ({ env, seed, teste, host, port }) => {
     }, 'bob');
     await legit('cycleTracking', 'limite real de 12 entradas', {}, ref => updateDoc(ref, { cycleTracking: { ...cycle, periods: Array.from({ length: 12 }, (_, i) => ({ startDate: `2025-${String(i + 1).padStart(2, '0')}-01`, periodLength: 5 })) } }));
     await teste('WEEKLY SERVER: pontos internos forjados NEGADOS', async () => {
-      const ref = await fresh(env, { weeklyChallenge: { [date]: weekly } });
-      await assertFails(updateDoc(ref, { [`weeklyChallenge.${date}.confirmations.alice`]: { status: 'confirmed', pointsAwarded: 999999 } }));
-      assert.equal((await getDoc(ref)).data().weeklyChallenge[date].confirmations.alice, undefined);
+      const ref = await fresh(env, { weeklyChallenge: { [weekKey]: weekly } });
+      await assertFails(updateDoc(ref, { [`weeklyChallenge.${weekKey}.confirmations.alice`]: { status: 'confirmed', pointsAwarded: 999999 } }));
+      assert.equal((await getDoc(ref)).data().weeklyChallenge[weekKey].confirmations.alice, undefined);
     });
     await teste('WEEKLY SERVER: marcadores nao podem ser criados, alterados ou apagados pelo membro', async () => {
       const ref = await fresh(env);
@@ -176,9 +190,9 @@ module.exports = async ({ env, seed, teste, host, port }) => {
     });
     await teste('WEEKLY SERVER: origem exige claim e autor correto; imutavel; scores de rodada permitidos', async () => {
       const initial = { ...weekly, confirmations: { alice: { claimed: true, status: 'pending_partner_confirmation' } } };
-      const ref = await fresh(env, { weeklyChallenge: { [date]: initial } }, 'bob');
-      const action = { weekKey: date, kind: 'confirm', actorUid: 'bob', targetUid: 'alice', challengeId: 'week-walk', awardPoints: 20 };
-      const source = doc(ref, 'weeklyActions', `${date}_confirm_bob_alice`);
+      const ref = await fresh(env, { weeklyChallenge: { [weekKey]: initial } }, 'bob');
+      const action = { weekKey, kind: 'confirm', actorUid: 'bob', targetUid: 'alice', challengeId: 'week-walk', awardPoints: 20 };
+      const source = doc(ref, 'weeklyActions', `${weekKey}_confirm_bob_alice`);
       const round = doc(ref, 'rounds', 'active');
       await seed(env, db => setDoc(doc(db, round.path), { scores: { alice: 0 } }));
       const batch = writeBatch(ref.firestore);
@@ -187,60 +201,64 @@ module.exports = async ({ env, seed, teste, host, port }) => {
       assert.equal((await getDoc(round)).data().scores.alice, 20);
       await assertFails(updateDoc(source, { kind: 'deny' }));
       await assertFails(require(NM + '/firebase/firestore').deleteDoc(source));
-      await assertFails(setDoc(doc(ref, 'weeklyActions', `${date}_confirm_alice_bob`), { ...action, actorUid: 'alice', targetUid: 'bob' }));
-      const noClaim = await fresh(env, { weeklyChallenge: { [date]: weekly } }, 'bob');
-      await assertFails(setDoc(doc(noClaim, 'weeklyActions', `${date}_confirm_bob_alice`), action));
+      await assertFails(setDoc(doc(ref, 'weeklyActions', `${weekKey}_confirm_alice_bob`), { ...action, actorUid: 'alice', targetUid: 'bob' }));
+      const noClaim = await fresh(env, { weeklyChallenge: { [weekKey]: weekly } }, 'bob');
+      await assertFails(setDoc(doc(noClaim, 'weeklyActions', `${weekKey}_confirm_bob_alice`), action));
     });
     // Opposite sources cannot coexist even in one atomic batch. The round
     // write stays atomic and rolls back with a rejected stale confirmation.
     await teste('WEEKLY ORDER: deny first rejects late confirm and its round award', async () => {
       const initial = { ...weekly, confirmations: { alice: { claimed: true, status: 'pending_partner_confirmation' } } };
-      const ref = await fresh(env, { weeklyChallenge: { [date]: initial } }, 'bob');
-      const action = { weekKey: date, actorUid: 'bob', targetUid: 'alice', challengeId: 'week-walk', awardPoints: 20 };
-      await setDoc(doc(ref, 'weeklyActions', `${date}_deny_bob_alice`), { ...action, kind: 'deny' });
+      const ref = await fresh(env, { weeklyChallenge: { [weekKey]: initial } }, 'bob');
+      const action = { weekKey, actorUid: 'bob', targetUid: 'alice', challengeId: 'week-walk', awardPoints: 20 };
+      await setDoc(doc(ref, 'weeklyActions', `${weekKey}_deny_bob_alice`), { ...action, kind: 'deny' });
       const round = doc(ref, 'rounds', 'active');
       await seed(env, db => setDoc(doc(db, round.path), { scores: { alice: 0 } }));
       const batch = writeBatch(ref.firestore);
-      batch.set(doc(ref, 'weeklyActions', `${date}_confirm_bob_alice`), { ...action, kind: 'confirm' });
+      batch.set(doc(ref, 'weeklyActions', `${weekKey}_confirm_bob_alice`), { ...action, kind: 'confirm' });
       batch.update(round, { 'scores.alice': increment(20) });
       await assertFails(batch.commit());
       assert.equal((await getDoc(round)).data().scores.alice, 0);
     });
     await teste('WEEKLY ORDER: confirm first rejects late deny', async () => {
       const initial = { ...weekly, confirmations: { alice: { claimed: true } } };
-      const ref = await fresh(env, { weeklyChallenge: { [date]: initial } }, 'bob');
-      const action = { weekKey: date, actorUid: 'bob', targetUid: 'alice', challengeId: 'week-walk', awardPoints: 20 };
-      await setDoc(doc(ref, 'weeklyActions', `${date}_confirm_bob_alice`), { ...action, kind: 'confirm' });
-      await assertFails(setDoc(doc(ref, 'weeklyActions', `${date}_deny_bob_alice`), { ...action, kind: 'deny' }));
+      const ref = await fresh(env, { weeklyChallenge: { [weekKey]: initial } }, 'bob');
+      const action = { weekKey, actorUid: 'bob', targetUid: 'alice', challengeId: 'week-walk', awardPoints: 20 };
+      await setDoc(doc(ref, 'weeklyActions', `${weekKey}_confirm_bob_alice`), { ...action, kind: 'confirm' });
+      await assertFails(setDoc(doc(ref, 'weeklyActions', `${weekKey}_deny_bob_alice`), { ...action, kind: 'deny' }));
     });
     await teste('WEEKLY ORDER: opposing sources in one batch are both rejected', async () => {
       const initial = { ...weekly, confirmations: { alice: { claimed: true } } };
-      const ref = await fresh(env, { weeklyChallenge: { [date]: initial } }, 'bob');
+      const ref = await fresh(env, { weeklyChallenge: { [weekKey]: initial } }, 'bob');
       const batch = writeBatch(ref.firestore);
-      for (const kind of ['confirm', 'deny']) batch.set(doc(ref, 'weeklyActions', `${date}_${kind}_bob_alice`), {
-        weekKey: date, kind, actorUid: 'bob', targetUid: 'alice', challengeId: 'week-walk', awardPoints: 20,
+      for (const kind of ['confirm', 'deny']) batch.set(doc(ref, 'weeklyActions', `${weekKey}_${kind}_bob_alice`), {
+        weekKey, kind, actorUid: 'bob', targetUid: 'alice', challengeId: 'week-walk', awardPoints: 20,
       });
       await assertFails(batch.commit());
-      assert.equal((await getDoc(doc(ref, 'weeklyActions', `${date}_confirm_bob_alice`))).exists(), false);
-      assert.equal((await getDoc(doc(ref, 'weeklyActions', `${date}_deny_bob_alice`))).exists(), false);
+      assert.equal((await getDoc(doc(ref, 'weeklyActions', `${weekKey}_confirm_bob_alice`))).exists(), false);
+      assert.equal((await getDoc(doc(ref, 'weeklyActions', `${weekKey}_deny_bob_alice`))).exists(), false);
     });
     await teste('WEEKLY ORDER: two independent clients racing opposite origins get one winner', async () => {
       const initial = { ...weekly, confirmations: { alice: { claimed: true } } };
-      const ref = await fresh(env, { weeklyChallenge: { [date]: initial } }, 'bob');
+      const ref = await fresh(env, { weeklyChallenge: { [weekKey]: initial } }, 'bob');
       const other = env.authenticatedContext('bob').firestore();
       const result = await Promise.allSettled(['confirm', 'deny'].map((kind, index) =>
-        setDoc(doc(index ? other : ref.firestore, ref.path, 'weeklyActions', `${date}_${kind}_bob_alice`), {
-          weekKey: date, kind, actorUid: 'bob', targetUid: 'alice', challengeId: 'week-walk', awardPoints: 20,
+        setDoc(doc(index ? other : ref.firestore, ref.path, 'weeklyActions', `${weekKey}_${kind}_bob_alice`), {
+          weekKey, kind, actorUid: 'bob', targetUid: 'alice', challengeId: 'week-walk', awardPoints: 20,
         })));
       // Contending blind writes may both abort (the emulator's existsAfter
       // dependency locks); neither outcome may persist opposing decisions.
       assert.ok(result.filter(x => x.status === 'fulfilled').length <= 1);
-      const confirmRef = doc(ref, 'weeklyActions', `${date}_confirm_bob_alice`);
-      const denyRef = doc(ref, 'weeklyActions', `${date}_deny_bob_alice`);
+      // A leitura e o fallback usam `weekKey`, o MESMO valor da escrita acima.
+      // Com `date` (data antiga) a leitura nunca encontrava o que foi gravado e
+      // o fallback era recusado pela regra, que exige `isCurrentWeek(weekKey)`:
+      // o teste terminava em PERMISSION_DENIED sem nunca exercitar a corrida.
+      const confirmRef = doc(ref, 'weeklyActions', `${weekKey}_confirm_bob_alice`);
+      const denyRef = doc(ref, 'weeklyActions', `${weekKey}_deny_bob_alice`);
       const persisted = [(await getDoc(confirmRef)).exists(), (await getDoc(denyRef)).exists()];
       assert.ok(persisted.filter(Boolean).length <= 1);
       if (!persisted.some(Boolean)) await assertSucceeds(setDoc(confirmRef, {
-        weekKey: date, kind: 'confirm', actorUid: 'bob', targetUid: 'alice', challengeId: 'week-walk', awardPoints: 20,
+        weekKey, kind: 'confirm', actorUid: 'bob', targetUid: 'alice', challengeId: 'week-walk', awardPoints: 20,
       }));
       assert.equal([(await getDoc(confirmRef)).exists(), (await getDoc(denyRef)).exists()].filter(Boolean).length, 1);
     });
