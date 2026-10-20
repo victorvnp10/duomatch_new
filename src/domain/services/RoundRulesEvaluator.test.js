@@ -448,9 +448,48 @@ describe("RoundRulesEvaluator", () => {
       ).toBe(0);
     });
 
-    it("does not place a suggestion marked before dates were recorded", () => {
-      // Sem data não há como situar a marcação num ciclo — somá-la a um ciclo
-      // arbitrário inflaria o progresso.
+    it("counts a suggestion marked before dates were recorded, using the document's day", () => {
+      // O dia do documento é dado EXATO, não aproximação: a sugestão mora em
+      // `dailySuggestions/{dia}` e o app só marca o documento de hoje. Era o
+      // caso do usuário que via "Sua escolha!" na lista e zero no painel.
+      expect(
+        countMarkedActivitiesInRound([], "userA", round, "2026-09-08", "2026-09-01", [
+          { s1: { ...suggestion("userA", null), suggestionDay: "2026-09-05" } },
+        ])
+      ).toBe(1);
+    });
+
+    it("does not count a document day outside the window", () => {
+      expect(
+        countMarkedActivitiesInRound([], "userA", round, "2026-09-08", "2026-09-01", [
+          { s1: { ...suggestion("userA", null), suggestionDay: "2026-08-20" } },
+        ])
+      ).toBe(0);
+    });
+
+    it("prefers selectionDates over the document day when both exist", () => {
+      // `selectionDates` é o dado da marcação em si; o dia do documento é o
+      // resgate. Quando os dois existem, o mais específico manda — inclusive
+      // quando ele coloca a marcação FORA da janela.
+      expect(
+        countMarkedActivitiesInRound([], "userA", round, "2026-09-08", "2026-09-01", [
+          { s1: { ...suggestion("userA", "2026-08-20"), suggestionDay: "2026-09-05" } },
+        ])
+      ).toBe(0);
+    });
+
+    it("uses the document day when selectionDates is absent", () => {
+      expect(
+        countMarkedActivitiesInRound([], "userA", round, "2026-09-08", "2026-09-01", [
+          { s1: { ...suggestion("userA", null), suggestionDay: "2026-09-05" } },
+        ])
+      ).toBe(1);
+    });
+
+    it("still drops a suggestion with no date in any of the three sources", () => {
+      // Sem `selectionDates`, sem dia de documento e sem `selection.date` não
+      // há como situar a marcação num ciclo — somá-la a um ciclo arbitrário
+      // inflaria o progresso.
       expect(
         countMarkedActivitiesInRound([], "userA", round, "2026-09-08", "2026-09-01", [
           { s1: suggestion("userA", null) },

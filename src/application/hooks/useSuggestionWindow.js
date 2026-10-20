@@ -71,22 +71,34 @@ export const useSuggestionWindow = (coupleId, startDate, endDate) => {
 
     (async () => {
       try {
+        // Cada leitura leva o DIA junto: o dia do documento é a data exata da
+        // marcação (a sugestão mora em `dailySuggestions/{dia}` e o app só
+        // marca o documento de hoje). Sem isso, marcação antiga — sem
+        // `selectionDates` — fica invisível para o painel.
         const requests = [];
         for (const day of days) {
           for (const name of ["dailySuggestions", "hotSuggestions"]) {
-            requests.push(
-              getDoc(doc(db, `duomatches/${coupleId}/${name}`, day)).catch(() => null)
-            );
+            requests.push({
+              day,
+              promise: getDoc(doc(db, `duomatches/${coupleId}/${name}`, day)).catch(
+                () => null
+              ),
+            });
           }
         }
-        const snaps = await Promise.all(requests);
+        const settled = await Promise.all(requests.map((r) => r.promise));
         if (cancelled) return;
 
         const merged = {};
-        for (const snap of snaps) {
-          if (!snap?.exists?.()) continue;
-          Object.assign(merged, snap.data()?.suggestions || {});
-        }
+        settled.forEach((snap, index) => {
+          if (!snap?.exists?.()) return;
+          const day = requests[index].day;
+          for (const [id, suggestion] of Object.entries(
+            snap.data()?.suggestions || {}
+          )) {
+            merged[id] = { ...suggestion, suggestionDay: day };
+          }
+        });
         setWindowSuggestions(merged);
       } catch (error) {
         // Falha de leitura não pode derrubar o painel: mantém o que já havia.
@@ -110,7 +122,14 @@ export const useSuggestionWindow = (coupleId, startDate, endDate) => {
     const subscribe = (collectionName, setter) =>
       onSnapshot(
         doc(db, `duomatches/${coupleId}/${collectionName}`, today),
-        (snap) => setter(snap.exists() ? snap.data()?.suggestions || {} : {}),
+        (snap) => {
+          const raw = snap.exists() ? snap.data()?.suggestions || {} : {};
+          const withDay = {};
+          for (const [id, suggestion] of Object.entries(raw)) {
+            withDay[id] = { ...suggestion, suggestionDay: today };
+          }
+          setter(withDay);
+        },
         () => {
           // Erro de assinatura não pode derrubar o painel.
         }

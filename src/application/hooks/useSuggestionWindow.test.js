@@ -151,6 +151,44 @@ describe("useSuggestionWindow", () => {
     sonda.desmontar();
   });
 
+  test("anexa o dia do documento a cada sugestão lida da janela", async () => {
+    // O dia do documento é a data exata da marcação — é o que resgata
+    // sugestão marcada antes de `selectionDates` existir.
+    getDoc.mockImplementation(async (reference) => {
+      if (reference?.path === refDoDia("dailySuggestions", "2026-10-19")) {
+        return {
+          exists: () => true,
+          data: () => ({ suggestions: { a1: sugestao("a1", "selected", "Jantar") } }),
+        };
+      }
+      return { exists: () => false, data: () => ({}) };
+    });
+
+    const sonda = montar();
+    await assentar();
+
+    expect(sonda.valor().a1.suggestionDay).toBe("2026-10-19");
+    sonda.desmontar();
+  });
+
+  test("o dia de hoje também acompanha a assinatura ao vivo", async () => {
+    const sonda = montar();
+    await assentar();
+
+    const diaria = assinaturas.find((a) =>
+      a.path === refDoDia("dailySuggestions", HOJE)
+    );
+    act(() => {
+      diaria.onNext({
+        exists: () => true,
+        data: () => ({ suggestions: { s1: sugestao("s1", "selected") } }),
+      });
+    });
+
+    expect(sonda.valor().s1.suggestionDay).toBe(HOJE);
+    sonda.desmontar();
+  });
+
   test("marcação aparece ao vivo, sem remontar o hook", async () => {
     const sonda = montar();
     await assentar();

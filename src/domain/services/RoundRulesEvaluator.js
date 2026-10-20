@@ -116,6 +116,12 @@ export const normalizeSelection = (selection) => {
  *     atividade quando OS DOIS marcam, exigir a coleção invertia o
  *     propósito da regra — que é justamente não depender do parceiro.
  *
+ * A data da sugestão vem de `selectionDates[uid]` quando existe e, quando não,
+ * do DIA DO DOCUMENTO (`suggestionDay`), que é dado exato: a sugestão mora em
+ * `dailySuggestions/{dia}` e o app só marca o documento de hoje. Marcações
+ * anteriores à existência de `selectionDates` passam a contar em vez de
+ * desaparecer do painel.
+ *
  * Sugestão já `matched` NÃO é contada: nesse momento ela gera uma atividade
  * real, que passa a ser a fonte contável. Contar as duas dobraria o número.
  *
@@ -155,7 +161,21 @@ export const countMarkedActivitiesInRound = (
     if (suggestion?.matched) return false;
     const selection = normalizeSelection(suggestion?.selections?.[userId]);
     if (!selection) return false;
-    return inWindow(suggestion?.selectionDates?.[userId] || selection.date);
+    // A data da marcação, por ordem de confiança:
+    //  1. `selectionDates[uid]` — campo paralelo que a marcação atual grava;
+    //  2. `suggestionDay` — o DIA DO DOCUMENTO da sugestão. A sugestão mora em
+    //     `dailySuggestions/{dia}` e o app só marca o documento de HOJE, logo o
+    //     dia do documento é a data exata da marcação. É o que resgata as
+    //     marcações feitas antes de `selectionDates` existir, que ficavam
+    //     visíveis na lista como "Sua escolha!" e invisíveis para o painel —
+    //     o usuário marcava e continuava vendo zero;
+    //  3. `selection.date` — formato de objeto, quando houver.
+    // Não é soma a um ciclo arbitrário: o dia do documento é dado exato.
+    return inWindow(
+      suggestion?.selectionDates?.[userId] ||
+        suggestion?.suggestionDay ||
+        selection.date
+    );
   }).length;
 
   return fromActivities + fromSuggestions;

@@ -41,18 +41,28 @@ function enumerateDays(startDate, endDate, limit = MAX_WINDOW_DAYS) {
  */
 async function loadWindowSuggestions(coupleRef, startDate, endDate) {
   const days = enumerateDays(startDate, endDate);
+  // Cada leitura leva o DIA junto: o dia do documento é a data exata da
+  // marcação (a sugestão mora em `dailySuggestions/{dia}` e o app só marca o
+  // documento de hoje). Sem isso, marcação anterior à existência de
+  // `selectionDates` fica fora da contagem — e o job penalizaria quem marcou.
   const requests = [];
   for (const day of days) {
     for (const name of ['dailySuggestions', 'hotSuggestions']) {
-      requests.push(coupleRef.collection(name).doc(day).get().catch(() => null));
+      requests.push({
+        day,
+        promise: coupleRef.collection(name).doc(day).get().catch(() => null),
+      });
     }
   }
-  const snaps = await Promise.all(requests);
+  const settled = await Promise.all(requests.map((r) => r.promise));
   const merged = {};
-  for (const snap of snaps) {
-    if (!snap || !snap.exists) continue;
-    Object.assign(merged, snap.data()?.suggestions || {});
-  }
+  settled.forEach((snap, index) => {
+    if (!snap || !snap.exists) return;
+    const day = requests[index].day;
+    for (const [id, suggestion] of Object.entries(snap.data()?.suggestions || {})) {
+      merged[id] = { ...suggestion, suggestionDay: day };
+    }
+  });
   return merged;
 }
 
